@@ -1,0 +1,18 @@
+[
+  {
+    "documentId": "user-alex-001",
+    "userSlug": "alex-k",
+    "name": "Alex",
+    "email": "alex@example.com",
+    "role": "student",
+    "level": "A1",
+    "avatar": "/images/avatars/alex.png",
+    "enrolledCourses": ["english-kids-starter"],
+    "progress": {
+      "lesson-abc": "completed",
+      "lesson-greetings": "inProgress"
+    },
+    "achievements": ["first-lesson", "streak-3"],
+    "preferences": { "studyDays": ["Mon", "Wed"], "format": "group" }
+  }
+]

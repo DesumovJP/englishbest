@@ -1,0 +1,73 @@
+[
+  {
+    "documentId": "course-english-kids-1",
+    "slug": "english-kids-starter",
+    "title": "English for Kids — Starter",
+    "level": "A1",
+    "price": 19.99,
+    "teacherSlug": "teacher-olga",
+    "teacherName": "Olga Kovalenko",
+    "thumbnail": "/images/courses/kids-starter.png",
+    "description": "A fun and engaging course for young learners to start their English journey with games and songs.",
+    "sections": [
+      {
+        "slug": "basics-1",
+        "title": "Basics 1",
+        "lessons": ["lesson-abc", "lesson-greetings"]
+      },
+      {
+        "slug": "colors-and-numbers",
+        "title": "Colors & Numbers",
+        "lessons": ["lesson-colors", "lesson-numbers"]
+      }
+    ],
+    "tags": ["kids", "speaking", "fun"],
+    "rating": 4.8,
+    "reviewCount": 124,
+    "status": "available"
+  },
+  {
+    "documentId": "course-english-teens-1",
+    "slug": "english-teens-a2",
+    "title": "English for Teens — A2",
+    "level": "A2",
+    "price": 24.99,
+    "teacherSlug": "teacher-max",
+    "teacherName": "Max Petrenko",
+    "thumbnail": "/images/courses/teens-a2.png",
+    "description": "Boost your English skills with interactive lessons designed for teenagers.",
+    "sections": [
+      {
+        "slug": "daily-life",
+        "title": "Daily Life",
+        "lessons": ["lesson-daily-routines", "lesson-hobbies"]
+      }
+    ],
+    "tags": ["teens", "grammar", "speaking"],
+    "rating": 4.6,
+    "reviewCount": 89,
+    "status": "available"
+  },
+  {
+    "documentId": "course-english-adults-b1",
+    "slug": "english-adults-b1",
+    "title": "Business English — B1",
+    "level": "B1",
+    "price": 34.99,
+    "teacherSlug": "teacher-anna",
+    "teacherName": "Anna Bondarenko",
+    "thumbnail": "/images/courses/adults-b1.png",
+    "description": "Professional English for adults targeting B1 level with focus on workplace communication.",
+    "sections": [
+      {
+        "slug": "workplace",
+        "title": "Workplace Communication",
+        "lessons": ["lesson-emails", "lesson-meetings"]
+      }
+    ],
+    "tags": ["adults", "business", "writing"],
+    "rating": 4.9,
+    "reviewCount": 203,
+    "status": "comingSoon"
+  }
+]

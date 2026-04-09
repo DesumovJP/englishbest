@@ -1,0 +1,44 @@
+{
+  "levelTest": [
+    {
+      "documentId": "q-level-1",
+      "question": "Choose the correct form: She ___ a teacher.",
+      "options": ["am", "is", "are", "be"],
+      "answer": 1,
+      "level": "A1"
+    },
+    {
+      "documentId": "q-level-2",
+      "question": "What is the past tense of 'go'?",
+      "options": ["goed", "went", "gone", "going"],
+      "answer": 1,
+      "level": "A2"
+    },
+    {
+      "documentId": "q-level-3",
+      "question": "Choose the correct sentence:",
+      "options": ["I have been waiting for an hour.", "I have wait for an hour.", "I am waiting since an hour.", "I waited for one hour ago."],
+      "answer": 0,
+      "level": "B1"
+    },
+    {
+      "documentId": "q-level-4",
+      "question": "The proposal ___ by the committee yesterday.",
+      "options": ["rejected", "was rejected", "has rejected", "is rejecting"],
+      "answer": 1,
+      "level": "B2"
+    },
+    {
+      "documentId": "q-level-5",
+      "question": "Choose the word that best completes: The speaker's eloquent ___ captivated the audience.",
+      "options": ["speech", "oratory", "talk", "saying"],
+      "answer": 1,
+      "level": "C1"
+    }
+  ],
+  "levelMap": {
+    "0-1": { "level": "A1", "recommendedCourseSlug": "english-kids-starter" },
+    "2-2": { "level": "A2", "recommendedCourseSlug": "english-teens-a2" },
+    "3-5": { "level": "B1", "recommendedCourseSlug": "english-adults-b1" }
+  }
+}

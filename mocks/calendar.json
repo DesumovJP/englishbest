@@ -1,0 +1,38 @@
+[
+  {
+    "documentId": "session-001",
+    "title": "Live Group Lesson — Starter",
+    "courseSlug": "english-kids-starter",
+    "date": "2026-04-01",
+    "time": "10:00",
+    "duration": 60,
+    "type": "group",
+    "teacherSlug": "teacher-olga",
+    "status": "upcoming",
+    "joinUrl": "#"
+  },
+  {
+    "documentId": "session-002",
+    "title": "1-on-1 Speaking Practice",
+    "courseSlug": "english-kids-starter",
+    "date": "2026-04-03",
+    "time": "14:00",
+    "duration": 45,
+    "type": "one-to-one",
+    "teacherSlug": "teacher-olga",
+    "status": "upcoming",
+    "joinUrl": "#"
+  },
+  {
+    "documentId": "session-003",
+    "title": "Live Group Lesson — Grammar",
+    "courseSlug": "english-teens-a2",
+    "date": "2026-03-25",
+    "time": "11:00",
+    "duration": 60,
+    "type": "group",
+    "teacherSlug": "teacher-max",
+    "status": "completed",
+    "grade": 85
+  }
+]

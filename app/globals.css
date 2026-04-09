@@ -1,26 +1,154 @@
 @import "tailwindcss";
+@source not "../storybook-static";
+@source not "../node_modules";
+@source not "../docs";
+@source not "../PLAN.md";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  /* ── Brand colors ───────────────────────────────────────────── */
+  --color-primary:       #52c41a;
+  --color-primary-dark:  #389e0d;
+  --color-primary-light: #95de64;
+
+  --color-secondary:      #1CB0F6;
+  --color-secondary-dark: #0e8bc2;
+
+  --color-accent:      #FF9600;
+  --color-accent-dark: #cc7800;
+
+  --color-danger:      #FF4B4B;
+  --color-danger-dark: #cc2e2e;
+
+  --color-success:      #10b981;
+  --color-success-dark: #059669;
+
+  --color-purple:      #CE82FF;
+  --color-purple-dark: #9b5dd5;
+
+  /* ── Coin / shop ────────────────────────────────────────────── */
+  --color-coin:        #b45309;
+  --color-coin-bg:     #fffbeb;
+  --color-coin-border: #fde68a;
+
+  /* ── Surfaces ───────────────────────────────────────────────── */
+  --color-surface:       #FFFFFF;
+  --color-surface-muted: #F7F7F7;
+  --color-border:        #E5E5E5;
+
+  /* ── Text ───────────────────────────────────────────────────── */
+  --color-ink:       #1f1f1f;
+  --color-ink-muted: #6b7280;
+  --color-ink-faint: #afafaf;
+
+  /* ── Border radius ──────────────────────────────────────────── */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* ── Base ─────────────────────────────────────────────────────── */
+@layer base {
+  body {
+    @apply text-ink bg-surface-muted;
+    font-family: var(--font-geist-sans), sans-serif;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* ── Keyframes ────────────────────────────────────────────────── */
+@keyframes slide-up {
+  from { transform: translateY(100%); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-12px); }
+}
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes pop-in {
+  0%   { opacity: 0; transform: scale(0.7); }
+  70%  { transform: scale(1.08); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@keyframes bounce-in {
+  0%   { opacity: 0; transform: scale(0.3); }
+  50%  { transform: scale(1.1); }
+  80%  { transform: scale(0.95); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%       { transform: translateX(-6px); }
+  40%       { transform: translateX(6px); }
+  60%       { transform: translateX(-4px); }
+  80%       { transform: translateX(4px); }
+}
+
+/* ── Utilities ────────────────────────────────────────────────── */
+@layer utilities {
+  /* Animations */
+  .animate-slide-up   { animation: slide-up   0.22s cubic-bezier(0.22, 1, 0.36, 1) both; }
+  .animate-fade-in-up { animation: fade-in-up 0.5s  cubic-bezier(0.22, 1, 0.36, 1) both; }
+  .animate-pop-in     { animation: pop-in     0.4s  cubic-bezier(0.22, 1, 0.36, 1) both; }
+  .animate-bounce-in  { animation: bounce-in  0.6s  cubic-bezier(0.22, 1, 0.36, 1) both; }
+  .animate-float      { animation: float      3s    ease-in-out infinite; }
+  .animate-shake      { animation: shake      0.3s  ease-in-out; }
+
+  /* 3D press shadows — paired with active:translate-y-1 */
+  .shadow-press-primary   { box-shadow: 0 5px 0 var(--color-primary-dark); }
+  .shadow-press-secondary { box-shadow: 0 5px 0 var(--color-secondary-dark); }
+  .shadow-press-accent    { box-shadow: 0 5px 0 var(--color-accent-dark); }
+  .shadow-press-danger    { box-shadow: 0 5px 0 var(--color-danger-dark); }
+  .shadow-press-purple    { box-shadow: 0 5px 0 var(--color-purple-dark); }
+  .shadow-press-success   { box-shadow: 0 5px 0 var(--color-success-dark); }
+
+  /* Active pressed state for all press shadows */
+  .active\:shadow-press-sm:active { box-shadow: 0 2px 0 currentColor; }
+
+  /* Card shadow */
+  .shadow-card { box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+  .shadow-card-md { box-shadow: 0 4px 24px rgba(0,0,0,0.10); }
+
+  /* Gradient backgrounds */
+  .bg-hero-kids { background: linear-gradient(160deg, #d4f5b8 0%, #c8eeff 100%); }
+  .bg-xp-bar    { background: linear-gradient(90deg, var(--color-primary), var(--color-primary-light)); }
+
+  /* Custom select arrow (primary color chevron) */
+  .select-arrow-primary {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2352c41a' stroke-width='2.5' stroke-linecap='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+  }
+
+  /* Page-specific gradients */
+  .bg-lesson-map     { background: linear-gradient(180deg, #e0f2fe 0%, #ede9fe 40%, #fef3c7 100%); }
+  .bg-lesson-engine  { background: linear-gradient(160deg, #dbeafe 0%, #ede9fe 50%, #fef3c7 100%); }
+  .bg-lesson-success { background: linear-gradient(180deg, #2e1065 0%, #3b0764 40%, #4c1d95 100%); }
+
+  /* Kids room scene */
+  .bg-room-dark       { background: #1a1a2e; }
+  .bg-wall-gradient   { background: linear-gradient(180deg, #fef6e4 0%, #fdecc8 60%, #fde0b0 100%); }
+  .bg-wall-sunlight   { background: radial-gradient(ellipse 55% 90% at 50% 10%, rgba(254,240,138,0.3) 0%, transparent 70%); }
+  .bg-wall-edge-left  { background: linear-gradient(90deg, rgba(0,0,0,0.1) 0%, transparent 100%); }
+  .bg-wall-edge-right { background: linear-gradient(270deg, rgba(0,0,0,0.1) 0%, transparent 100%); }
+  .bg-dado-rail       { background: linear-gradient(180deg,#e9c46a,#f4a261); box-shadow: 0 2px 4px rgba(0,0,0,0.15); }
+  .bg-shop-rare        { background: linear-gradient(145deg,#fef9c3,#fde68a); }
+  .bg-floor-wood       { background: linear-gradient(180deg, #e8c050 0%, #c87828 55%, #b06018 100%); }
+  .bg-floor-vignette   { background: linear-gradient(180deg, rgba(255,255,255,0.18) 0%, rgba(0,0,0,0.18) 100%); }
+  .bg-wall-floor-edge  { background: linear-gradient(180deg, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.0) 100%); }
+  .drop-shadow-item    { filter: drop-shadow(0 6px 8px rgba(0,0,0,0.22)); }
+  .drop-shadow-floor   { filter: drop-shadow(0px 6px 8px rgba(0,0,0,0.28)); }
+
+  /* Animation delays — use with animate-* classes */
+  .anim-delay-100 { animation-delay: 0.1s; }
+  .anim-delay-150 { animation-delay: 0.15s; }
+  .anim-delay-200 { animation-delay: 0.2s; }
+  .anim-delay-300 { animation-delay: 0.3s; }
+  .anim-delay-400 { animation-delay: 0.4s; }
+  .anim-delay-450 { animation-delay: 0.45s; }
+  .anim-delay-500 { animation-delay: 0.5s; }
+  .anim-delay-600 { animation-delay: 0.6s; }
 }
