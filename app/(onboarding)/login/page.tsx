@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import CompanionSVG from '@/components/kids/CompanionSVG';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -22,128 +23,94 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex">
 
-      {/* ── Ліва панель — маркетинг ── */}
-      <aside className="hidden lg:flex flex-col justify-between w-[460px] flex-shrink-0 bg-ink px-10 py-12 relative overflow-hidden">
+      {/* ── Ліва панель — персонажі ── */}
+      <aside className="hidden lg:flex flex-col w-[460px] flex-shrink-0 relative overflow-hidden bg-gradient-to-b from-primary to-primary-dark">
 
-        {/* Декоративне тло */}
-        <div className="absolute inset-0 pointer-events-none select-none" aria-hidden>
-          {/* Великий фоновий текст */}
-          <span className="absolute -bottom-6 -left-4 text-[200px] font-black text-white/[0.03] leading-none tracking-tighter">
-            EN
-          </span>
-          {/* Кола */}
-          <div className="absolute top-1/4 -right-20 w-64 h-64 rounded-full bg-primary/10 blur-3xl" />
-          <div className="absolute bottom-1/4 -left-20 w-48 h-48 rounded-full bg-primary/8 blur-2xl" />
+        {/* Декоративні кола */}
+        <div className="absolute -top-16 -left-16 w-56 h-56 rounded-full bg-white/10 pointer-events-none" aria-hidden />
+        <div className="absolute top-32 -right-10 w-36 h-36 rounded-full bg-white/8 pointer-events-none" aria-hidden />
+        <div className="absolute bottom-32 -left-10 w-28 h-28 rounded-full bg-white/8 pointer-events-none" aria-hidden />
+
+        {/* Плаваючі бейджі */}
+        <div className="absolute top-24 right-8 flex flex-col gap-3 pointer-events-none" aria-hidden>
+          <div className="bg-white/15 backdrop-blur-sm rounded-2xl px-3 py-2 flex items-center gap-2 shadow-lg">
+            <span className="text-lg">🔥</span>
+            <div>
+              <p className="text-white font-black text-sm leading-none">14 днів</p>
+              <p className="text-white/60 text-xs">серія</p>
+            </div>
+          </div>
+          <div className="bg-white/15 backdrop-blur-sm rounded-2xl px-3 py-2 flex items-center gap-2 shadow-lg">
+            <span className="text-lg">⭐</span>
+            <div>
+              <p className="text-white font-black text-sm leading-none">2 450 XP</p>
+              <p className="text-white/60 text-xs">цього тижня</p>
+            </div>
+          </div>
         </div>
 
         {/* Логотип */}
-        <div className="relative flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center flex-shrink-0">
-            <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" aria-hidden>
+        <div className="relative z-10 px-10 pt-10 flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
+            <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" aria-hidden>
               <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
             </svg>
           </div>
-          <span className="text-lg font-black text-white tracking-tight">
-            English<span className="text-primary">Best</span>
+          <span className="font-black text-white tracking-tight">
+            English<span className="text-white/70">Best</span>
           </span>
         </div>
 
-        {/* Центральний блок */}
-        <div className="relative flex flex-col gap-10">
-
-          {/* Головна статистика */}
-          <div>
-            <p className="text-[72px] font-black text-white leading-none tracking-tight">
-              1 200
-              <span className="text-primary">+</span>
+        {/* Мовна бульбашка */}
+        <div className="relative z-10 mx-10 mt-10">
+          <div className="bg-white rounded-3xl rounded-bl-sm px-5 py-4 shadow-lg inline-block max-w-[220px]">
+            <p className="font-black text-ink text-base leading-snug">
+              Ти не забув про мене? 👀
             </p>
-            <p className="text-white/50 text-base mt-2 font-medium">
-              учнів у 5 країнах вже з нами
+            <p className="text-ink-muted text-sm mt-1">
+              Твоя серія чекає!
             </p>
-            {/* Аватарки */}
-            <div className="flex items-center gap-3 mt-5">
-              <div className="flex">
-                {[
-                  { id: 12, g: 'women' },
-                  { id: 44, g: 'women' },
-                  { id: 32, g: 'men' },
-                  { id: 65, g: 'women' },
-                  { id: 23, g: 'women' },
-                ].map((a, i) => (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    key={a.id}
-                    src={`https://randomuser.me/api/portraits/${a.g}/${a.id}.jpg`}
-                    alt=""
-                    aria-hidden
-                    className={`w-8 h-8 rounded-full border-2 border-ink object-cover${i > 0 ? ' -ml-2' : ''}`}
-                  />
-                ))}
-              </div>
-              <div className="flex items-center gap-1">
-                {[1,2,3,4,5].map(s => (
-                  <span key={s} className="text-accent text-xs">★</span>
-                ))}
-                <span className="text-white/50 text-xs ml-1">4.9</span>
-              </div>
-            </div>
           </div>
+          {/* Хвостик бульбашки */}
+          <div
+            className="absolute -bottom-3 left-8 w-0 h-0"
+            style={{
+              borderLeft: '12px solid transparent',
+              borderRight: '0px solid transparent',
+              borderTop: '14px solid white',
+            }}
+            aria-hidden
+          />
+        </div>
 
-          {/* Шлях рівнів */}
-          <div>
-            <p className="text-xs font-black text-white/30 uppercase tracking-widest mb-4">
-              Всі рівні в одній школі
-            </p>
-            <div className="flex items-center gap-2 flex-wrap">
-              {[
-                { level: 'A0', label: 'Стартер',    color: 'bg-danger/20 text-danger border-danger/30' },
-                { level: 'A1', label: 'Базовий',    color: 'bg-accent/20 text-accent border-accent/30' },
-                { level: 'A2', label: 'Передній',   color: 'bg-accent/20 text-accent border-accent/30' },
-                { level: 'B1', label: 'Середній',   color: 'bg-success/20 text-success border-success/30' },
-                { level: 'B2', label: 'Впевнений',  color: 'bg-primary/30 text-primary border-primary/40' },
-              ].map((l, i) => (
-                <div key={l.level} className="flex items-center gap-2">
-                  <span className={`text-xs font-black px-2.5 py-1 rounded-lg border ${l.color}`}>
-                    {l.level}
-                  </span>
-                  {i < 4 && <span className="text-white/20 text-xs">→</span>}
-                </div>
-              ))}
-            </div>
-          </div>
+        {/* Персонажі */}
+        <div className="relative z-10 flex-1 flex items-end justify-center pb-0">
+          <div className="relative flex items-end justify-center w-full">
 
-          {/* Відгук */}
-          <div className="bg-white/5 border border-white/10 rounded-2xl p-5 flex flex-col gap-4">
-            <div className="flex gap-0.5">
-              {[1,2,3,4,5].map(s => <span key={s} className="text-accent text-sm">★</span>)}
+            {/* Дракончик зліва (менший) */}
+            <div className="absolute left-6 bottom-0 opacity-80" style={{ transform: 'scale(1.3) scaleX(-1)', transformOrigin: 'bottom center' }}>
+              <CompanionSVG animal="dragon" mood="happy" />
             </div>
-            <p className="text-white/70 text-sm leading-relaxed italic">
-              &ldquo;Микола вже рік займається з Maria S. Здав шкільний тест на 94 бали.
-              Головне — він перестав боятись говорити англійською.&rdquo;
-            </p>
-            <div className="flex items-center gap-3">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="https://randomuser.me/api/portraits/men/22.jpg"
-                alt=""
-                aria-hidden
-                className="w-8 h-8 rounded-full object-cover border border-white/20"
-              />
-              <div>
-                <p className="text-white text-xs font-bold">Дмитро Бондаренко</p>
-                <p className="text-white/40 text-xs">тато Миколи, 10 років</p>
-              </div>
+
+            {/* Лисиця по центру (головна) */}
+            <div style={{ transform: 'scale(1.75)', transformOrigin: 'bottom center', marginBottom: 0 }}>
+              <CompanionSVG animal="fox" mood="excited" />
+            </div>
+
+            {/* Кролик справа (менший) */}
+            <div className="absolute right-6 bottom-0 opacity-80" style={{ transform: 'scale(1.3)', transformOrigin: 'bottom center' }}>
+              <CompanionSVG animal="rabbit" mood="happy" />
             </div>
           </div>
         </div>
 
-        {/* Футер */}
-        <p className="relative text-white/20 text-xs">© 2026 EnglishBest</p>
+        {/* Зелена підлога */}
+        <div className="h-10 bg-primary-dark w-full flex-shrink-0" />
       </aside>
 
       {/* ── Права панель — форма ── */}
-      <main className="flex-1 flex items-center justify-center bg-surface-muted px-5 py-12">
-        <div className="w-full max-w-[360px]">
+      <main className="flex-1 flex items-center justify-center bg-surface-muted px-5 py-12 min-h-screen">
+        <div className="w-full max-w-[380px]">
 
           {/* Мобільний логотип */}
           <Link href="/home" className="inline-flex items-center gap-2 mb-10 lg:hidden">
@@ -157,8 +124,29 @@ export default function LoginPage() {
 
           {/* Заголовок */}
           <div className="mb-8">
-            <h1 className="text-3xl font-black text-ink tracking-tight">З поверненням</h1>
-            <p className="text-ink-muted text-sm mt-2">Введіть дані для входу в особистий кабінет</p>
+            <h1 className="text-3xl font-black text-ink tracking-tight">З поверненням!</h1>
+            <p className="text-ink-muted text-sm mt-2">Твої персонажі вже чекають на тебе</p>
+          </div>
+
+          {/* Google-кнопка */}
+          <button
+            type="button"
+            className="w-full h-14 rounded-2xl border-2 border-border bg-white flex items-center justify-center gap-3 font-bold text-ink text-sm hover:bg-surface-muted hover:border-primary/30 transition-all shadow-sm"
+          >
+            <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24" aria-hidden>
+              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
+              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05" />
+              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
+            </svg>
+            Увійти через Google
+          </button>
+
+          {/* Або */}
+          <div className="flex items-center gap-4 my-5">
+            <div className="flex-1 h-px bg-border" />
+            <span className="text-xs font-bold text-ink-muted">або</span>
+            <div className="flex-1 h-px bg-border" />
           </div>
 
           {/* Форма */}
@@ -170,7 +158,7 @@ export default function LoginPage() {
                 Номер телефону
               </label>
               <div className="flex gap-2">
-                <div className="flex items-center h-14 px-3.5 rounded-2xl border border-border bg-white text-sm font-semibold text-ink-muted whitespace-nowrap select-none">
+                <div className="flex items-center h-14 px-3.5 rounded-2xl border-2 border-border bg-white text-sm font-semibold text-ink whitespace-nowrap select-none">
                   🇺🇦 +38
                 </div>
                 <input
@@ -181,7 +169,7 @@ export default function LoginPage() {
                   placeholder="(0XX) XXX-XX-XX"
                   required
                   autoComplete="tel"
-                  className="flex-1 h-14 px-4 rounded-2xl border border-border bg-white text-sm text-ink font-medium focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-ink-muted"
+                  className="flex-1 h-14 px-4 rounded-2xl border-2 border-border bg-white text-sm text-ink font-medium focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all placeholder:text-ink-muted"
                 />
               </div>
             </div>
@@ -205,7 +193,7 @@ export default function LoginPage() {
                   placeholder="••••••••"
                   required
                   autoComplete="current-password"
-                  className="w-full h-14 pl-4 pr-12 rounded-2xl border border-border bg-white text-sm text-ink font-medium focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-ink-muted"
+                  className="w-full h-14 pl-4 pr-12 rounded-2xl border-2 border-border bg-white text-sm text-ink font-medium focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all placeholder:text-ink-muted"
                 />
                 <button
                   type="button"
@@ -239,19 +227,15 @@ export default function LoginPage() {
               </div>
             )}
 
-            {/* Кнопка з 3D press-ефектом */}
+            {/* 3D-кнопка Duolingo style */}
             <button
               type="submit"
               disabled={loading || !phone || !password}
-              className="
-                relative w-full h-14 rounded-2xl font-black text-base text-white mt-2
-                bg-primary
-                shadow-[0_5px_0_theme(colors.primary-dark)]
-                transition-all duration-100
-                hover:brightness-105
-                active:translate-y-[3px] active:shadow-[0_2px_0_theme(colors.primary-dark)]
-                disabled:opacity-40 disabled:cursor-not-allowed disabled:translate-y-0 disabled:shadow-[0_5px_0_theme(colors.primary-dark)]
-              "
+              onMouseDown={e => { if (!e.currentTarget.disabled) e.currentTarget.style.cssText += 'transform:translateY(4px);box-shadow:0 2px 0 var(--color-primary-dark)'; }}
+              onMouseUp={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; }}
+              className="relative w-full h-14 rounded-2xl font-black text-base text-white mt-2 bg-primary hover:brightness-105 transition-[filter] disabled:opacity-40 disabled:cursor-not-allowed"
+              style={{ boxShadow: '0 5px 0 var(--color-primary-dark)' }}
             >
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
@@ -267,15 +251,13 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {/* Низ форми */}
-          <div className="mt-8 text-center">
-            <p className="text-sm text-ink-muted">
-              Немає акаунту?{' '}
-              <Link href="#" className="font-bold text-primary hover:underline">
-                Зверніться до адміністратора
-              </Link>
-            </p>
-          </div>
+          {/* Низ */}
+          <p className="text-center text-sm text-ink-muted mt-8">
+            Немає акаунту?{' '}
+            <Link href="#" className="font-bold text-primary hover:underline">
+              Зверніться до адміністратора
+            </Link>
+          </p>
         </div>
       </main>
     </div>
