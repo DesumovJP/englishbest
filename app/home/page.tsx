@@ -76,7 +76,7 @@ export default function HomePage() {
 
             {/* Ліва — текст */}
             <div className="flex flex-col gap-6">
-              <p className="text-xs font-black text-primary uppercase tracking-widest">
+              <p className="type-label text-primary">
                 Онлайн-школа англійської для дітей
               </p>
 
@@ -134,7 +134,7 @@ export default function HomePage() {
         {/* ── Логотипи партнерів ── */}
         <section aria-label="Партнери" className="py-10 px-5 border-y border-border bg-white">
           <div className="max-w-5xl mx-auto flex flex-col gap-5 items-center">
-            <p className="text-xs font-black text-ink-muted uppercase tracking-widest text-center">Нам довіряють</p>
+            <p className="type-label text-ink-muted text-center">Нам довіряють</p>
             <div className="flex flex-wrap items-center justify-center gap-8 md:gap-12">
               {[
                 'Lingua Kids Academy',
@@ -155,8 +155,8 @@ export default function HomePage() {
         <section className="py-20 px-5 bg-white">
           <div className="max-w-5xl mx-auto flex flex-col gap-12">
             <div>
-              <p className="text-xs font-black text-primary uppercase tracking-widest mb-3">Простий старт</p>
-              <h2 className="text-3xl md:text-4xl font-black text-ink leading-tight">
+              <p className="type-label text-primary mb-3">Простий старт</p>
+              <h2 className="type-h1 text-ink">
                 Як відбувається запис
               </h2>
             </div>
@@ -194,7 +194,7 @@ export default function HomePage() {
                   </p>
                   <span className="text-3xl">{s.emoji}</span>
                   <div>
-                    <h3 className="font-black text-ink text-lg leading-snug">{s.title}</h3>
+                    <h3 className="type-h3 text-ink">{s.title}</h3>
                     <p className="text-sm text-ink-muted mt-2 leading-relaxed">{s.desc}</p>
                   </div>
                 </div>
@@ -210,8 +210,8 @@ export default function HomePage() {
             {/* Заголовок */}
             <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
               <div>
-                <p className="text-xs font-black text-primary uppercase tracking-widest mb-3">Наша методика</p>
-                <h2 className="text-3xl md:text-4xl font-black text-ink leading-tight">
+                <p className="type-label text-primary mb-3">Наша методика</p>
+                <h2 className="type-h1 text-ink">
                   Ми навчаємо по-іншому
                 </h2>
               </div>
@@ -336,8 +336,8 @@ export default function HomePage() {
         <section id="formats" className="py-20 px-5 bg-surface-muted">
           <div className="max-w-5xl mx-auto flex flex-col gap-12">
             <div>
-              <p className="text-xs font-black text-primary uppercase tracking-widest mb-3">Формати</p>
-              <h2 className="text-3xl md:text-4xl font-black text-ink leading-tight">
+              <p className="type-label text-primary mb-3">Формати</p>
+              <h2 className="type-h1 text-ink">
                 Оберіть формат навчання
               </h2>
               <p className="text-ink-muted mt-3 text-sm max-w-xl leading-relaxed">
@@ -388,7 +388,7 @@ export default function HomePage() {
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3">
                       <span className="text-3xl">{f.emoji}</span>
-                      <h3 className="font-black text-ink text-xl">{f.title}</h3>
+                      <h3 className="type-h3 text-ink">{f.title}</h3>
                     </div>
                     <span className={`text-xs font-bold px-2.5 py-1 rounded-full whitespace-nowrap ${f.badgeColor}`}>
                       {f.badge}
@@ -418,8 +418,8 @@ export default function HomePage() {
           <div className="max-w-5xl mx-auto flex flex-col gap-12">
             <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
               <div>
-                <p className="text-xs font-black text-primary uppercase tracking-widest mb-3">Прозорі ціни</p>
-                <h2 className="text-3xl md:text-4xl font-black text-ink leading-tight">
+                <p className="type-label text-primary mb-3">Прозорі ціни</p>
+                <h2 className="type-h1 text-ink">
                   Оберіть свій план
                 </h2>
               </div>
@@ -527,9 +527,9 @@ export default function HomePage() {
         <section className="py-20 px-5 bg-surface-muted" aria-labelledby="teachers-heading">
           <div className="max-w-5xl mx-auto">
             <div className="mb-12">
-              <p className="text-xs font-black text-primary uppercase tracking-widest mb-3">Вчителі</p>
+              <p className="type-label text-primary mb-3">Вчителі</p>
               <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
-                <h2 id="teachers-heading" className="text-3xl font-black text-ink leading-snug">
+                <h2 id="teachers-heading" className="type-h1 text-ink">
                   50+ сертифікованих вчителів —<br className="hidden md:block" /> для кожного рівня свій
                 </h2>
                 <p className="text-ink-muted text-sm max-w-xs">
@@ -609,8 +609,8 @@ export default function HomePage() {
         <section id="reviews" className="py-20 px-5 bg-white">
           <div className="max-w-5xl mx-auto flex flex-col gap-12">
             <div>
-              <p className="text-xs font-black text-primary uppercase tracking-widest mb-3">Відгуки</p>
-              <h2 className="text-3xl md:text-4xl font-black text-ink leading-tight">
+              <p className="type-label text-primary mb-3">Відгуки</p>
+              <h2 className="type-h1 text-ink">
                 Батьки кажуть про нас
               </h2>
             </div>
@@ -669,7 +669,7 @@ export default function HomePage() {
           <div className="relative max-w-xl mx-auto flex flex-col items-center text-center gap-6">
             <div className="text-5xl">🦉</div>
 
-            <h2 className="text-4xl md:text-5xl font-black text-white leading-[1.05]">
+            <h2 className="type-h1 text-white">
               Спробуйте перший урок безкоштовно
             </h2>
 
@@ -712,7 +712,7 @@ export default function HomePage() {
               { title: 'Підтримка', links: ['Контакти', 'FAQ', 'Умови'] },
             ].map(col => (
               <div key={col.title}>
-                <p className="font-black text-xs text-white/40 uppercase tracking-widest mb-4">
+                <p className="type-label text-white/40 mb-4">
                   {col.title}
                 </p>
                 <ul className="flex flex-col gap-2.5">

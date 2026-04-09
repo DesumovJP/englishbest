@@ -6,10 +6,7 @@ import CompanionSVG, { type CompanionMood } from "@/components/kids/CompanionSVG
 import {
   KidsStatBar,
   KidsButton,
-  KidsCard,
-  KidsChallengeItem,
   KidsNavCard,
-  KidsProgressBar,
 } from "@/components/kids/ui";
 
 /* ── Mood config ───────────────────────────────────────────────── */
@@ -30,16 +27,16 @@ const MOOD_LABEL: Record<CompanionMood, string> = {
 };
 
 const BUBBLES: Record<CompanionMood, string[]> = {
-  idle:      ["Привіт! Що сьогодні вивчимо? ✨", "Готовий до уроку? 📚"],
-  happy:     ["Ура! Ти справжня зірка! 🌟", "Я так радий тебе бачити! 🔥"],
-  sad:       ["Де ти пропав? Я сумував… 🥺", "Один урок — і я щасливий! 💛"],
-  celebrate: ["ВІТАЮ! НОВИЙ РЕКОРД! 🏆", "Ти зробив це! Неймовірно! 🎊"],
-  excited:   ["ОО! НОВИЙ УРОК! Швидше! ⚡", "Я ГОТОВИЙ! А ТИ?! 🚀"],
-  sleepy:    ["Zzz... А? О, урок... 😴", "Може, спочатку кава... ☕"],
-  surprised: ["ОМГ! Ти вже тут?! 😲", "Не чекав на тебе так рано! 🎊"],
-  love:      ["Ти мій найулюбленіший учень! 💖", "Так приємно вчитись разом! ❤️"],
-  angry:     ["ЧОМУ ТАК ДОВГО?! 😤", "Урок сам себе не пройде! 😠"],
-  cool:      ["Все під контролем 😎", "Буде легко. Я ж крутий 🕶️"],
+  idle:      ["Привіт! Що сьогодні вивчимо?", "Готовий до уроку?"],
+  happy:     ["Ура! Ти справжня зірка!", "Я так радий тебе бачити!"],
+  sad:       ["Де ти пропав? Я сумував…", "Один урок — і я щасливий!"],
+  celebrate: ["Вітаю! Новий рекорд!", "Ти зробив це! Неймовірно!"],
+  excited:   ["Новий урок! Швидше!", "Я готовий! А ти?!"],
+  sleepy:    ["Zzz... А? О, урок...", "Може, спочатку кава..."],
+  surprised: ["Ти вже тут?!", "Не чекав на тебе так рано!"],
+  love:      ["Ти мій найулюбленіший учень!", "Так приємно вчитись разом!"],
+  angry:     ["Чому так довго?!", "Урок сам себе не пройде!"],
+  cool:      ["Все під контролем.", "Буде легко. Я ж крутий."],
 };
 
 function randomBubble(mood: CompanionMood) {
@@ -48,140 +45,234 @@ function randomBubble(mood: CompanionMood) {
 }
 
 /* ── Static page data ─────────────────────────────────────────── */
-const CHALLENGES: {
-  icon: string; label: string; xp: number; done: boolean;
-  token: 'accent' | 'secondary' | 'purple';
-}[] = [
-  { icon: "🔥", label: "Зроби 1 урок",       xp: 50, done: true,  token: "accent" },
-  { icon: "📝", label: "Вивчи 5 нових слів",  xp: 30, done: false, token: "secondary" },
-  { icon: "⚡", label: "Пройди міні-тест",     xp: 20, done: false, token: "purple" },
+const LESSON = {
+  unit: 3, unitTitle: "Тварини та природа",
+  lessonNum: 10, lessonTitle: "Дикі тварини",
+  emoji: "🦁", lessonsCompleted: 9, lessonsTotal: 15, xpReward: 15,
+};
+
+const CHALLENGES = [
+  { icon: "🔥", label: "Зроби 1 урок",       xp: 50, done: true  },
+  { icon: "📝", label: "Вивчи 5 нових слів",  xp: 30, done: false },
+  { icon: "⚡", label: "Пройди міні-тест",     xp: 20, done: false },
 ];
 
-/* ── Companion hero panel ─────────────────────────────────────── */
-interface CompanionPanelProps {
-  name: string;
-  animal: string;
-  mood: CompanionMood;
-  bubble: string;
-  bounceKey: number;
-  onTap: () => void;
-}
-
-function CompanionPanel({ name, animal, mood, bubble, bounceKey, onTap }: CompanionPanelProps) {
+/* ── Desktop: sticky companion panel ─────────────────────────── */
+function CompanionPanel({ name, animal, mood, bubble, bounceKey, onTap }: {
+  name: string; animal: string; mood: CompanionMood;
+  bubble: string; bounceKey: number; onTap: () => void;
+}) {
   return (
-    <KidsCard variant="hero" className="mx-4 mt-4">
-      <div className="flex flex-col items-center px-8 py-6 gap-0">
-        {/* Greeting */}
-        <div className="w-full mb-3">
-          <p className="text-sm font-bold text-ink-muted">Привіт,</p>
-          <h1 className="text-3xl font-black text-ink">{name} 👋</h1>
-        </div>
+    <div className="h-full flex flex-col px-8 py-10">
 
-        {/* Speech bubble */}
-        <div className="relative mb-1 max-w-[240px]">
-          <div className="bg-surface rounded-2xl px-4 py-3 shadow-card-md">
-            <p className="text-sm font-bold text-ink text-center leading-snug">{bubble}</p>
+      {/* Greeting */}
+      <div className="shrink-0">
+        <p className="text-sm font-bold text-ink-muted/70">Привіт,</p>
+        <h1 className="text-3xl font-black text-ink mt-0.5">{name} 👋</h1>
+      </div>
+
+      {/* Center: bubble + character together */}
+      <div className="flex-1 flex flex-col items-center justify-center">
+
+        {/* Speech bubble — above the character */}
+        <div className="relative self-start mb-10">
+          <div className="bg-surface rounded-2xl px-4 py-3 shadow-card-md max-w-[220px]">
+            <p className="text-sm font-bold text-ink leading-snug">{bubble}</p>
           </div>
-          {/* Triangle tail */}
-          <div className="absolute left-1/2 -translate-x-1/2 -bottom-3 w-0 h-0"
+          <div
+            className="absolute left-6 -bottom-3 w-0 h-0"
             style={{
               borderLeft: "10px solid transparent",
               borderRight: "10px solid transparent",
               borderTop: "12px solid var(--color-surface)",
             }}
+            aria-hidden
           />
         </div>
 
-        {/* Companion — scaled up, bounces on mood change */}
+        {/* Character — scale on outer, bounce on inner to avoid override conflict */}
         <button
           onClick={onTap}
-          className="focus:outline-none active:scale-90 transition-transform mt-5"
+          className="focus:outline-none transition-transform active:scale-95"
           aria-label="Змінити настрій"
+          style={{ width: 240, height: 320, display: "flex", alignItems: "flex-end", justifyContent: "center" }}
         >
-          <div className="h-60 flex justify-center">
-            <div
-              key={bounceKey}
-              className="animate-bounce-in"
-              style={{ transform: "scale(1.85)", transformOrigin: "top center" }}
-            >
-              <CompanionSVG animal={animal as Parameters<typeof CompanionSVG>[0]["animal"]} mood={mood} />
+          <div style={{ transform: "scale(2.4)", transformOrigin: "bottom center" }}>
+            <div key={bounceKey} className="animate-bounce-in">
+              <CompanionSVG
+                animal={animal as Parameters<typeof CompanionSVG>[0]["animal"]}
+                mood={mood}
+              />
             </div>
           </div>
         </button>
 
-        {/* Name + mood pill */}
-        <p className="font-black text-xl text-ink mt-2">{name}</p>
-        <div className="flex items-center gap-1.5 bg-surface/80 rounded-full px-4 py-1.5 mt-2 shadow-card">
-          <span className="text-lg">{MOOD_EMOJI[mood]}</span>
+      </div>
+
+      {/* Mood pill */}
+      <div className="shrink-0 flex flex-col items-center">
+        <div className="inline-flex items-center gap-2 bg-surface/80 rounded-full px-5 py-2.5 shadow-card">
+          <span className="text-xl">{MOOD_EMOJI[mood]}</span>
           <span className="text-sm font-black text-ink">{MOOD_LABEL[mood]}</span>
         </div>
         <p className="text-[11px] font-semibold text-ink-muted mt-2">
           Натисни щоб змінити настрій
         </p>
       </div>
-    </KidsCard>
+
+    </div>
   );
 }
 
-/* ── Right / content panel ────────────────────────────────────── */
-interface ContentPanelProps {
-  user: typeof mockKidsUser;
-  doneCount: number;
+/* ── Mobile: compact companion banner ────────────────────────── */
+function CompanionBanner({ name, animal, mood, bubble, bounceKey, onTap }: {
+  name: string; animal: string; mood: CompanionMood;
+  bubble: string; bounceKey: number; onTap: () => void;
+}) {
+  return (
+    <div className="bg-hero-kids px-5 pt-6 pb-0 flex items-end gap-4">
+      <div className="flex-1 pb-5 min-w-0">
+        <p className="text-sm font-bold text-ink-muted">Привіт,</p>
+        <h1 className="text-2xl font-black text-ink mt-0.5">{name} 👋</h1>
+        <div className="relative mt-3 inline-block max-w-full">
+          <div className="bg-surface rounded-2xl px-4 py-2.5 shadow-card-md">
+            <p className="text-sm font-bold text-ink leading-snug">{bubble}</p>
+          </div>
+          <div
+            className="absolute -bottom-3 left-6 w-0 h-0"
+            style={{
+              borderLeft: "8px solid transparent",
+              borderRight: "8px solid transparent",
+              borderTop: "10px solid var(--color-surface)",
+            }}
+            aria-hidden
+          />
+        </div>
+        <div className="flex items-center gap-1.5 mt-5">
+          <span className="text-base">{MOOD_EMOJI[mood]}</span>
+          <span className="text-xs font-black text-ink-muted">{MOOD_LABEL[mood]}</span>
+        </div>
+      </div>
+      <button
+        onClick={onTap}
+        className="focus:outline-none active:scale-90 transition-transform shrink-0 flex items-end justify-center"
+        style={{ width: 110, height: 130 }}
+        aria-label="Змінити настрій"
+      >
+        <div
+          key={bounceKey}
+          className="animate-bounce-in"
+          style={{ transform: "scale(1.65)", transformOrigin: "bottom center" }}
+        >
+          <CompanionSVG
+            animal={animal as Parameters<typeof CompanionSVG>[0]["animal"]}
+            mood={mood}
+          />
+        </div>
+      </button>
+    </div>
+  );
 }
 
-function ContentPanel({ user, doneCount }: ContentPanelProps) {
+/* ── Main scrollable content ──────────────────────────────────── */
+function MainContent({ user, doneCount }: { user: typeof mockKidsUser; doneCount: number }) {
   return (
-    <div className="flex flex-col flex-1 bg-white">
-      {/* Stats bar */}
-      <KidsStatBar
-        streak={user.streak}
-        xp={user.xp}
-        level={user.companion.level}
-        coins={user.coins}
-      />
+    <div className="px-6 py-8 flex flex-col gap-8">
 
-      {/* XP detail */}
-      <div className="px-6 pt-4">
-        <KidsProgressBar
-          value={user.xp % 1000}
-          max={1000}
-          height="md"
-          labelLeft={`Рівень ${user.companion.level}`}
-          labelRight={`${user.xp % 1000} / 1000 XP`}
-        />
-      </div>
+      {/* ── Top row: lesson card + daily goals ───── */}
+      <div className="grid grid-cols-1 md:grid-cols-[1fr_260px] gap-6 items-stretch">
 
-      {/* CTA */}
-      <div className="px-6 mt-5">
-        <KidsButton variant="primary" size="lg" fullWidth href="/dashboard/lessons">
-          ПОЧАТИ УРОК 🎯
-        </KidsButton>
-      </div>
-
-      {/* Daily challenges */}
-      <div className="px-6 mt-6">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="font-black text-xl text-ink">Сьогоднішні цілі</h2>
-          <div className="rounded-full px-3 py-1 bg-primary/10">
-            <span className="text-sm font-black text-primary-dark">
-              {doneCount} / {CHALLENGES.length}
+        {/* Lesson card */}
+        <div className="bg-surface rounded-3xl p-6 border border-border flex flex-col">
+          <div className="flex items-start gap-4 mb-6">
+            <div className="w-16 h-16 rounded-2xl bg-surface-muted flex items-center justify-center text-4xl shrink-0">
+              {LESSON.emoji}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="type-label text-ink-muted">
+                Юніт {LESSON.unit} · Урок {LESSON.lessonNum}
+              </p>
+              <h2 className="type-h2 text-ink mt-1">{LESSON.lessonTitle}</h2>
+              <p className="text-sm text-ink-muted mt-0.5">{LESSON.unitTitle}</p>
+            </div>
+            <span className="text-sm font-black text-primary shrink-0">
+              +{LESSON.xpReward} XP
             </span>
           </div>
+
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-2.5">
+              <span className="type-label text-ink-muted">Прогрес юніту</span>
+              <span className="text-xs font-bold text-ink-muted">
+                {LESSON.lessonsCompleted}/{LESSON.lessonsTotal}
+              </span>
+            </div>
+            <div className="flex gap-1">
+              {Array.from({ length: LESSON.lessonsTotal }).map((_, i) => (
+                <div
+                  key={i}
+                  className={`flex-1 h-2 rounded-full transition-colors ${
+                    i < LESSON.lessonsCompleted ? "bg-primary" :
+                    i === LESSON.lessonsCompleted ? "bg-primary/25" :
+                    "bg-border"
+                  }`}
+                />
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-auto">
+            <KidsButton variant="primary" size="lg" fullWidth href="/dashboard/lessons">
+              ПРОДОВЖИТИ УРОК 🎯
+            </KidsButton>
+          </div>
         </div>
-        <div className="flex flex-col gap-2.5">
-          {CHALLENGES.map((c, i) => (
-            <KidsChallengeItem key={i} {...c} />
-          ))}
+
+        {/* Daily goals */}
+        <div className="bg-surface rounded-3xl p-6 border border-border flex flex-col">
+          <div className="flex items-center justify-between mb-5">
+            <h2 className="type-h3 text-ink">Щоденні цілі</h2>
+            <span className="text-sm font-black text-ink-muted">
+              {doneCount}/{CHALLENGES.length}
+            </span>
+          </div>
+          <div className="flex flex-col">
+            {CHALLENGES.map((c, i) => (
+              <div
+                key={i}
+                className={`flex items-center gap-3 py-3.5 ${
+                  i < CHALLENGES.length - 1 ? "border-b border-border" : ""
+                }`}
+              >
+                <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-base shrink-0 ${
+                  c.done ? "bg-primary" : "bg-surface-muted"
+                }`}>
+                  {c.done
+                    ? <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8L6.5 11.5L13 5" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    : <span>{c.icon}</span>
+                  }
+                </div>
+                <span className={`flex-1 text-sm font-bold ${c.done ? "line-through text-ink-muted" : "text-ink"}`}>
+                  {c.label}
+                </span>
+                <span className={`text-xs font-black ${c.done ? "text-primary" : "text-ink-muted"}`}>
+                  +{c.xp}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
+
       </div>
 
-      {/* Nav grid */}
-      <div className="px-6 mt-6 pb-8 grid grid-cols-2 md:grid-cols-4 gap-4">
-        <KidsNavCard href="/kids/room"         emoji="🏠" label="Кімната"  color="secondary" />
-        <KidsNavCard href="/dashboard/lessons" emoji="📚" label="Уроки"    color="primary"   />
-        <KidsNavCard href="/kids/shop"         emoji="🛒" label="Магазин"  color="accent"    />
-        <KidsNavCard href="/kids/achievements" emoji="🏆" label="Нагороди" color="danger"    />
+      {/* ── Navigation grid ───────────────────────── */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pb-4">
+        <KidsNavCard href="/kids/room"         emoji="🏠" label="Кімната"    color="secondary" />
+        <KidsNavCard href="/kids/shop"         emoji="🛒" label="Магазин"    color="accent"    />
+        <KidsNavCard href="/kids/achievements" emoji="🏆" label="Нагороди"   color="danger"    />
+        <KidsNavCard href="/dashboard/lessons" emoji="📚" label="Всі уроки"  color="purple"    />
       </div>
+
     </div>
   );
 }
@@ -194,7 +285,7 @@ export default function KidsDashboardPage() {
   const [bubble, setBubble] = useState(() => randomBubble(initMood));
   const [bounceKey, setBounceKey] = useState(0);
 
-  const handleCompanionTap = useCallback(() => {
+  const handleTap = useCallback(() => {
     setMood(prev => {
       const next = ALL_MOODS[(ALL_MOODS.indexOf(prev) + 1) % ALL_MOODS.length];
       setBubble(randomBubble(next));
@@ -211,38 +302,43 @@ export default function KidsDashboardPage() {
     mood,
     bubble,
     bounceKey,
-    onTap: handleCompanionTap,
+    onTap: handleTap,
   };
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-surface-muted">
 
-      {/* ── MOBILE: vertical ── */}
-      <div className="flex flex-col md:hidden">
-        <CompanionPanel {...companionProps} />
-        <ContentPanel user={user} doneCount={doneCount} />
+      {/* ── MOBILE ─────────────────────────────── */}
+      <div className="md:hidden flex flex-col">
+        <CompanionBanner {...companionProps} />
+        <KidsStatBar
+          streak={user.streak}
+          xp={user.xp}
+          level={user.companion.level}
+          coins={user.coins}
+        />
+        <MainContent user={user} doneCount={doneCount} />
       </div>
 
-      {/* ── DESKTOP: side by side ── */}
+      {/* ── DESKTOP ────────────────────────────── */}
       <div className="hidden md:flex min-h-screen">
-        {/* Left — sticky companion panel */}
-        <div
-          className="w-[340px] md:w-[380px] lg:w-[460px] shrink-0 sticky top-0 h-screen overflow-hidden bg-hero-kids"
-        >
-          <div className="h-full flex flex-col justify-between py-8 px-8">
-            <CompanionPanel {...companionProps} />
-            <div className="px-0 mt-4">
-              <KidsButton variant="primary" size="lg" fullWidth href="/dashboard/lessons">
-                ПОЧАТИ УРОК 🎯
-              </KidsButton>
-            </div>
-          </div>
+
+        {/* Left: sticky companion */}
+        <div className="w-[360px] lg:w-[420px] shrink-0 sticky top-0 h-screen bg-hero-kids overflow-hidden">
+          <CompanionPanel {...companionProps} />
         </div>
 
-        {/* Right — scrollable content */}
-        <div className="flex-1 overflow-y-auto">
-          <ContentPanel user={user} doneCount={doneCount} />
+        {/* Right: scrollable content */}
+        <div className="flex-1 overflow-y-auto flex flex-col min-w-0">
+          <KidsStatBar
+            streak={user.streak}
+            xp={user.xp}
+            level={user.companion.level}
+            coins={user.coins}
+          />
+          <MainContent user={user} doneCount={doneCount} />
         </div>
+
       </div>
 
     </div>

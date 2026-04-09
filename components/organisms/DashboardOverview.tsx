@@ -33,7 +33,7 @@ export function DashboardOverview({ userSlug, progressSummary }: DashboardOvervi
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
       {/* Current course */}
       <div className="bg-white rounded-xl p-5 shadow-sm border border-border col-span-full lg:col-span-2">
-        <h2 className="text-sm font-semibold text-ink-muted uppercase tracking-wide mb-3">Current Course</h2>
+        <h2 className="type-label text-ink-muted mb-3">Current Course</h2>
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
             <h3 className="text-xl font-bold text-ink">{currentCourseTitle}</h3>
@@ -60,7 +60,7 @@ export function DashboardOverview({ userSlug, progressSummary }: DashboardOvervi
 
       {/* Today's tasks */}
       <div className="bg-white rounded-xl p-5 shadow-sm border border-border col-span-full md:col-span-1">
-        <h2 className="text-sm font-semibold text-ink-muted uppercase tracking-wide mb-3">Today&apos;s Tasks</h2>
+        <h2 className="type-label text-ink-muted mb-3">Today&apos;s Tasks</h2>
         {todayTasks.length === 0 ? (
           <p className="text-ink-muted text-sm">All done for today! 🎉</p>
         ) : (
@@ -84,7 +84,7 @@ export function DashboardOverview({ userSlug, progressSummary }: DashboardOvervi
 
       {/* Quick join live */}
       <div className="bg-secondary rounded-xl p-5 text-white flex flex-col gap-3">
-        <h2 className="text-sm font-semibold opacity-80 uppercase tracking-wide">Live Lesson</h2>
+        <h2 className="type-label opacity-80">Live Lesson</h2>
         <p className="font-bold text-lg">Group class starts in 30 min</p>
         <Link href="/calendar">
           <Button variant="outline" size="sm" className="border-white text-white hover:bg-white hover:text-secondary" aria-label="Join live lesson">
@@ -95,7 +95,7 @@ export function DashboardOverview({ userSlug, progressSummary }: DashboardOvervi
 
       {/* Achievements */}
       <div className="bg-white rounded-xl p-5 shadow-sm border border-border">
-        <h2 className="text-sm font-semibold text-ink-muted uppercase tracking-wide mb-3">Achievements</h2>
+        <h2 className="type-label text-ink-muted mb-3">Achievements</h2>
         <div className="flex flex-wrap gap-2">
           {achievements.map(a => (
             <Badge key={a} variant="success">🏆 {a.replace(/-/g, ' ')}</Badge>

@@ -57,7 +57,7 @@ export default function AchievementsPage() {
 
         {/* Earned */}
         <section>
-          <p className="text-xs font-black text-ink-muted uppercase tracking-widest mb-3">Отримані ({earned.length})</p>
+          <p className="type-label text-ink-muted mb-3">Отримані ({earned.length})</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {earned.map(a => (
               <div key={a.id} className="bg-white rounded-2xl border-2 border-success/30 p-4 flex items-center gap-3">
@@ -78,7 +78,7 @@ export default function AchievementsPage() {
 
         {/* Locked */}
         <section>
-          <p className="text-xs font-black text-ink-muted uppercase tracking-widest mb-3">Заблоковані ({locked.length})</p>
+          <p className="type-label text-ink-muted mb-3">Заблоковані ({locked.length})</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {locked.map(a => (
               <div key={a.id} className="bg-white rounded-2xl border border-border p-4 flex items-center gap-3 opacity-60">

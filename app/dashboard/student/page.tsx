@@ -79,7 +79,7 @@ export default function StudentDashboard() {
             {/* Ліво: привітання + стрік */}
             <div>
               <p className="text-[10px] font-black tracking-[0.18em] text-white/60 uppercase">Рівень {STUDENT.level}</p>
-              <h1 className="text-2xl font-black text-white mt-1.5">Привіт, {STUDENT.name}! 👋</h1>
+              <h1 className="type-h2 text-white mt-1.5">Привіт, {STUDENT.name}! 👋</h1>
               <p className="text-white/70 text-sm mt-1">🔥 {STUDENT.streak}-й день поспіль — так тримати!</p>
             </div>
             {/* Право: наступний урок — без фону */}
@@ -99,7 +99,7 @@ export default function StudentDashboard() {
           <div className="flex items-center gap-3">
             <div className="flex-1">
               <div className="flex items-center justify-between mb-1.5">
-                <p className="text-[10px] font-black text-ink-muted uppercase tracking-widest">Щоденна ціль</p>
+                <p className="type-label text-ink-muted">Щоденна ціль</p>
                 <span className="text-xs font-black text-primary">{STUDENT.dailyXp} / {STUDENT.dailyGoal} XP</span>
               </div>
               <ProgressBar value={dailyPct} size="xs" label="Щоденна ціль" />
@@ -119,10 +119,10 @@ export default function StudentDashboard() {
           <Card>
             <div className="flex items-start justify-between gap-4 mb-5">
               <div className="flex-1 min-w-0">
-                <p className="text-[10px] font-black text-ink-muted uppercase tracking-widest">
+                <p className="type-label text-ink-muted">
                   Юніт {LESSON.unit} · Урок {LESSON.lessonNum}
                 </p>
-                <h2 className="text-xl font-black text-ink mt-1">{LESSON.lessonTitle}</h2>
+                <h2 className="type-h3 text-ink mt-1">{LESSON.lessonTitle}</h2>
                 <p className="text-sm text-ink-muted mt-0.5">{LESSON.unitTitle}</p>
               </div>
               <span className="text-4xl flex-shrink-0">{LESSON.emoji}</span>
@@ -131,7 +131,7 @@ export default function StudentDashboard() {
             {/* Прогрес: сегментований бар */}
             <div className="mb-5">
               <div className="flex items-center justify-between mb-2.5">
-                <p className="text-[10px] font-black text-ink-muted uppercase tracking-widest">Прогрес юніту</p>
+                <p className="type-label text-ink-muted">Прогрес юніту</p>
                 <span className="text-xs font-bold text-ink">{LESSON.lessonsCompleted}/{LESSON.lessonsTotal} уроків</span>
               </div>
               <div className="flex gap-1">
@@ -178,8 +178,8 @@ export default function StudentDashboard() {
             {/* Шапка */}
             <div className="px-5 pt-5 pb-3 flex items-start justify-between gap-4">
               <div className="flex-1 min-w-0">
-                <p className="text-[10px] font-black text-ink-muted uppercase tracking-widest">Словник · Урок {LESSON.lessonNum}</p>
-                <h2 className="text-xl font-black text-ink mt-1">Час повторити!</h2>
+                <p className="type-label text-ink-muted">Словник · Урок {LESSON.lessonNum}</p>
+                <h2 className="type-h3 text-ink mt-1">Час повторити!</h2>
                 <p className="text-sm text-ink-muted mt-0.5">{RECENT_WORDS.length - knownCount} слова чекають на тебе</p>
               </div>
               <span className="text-xs font-bold text-ink-muted flex-shrink-0">{knownCount}/{RECENT_WORDS.length} слів</span>
@@ -249,7 +249,7 @@ export default function StudentDashboard() {
           <Card>
             <div className="flex items-center justify-between mb-4">
               <div>
-                <p className="text-[10px] font-black text-ink-muted uppercase tracking-widest">Золота ліга</p>
+                <p className="type-label text-ink-muted">Золота ліга</p>
                 <p className="font-black text-ink mt-0.5">Тиждень 2</p>
               </div>
               <span className="text-2xl">🥇</span>

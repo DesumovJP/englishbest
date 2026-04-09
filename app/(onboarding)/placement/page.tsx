@@ -113,12 +113,12 @@ export default function PlacementPage() {
         <div className="animate-bounce-in text-7xl mb-6">🎉</div>
 
         <div className="animate-fade-in-up anim-delay-200">
-          <p className="text-ink-muted text-sm font-semibold uppercase tracking-widest mb-4">
+          <p className="type-label text-ink-muted mb-4">
             Ваш рівень
           </p>
           <div className={`inline-flex items-center gap-3 px-6 py-3 rounded-2xl ${info.bg} mb-4`}>
-            <span className={`text-3xl font-black ${info.color}`}>{level}</span>
-            <span className={`text-xl font-black ${info.color}`}>{info.name}</span>
+            <span className={`type-h1 ${info.color}`}>{level}</span>
+            <span className={`type-h3 ${info.color}`}>{info.name}</span>
           </div>
           <p className="text-ink-muted text-sm max-w-xs mx-auto leading-relaxed mb-10">
             {info.description}
@@ -173,7 +173,7 @@ export default function PlacementPage() {
               </span>
             </div>
 
-            <h2 className="text-lg sm:text-xl font-black text-ink mb-8 leading-snug break-words">{q.question}</h2>
+            <h2 className="type-h3 text-ink mb-8 break-words">{q.question}</h2>
 
             <div className="flex flex-col gap-3 mb-8">
               {q.options.map((option, idx) => (

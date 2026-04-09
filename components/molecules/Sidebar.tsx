@@ -27,10 +27,11 @@ interface NavSection {
 /* ── Навігація по ролях ───────────────────────── */
 const NAV_FLAT: Record<'student' | 'teacher', NavItem[]> = {
   student: [
-    { label: 'Дашборд',    href: '/dashboard/student',  emoji: '🏠' },
-    { label: 'Мої уроки',  href: '/dashboard/lessons',  emoji: '📅' },
-    { label: 'Бібліотека', href: '/library',             emoji: '📖' },
-    { label: 'Календар',   href: '/calendar',            emoji: '📆' },
+    { label: 'Дашборд',         href: '/dashboard/student',  emoji: '🏠' },
+    { label: 'Мої уроки',       href: '/dashboard/lessons',  emoji: '📅' },
+    { label: 'Бібліотека',      href: '/library',             emoji: '📖' },
+    { label: 'Календар',        href: '/calendar',            emoji: '📆' },
+    { label: 'Дитячий модуль',  href: '/kids/dashboard',     emoji: '🧒' },
   ],
   teacher: [
     { label: 'Дашборд',   href: '/dashboard/teacher',          emoji: '🏠' },
@@ -40,21 +41,6 @@ const NAV_FLAT: Record<'student' | 'teacher', NavItem[]> = {
     { label: 'Матеріали', href: '/library',             emoji: '📖' },
   ],
 };
-
-const ONBOARDING_NAV: NavItem[] = [
-  { label: 'Логін',         href: '/login',       emoji: '🔑' },
-  { label: 'Вітання',       href: '/welcome',     emoji: '👋' },
-  { label: 'Вікова група',  href: '/onboarding',  emoji: '🧒' },
-  { label: 'Тест рівня',    href: '/placement',   emoji: '📝' },
-  { label: 'Персонаж',      href: '/companion',   emoji: '🦊' },
-];
-
-const KIDS_NAV: NavItem[] = [
-  { label: 'Дашборд',   href: '/kids/dashboard', emoji: '🏡' },
-  { label: 'Кімната',   href: '/kids/room',      emoji: '🏠' },
-  { label: 'Магазин',   href: '/kids/shop',      emoji: '🛒' },
-  { label: 'Монетки',   href: '/kids/coins',     emoji: '🪙' },
-];
 
 const ADMIN_NAV: NavSection[] = [
   {
@@ -176,7 +162,7 @@ export function Sidebar() {
 
         {/* Перемикач ролей */}
         <div className="px-3 pt-4 pb-2 flex-shrink-0">
-          <p className="text-[10px] font-black text-ink-muted uppercase tracking-widest px-1 mb-2">
+          <p className="type-label text-ink-muted px-1 mb-2">
             Режим перегляду
           </p>
           <div className="flex bg-surface-muted rounded-xl p-1 gap-0.5">
@@ -203,7 +189,7 @@ export function Sidebar() {
             <div className="flex flex-col gap-4">
               {ADMIN_NAV.map(section => (
                 <div key={section.group}>
-                  <p className="text-[10px] font-black text-ink-muted uppercase tracking-widest px-3 mb-1">
+                  <p className="type-label text-ink-muted px-3 mb-1">
                     {section.group}
                   </p>
                   <ul className="flex flex-col gap-0.5">
@@ -223,30 +209,6 @@ export function Sidebar() {
             </ul>
           )}
         </nav>
-
-        {/* Kids — demo-навігація */}
-        <div className="px-3 pb-2 flex-shrink-0 border-t border-border pt-3">
-          <p className="text-[10px] font-black text-ink-muted uppercase tracking-widest px-1 mb-1.5">
-            Дитячий модуль
-          </p>
-          <ul className="flex flex-col gap-0.5">
-            {KIDS_NAV.map(item => (
-              <NavLink key={item.href} item={item} pathname={pathname} onClick={close} />
-            ))}
-          </ul>
-        </div>
-
-        {/* Онбординг — demo-навігація */}
-        <div className="px-3 pb-2 flex-shrink-0 border-t border-border pt-3">
-          <p className="text-[10px] font-black text-ink-muted uppercase tracking-widest px-1 mb-1.5">
-            Онбординг
-          </p>
-          <ul className="flex flex-col gap-0.5">
-            {ONBOARDING_NAV.map(item => (
-              <NavLink key={item.href} item={item} pathname={pathname} onClick={close} />
-            ))}
-          </ul>
-        </div>
 
         {/* Профіль — завжди внизу */}
         <div className="px-3 pb-4 pt-2 border-t border-border flex-shrink-0">

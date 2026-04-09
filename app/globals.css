@@ -45,14 +45,68 @@
   --radius-md: 12px;
   --radius-lg: 16px;
   --radius-xl: 24px;
+
+  /* ── Typography scale ───────────────────────────────────────── */
+  --text-display: 3rem;       /* 48px — hero */
+  --text-h1:      2rem;       /* 32px — page title */
+  --text-h2:      1.5rem;     /* 24px — section title */
+  --text-h3:      1.125rem;   /* 18px — card / widget title */
+  --text-body-lg: 1rem;       /* 16px — lead paragraph */
+  --text-body:    0.875rem;   /* 14px — standard body */
+  --text-label:   0.75rem;    /* 12px — caps label */
+  --text-tiny:    0.6875rem;  /* 11px — meta / footnote */
+
+  /* ── Line heights ───────────────────────────────────────────── */
+  --leading-display:  1.05;
+  --leading-heading:  1.2;
+  --leading-body:     1.55;
+  --leading-relaxed:  1.65;
+
+  /* ── Letter spacing ─────────────────────────────────────────── */
+  --tracking-tight:  -0.02em;
+  --tracking-normal:  0em;
+  --tracking-label:   0.08em;
+  --tracking-wide:    0.12em;
 }
 
 /* ── Base ─────────────────────────────────────────────────────── */
 @layer base {
   body {
     @apply text-ink bg-surface-muted;
-    font-family: var(--font-geist-sans), sans-serif;
+    font-family: var(--font-nunito), sans-serif;
+    font-size: var(--text-body);
+    font-weight: 500;
+    line-height: var(--leading-body);
   }
+
+  h1 {
+    font-size: var(--text-h1);
+    font-weight: 900;
+    line-height: var(--leading-heading);
+    letter-spacing: var(--tracking-tight);
+  }
+  h2 {
+    font-size: var(--text-h2);
+    font-weight: 900;
+    line-height: var(--leading-heading);
+  }
+  h3 {
+    font-size: var(--text-h3);
+    font-weight: 800;
+    line-height: var(--leading-heading);
+  }
+  h4, h5, h6 {
+    font-weight: 800;
+    line-height: var(--leading-heading);
+  }
+
+  /* Inherit font into form controls */
+  button, input, textarea, select {
+    font-family: inherit;
+  }
+
+  /* Minimum weight for UI text — never font-normal */
+  p { font-weight: 500; }
 }
 
 /* ── Keyframes ────────────────────────────────────────────────── */
@@ -142,7 +196,72 @@
   .drop-shadow-item    { filter: drop-shadow(0 6px 8px rgba(0,0,0,0.22)); }
   .drop-shadow-floor   { filter: drop-shadow(0px 6px 8px rgba(0,0,0,0.28)); }
 
-  /* Animation delays — use with animate-* classes */
+  /* ── Semantic typography utilities ────────────────────────────
+     Use these instead of composing text-* + font-* + leading-* + tracking-*
+     inline every time. Follow the rule: one class = one semantic role.     */
+
+  /* Display — hero headlines on landing, stats */
+  .type-display {
+    font-size: var(--text-display);
+    font-weight: 900;
+    line-height: var(--leading-display);
+    letter-spacing: var(--tracking-tight);
+  }
+
+  /* H1 — main page title */
+  .type-h1 {
+    font-size: var(--text-h1);
+    font-weight: 900;
+    line-height: var(--leading-heading);
+    letter-spacing: var(--tracking-tight);
+  }
+
+  /* H2 — section title */
+  .type-h2 {
+    font-size: var(--text-h2);
+    font-weight: 900;
+    line-height: var(--leading-heading);
+  }
+
+  /* H3 — card / widget title */
+  .type-h3 {
+    font-size: var(--text-h3);
+    font-weight: 800;
+    line-height: var(--leading-heading);
+  }
+
+  /* Body large — lead paragraph, important descriptions */
+  .type-body-lg {
+    font-size: var(--text-body-lg);
+    font-weight: 600;
+    line-height: var(--leading-relaxed);
+  }
+
+  /* Body — standard UI text */
+  .type-body {
+    font-size: var(--text-body);
+    font-weight: 500;
+    line-height: var(--leading-body);
+  }
+
+  /* Label — replaces `text-xs font-black uppercase tracking-widest` (50+ uses) */
+  .type-label {
+    font-size: var(--text-label);
+    font-weight: 900;
+    letter-spacing: var(--tracking-label);
+    text-transform: uppercase;
+    line-height: 1;
+  }
+
+  /* Tiny — meta info, footnotes, timestamps */
+  .type-tiny {
+    font-size: var(--text-tiny);
+    font-weight: 700;
+    letter-spacing: var(--tracking-wide);
+    line-height: 1.4;
+  }
+
+  /* ── Animation delays — use with animate-* classes */
   .anim-delay-100 { animation-delay: 0.1s; }
   .anim-delay-150 { animation-delay: 0.15s; }
   .anim-delay-200 { animation-delay: 0.2s; }

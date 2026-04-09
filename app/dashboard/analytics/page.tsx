@@ -52,7 +52,7 @@ export default function AnalyticsPage() {
 
       {/* Заголовок */}
       <div>
-        <h1 className="text-2xl font-black text-ink">Аналітика</h1>
+        <h1 className="type-h2 text-ink">Аналітика</h1>
         <p className="text-ink-muted mt-0.5 text-sm">Березень 2026 · оновлено сьогодні</p>
       </div>
 
@@ -78,10 +78,10 @@ export default function AnalyticsPage() {
         ].map(kpi => (
           <div key={kpi.label} className="bg-white rounded-2xl border border-border p-5">
             <div className="flex items-start justify-between mb-2">
-              <p className="text-xs font-black text-ink-muted uppercase tracking-wide">{kpi.label}</p>
+              <p className="type-label text-ink-muted">{kpi.label}</p>
               <span className="text-xl">{kpi.emoji}</span>
             </div>
-            <p className="text-2xl font-black text-ink">{kpi.value}</p>
+            <p className="type-h2 text-ink">{kpi.value}</p>
             <p className={`text-xs mt-1 font-semibold ${kpi.positive ? 'text-primary-dark' : 'text-danger'}`}>
               {kpi.sub}
             </p>
@@ -189,10 +189,10 @@ export default function AnalyticsPage() {
           <table className="w-full min-w-[360px]">
             <thead>
               <tr className="border-b border-border bg-surface-muted">
-                <th className="text-left px-5 py-2.5 text-xs font-black text-ink-muted uppercase tracking-wide">#</th>
-                <th className="text-left px-4 py-2.5 text-xs font-black text-ink-muted uppercase tracking-wide">Вчитель</th>
-                <th className="text-left px-4 py-2.5 text-xs font-black text-ink-muted uppercase tracking-wide">Учнів</th>
-                <th className="text-left px-4 py-2.5 text-xs font-black text-ink-muted uppercase tracking-wide">Дохід</th>
+                <th className="text-left px-5 py-2.5 type-label text-ink-muted">#</th>
+                <th className="text-left px-4 py-2.5 type-label text-ink-muted">Вчитель</th>
+                <th className="text-left px-4 py-2.5 type-label text-ink-muted">Учнів</th>
+                <th className="text-left px-4 py-2.5 type-label text-ink-muted">Дохід</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">

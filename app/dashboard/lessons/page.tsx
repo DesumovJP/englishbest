@@ -170,7 +170,7 @@ export default function LessonsPage() {
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={p.photo} alt={p.name} className="w-12 h-12 rounded-2xl object-cover ring-2 ring-white/40" referrerPolicy="no-referrer" />
               <div>
-                <p className="text-[10px] font-black text-white/60 uppercase tracking-widest">{p.level}</p>
+                <p className="type-label text-white/60">{p.level}</p>
                 <p className="font-black text-white text-xl">{p.name}</p>
               </div>
             </div>
@@ -187,7 +187,7 @@ export default function LessonsPage() {
         </div>
         <div className="bg-white rounded-t-3xl -mt-6 px-6 pt-4 pb-5">
           <div className="flex items-center justify-between mb-2">
-            <p className="text-[10px] font-black text-ink-muted uppercase tracking-widest">Прогрес курсу</p>
+            <p className="type-label text-ink-muted">Прогрес курсу</p>
             <span className="text-xs font-black text-primary">{done}/{TOTAL} · {pct}%</span>
           </div>
           <div className="flex gap-0.5">
@@ -211,8 +211,8 @@ export default function LessonsPage() {
               {/* Мітка юніту */}
               <div className="flex justify-center mb-6 mt-2">
                 <div className={`rounded-2xl border-2 ${sec.light} px-8 py-3 text-center min-w-[160px]`}>
-                  <p className={`text-[10px] font-black uppercase tracking-widest ${sec.color} opacity-60`}>Юніт {sec.unit}</p>
-                  <p className={`font-black text-lg ${sec.color} leading-tight`}>{sec.title}</p>
+                  <p className={`type-label ${sec.color} opacity-60`}>Юніт {sec.unit}</p>
+                  <p className={`type-h3 ${sec.color}`}>{sec.title}</p>
                 </div>
               </div>
 
@@ -295,8 +295,8 @@ export default function LessonsPage() {
 
         <div className="flex justify-center py-8">
           <div className="rounded-2xl border-2 border-dashed border-border px-8 py-4 text-center min-w-[160px]">
-            <p className="text-[10px] font-black uppercase tracking-widest text-ink-muted opacity-60">Юніт</p>
-            <p className="font-black text-lg text-ink-muted leading-tight">Незабаром 🌟</p>
+            <p className="type-label text-ink-muted opacity-60">Юніт</p>
+            <p className="type-h3 text-ink-muted">Незабаром 🌟</p>
           </div>
         </div>
       </div>

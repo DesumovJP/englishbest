@@ -55,17 +55,17 @@ export default function TeacherDashboard() {
         <div className="bg-white rounded-t-3xl -mt-6 px-6 pt-5 pb-5">
           <div className="flex items-center gap-5">
             <div className="flex-1 text-center">
-              <p className="text-2xl font-black text-primary">{doneLessons}</p>
+              <p className="type-h2 text-primary">{doneLessons}</p>
               <p className="text-[11px] text-ink-muted font-medium">проведено</p>
             </div>
             <div className="w-px h-10 bg-border flex-shrink-0" />
             <div className="flex-1 text-center">
-              <p className="text-2xl font-black text-ink">{remainingLessons}</p>
+              <p className="type-h2 text-ink">{remainingLessons}</p>
               <p className="text-[11px] text-ink-muted font-medium">залишилось</p>
             </div>
             <div className="w-px h-10 bg-border flex-shrink-0" />
             <div className="flex-1 text-center">
-              <p className="text-2xl font-black text-ink">{TODAY_LESSONS.length}</p>
+              <p className="type-h2 text-ink">{TODAY_LESSONS.length}</p>
               <p className="text-[11px] text-ink-muted font-medium">всього</p>
             </div>
             <Link
@@ -155,7 +155,7 @@ export default function TeacherDashboard() {
 
                 {noteOpen === lesson.id && (
                   <div className="px-5 py-3 bg-surface-muted border-t border-border">
-                    <p className="text-xs font-black text-ink-muted mb-1.5">Нотатка — {lesson.student}</p>
+                    <p className="type-tiny text-ink-muted mb-1.5">Нотатка — {lesson.student}</p>
                     <textarea
                       className="w-full px-3 py-2 rounded-xl border border-border bg-white text-sm text-ink resize-none focus:outline-none focus:border-primary/40"
                       rows={2}

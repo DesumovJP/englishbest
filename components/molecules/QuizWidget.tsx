@@ -172,7 +172,7 @@ export function QuizWidget({ variant = 'outline' }: { variant?: 'outline' | 'pri
             {!submitted && step && (
               <div className="flex flex-col items-center gap-8 w-full">
                 <div className="text-6xl">{step.emoji}</div>
-                <h2 className="text-2xl md:text-3xl font-black text-ink text-center leading-snug">
+                <h2 className="type-h2 text-ink text-center">
                   {step.question}
                 </h2>
                 <div className="grid grid-cols-1 gap-3 w-full">
@@ -199,7 +199,7 @@ export function QuizWidget({ variant = 'outline' }: { variant?: 'outline' | 'pri
               <div className="flex flex-col items-center gap-8 w-full">
                 <div className="text-6xl">📞</div>
                 <div className="text-center">
-                  <h2 className="text-2xl md:text-3xl font-black text-ink">
+                  <h2 className="type-h2 text-ink">
                     Майже готово!
                   </h2>
                   <p className="text-ink-muted mt-2">
@@ -241,7 +241,7 @@ export function QuizWidget({ variant = 'outline' }: { variant?: 'outline' | 'pri
                   {/* Вибір месенджера */}
                   {noCall && (
                     <div className="flex flex-col gap-2">
-                      <p className="text-xs font-black text-ink-muted uppercase tracking-wide">Напишіть у месенджер:</p>
+                      <p className="type-label text-ink-muted">Напишіть у месенджер:</p>
                       <div className="flex gap-3">
                         {(['viber', 'telegram'] as const).map(m => (
                           <button
@@ -284,7 +284,7 @@ export function QuizWidget({ variant = 'outline' }: { variant?: 'outline' | 'pri
                   <div className="text-8xl">🦉</div>
                   <div className="absolute -top-2 -right-2 text-3xl animate-bounce">🎉</div>
                 </div>
-                <h2 className="text-3xl font-black text-ink">Дякуємо, {name}!</h2>
+                <h2 className="type-h1 text-ink">Дякуємо, {name}!</h2>
                 <div className="bg-primary/10 rounded-3xl px-8 py-6 flex flex-col gap-2">
                   <p className="text-primary font-black text-xl">✅ Заявку прийнято!</p>
                   <p className="text-ink-muted">

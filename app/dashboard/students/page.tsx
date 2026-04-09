@@ -115,7 +115,7 @@ export default function StudentsPage() {
       {/* Заголовок */}
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-ink">{isTeacher ? 'Мої учні' : 'Учні'}</h1>
+          <h1 className="type-h2 text-ink">{isTeacher ? 'Мої учні' : 'Учні'}</h1>
           <div className="flex items-center gap-1.5 mt-1">
             <span className="text-sm text-ink-muted">{STUDENTS.length} учнів</span>
             <InfoPopover items={[
@@ -169,12 +169,12 @@ export default function StudentsPage() {
           <table className="w-full min-w-[560px]">
             <thead>
               <tr className="border-b border-border bg-surface-muted">
-                <th className="text-left px-5 py-3 text-xs font-black text-ink-muted uppercase tracking-wide">Учень</th>
-                <th className="text-left px-4 py-3 text-xs font-black text-ink-muted uppercase tracking-wide">Програма</th>
-                <th className="text-left px-4 py-3 text-xs font-black text-ink-muted uppercase tracking-wide">Останній урок</th>
-                {!isTeacher && <th className="text-left px-4 py-3 text-xs font-black text-ink-muted uppercase tracking-wide">Вчитель</th>}
-                {!isTeacher && <th className="text-left px-4 py-3 text-xs font-black text-ink-muted uppercase tracking-wide">Баланс</th>}
-                {isTeacher  && <th className="text-left px-4 py-3 text-xs font-black text-ink-muted uppercase tracking-wide">Наступний урок</th>}
+                <th className="text-left px-5 py-3 type-label text-ink-muted">Учень</th>
+                <th className="text-left px-4 py-3 type-label text-ink-muted">Програма</th>
+                <th className="text-left px-4 py-3 type-label text-ink-muted">Останній урок</th>
+                {!isTeacher && <th className="text-left px-4 py-3 type-label text-ink-muted">Вчитель</th>}
+                {!isTeacher && <th className="text-left px-4 py-3 type-label text-ink-muted">Баланс</th>}
+                {isTeacher  && <th className="text-left px-4 py-3 type-label text-ink-muted">Наступний урок</th>}
                 <th className="px-4 py-3" />
               </tr>
             </thead>
