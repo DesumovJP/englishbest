@@ -61,7 +61,7 @@ Kids components:
 - [x] `ItemDisplay.tsx` — 1 inline is dynamic (per-item `color` user data with `#e0f2fe` fallback)
 - [x] `CharacterAvatar.tsx` — 1 inline is dynamic (`size` prop) + OUTFIT_STYLE is a per-slot CSSProperties table (keep; 3 static rows, used by dynamic keys)
 - [x] `KidsFooter.tsx` — 3 inline → Tailwind (safe-area pb, icon size, badge font-size); active transform/filter moved to classes
-- [ ] `kids/ui/*` primitives (small counts each; consolidate press-shadow variants)
+- [x] `kids/ui/*` primitives — KidsStatBar/KidsCoinBadge coin+xp imgs → width/height attrs; KidsChallengeItem label styling → conditional classes; KidsTabBar hardcoded white text + white/30 + black/08 → Tailwind classes. ProgressBar/KidsProgressBar `width: pct%` and SpeechBubble `maxWidth` prop kept inline (dynamic).
 - [ ] `CompanionSVG.tsx` — 173 hex (SVG fill art, NOT to refactor)
 
 Other:
@@ -69,7 +69,7 @@ Other:
 - [ ] `/home` — 1 inline
 - [ ] `/(onboarding)/*` — 1 inline each
 - [ ] Lesson step components — small
-- [ ] `components/molecules/*` — small
+- [x] `components/molecules/*` — PopupTimer overlay `bg-slate-900/55 backdrop-blur-[6px]`. ReviewsSlider transform/width are index/perPage-driven (dynamic, kept).
 
 - [ ] Confirm typography uses `.type-*` classes everywhere (still ad-hoc `text-[Npx]` in rewritten files; revisit once all conversions done)
 - [ ] Add missing tokens exposed by the audit to `@theme` (e.g. shadow-press-sm for `[0_3px_0_*]` repeats)
@@ -122,3 +122,4 @@ For each page: verify layout + interactions at all 6 viewports, portrait + lands
 - **2026-04-15** — F2 batch 4: kids/school detoxed (732 LOC). Per-unit accent fed via CSS var `--accent`; `bg-[color:var(--accent)]/10` etc. Library row gets `--accent` + `--cover-bg`. Carousel: scroll-snap + `px-[calc(50%-clamp(140px,31vw,190px))]`; per-card transform/opacity kept inline (runtime scroll-driven).
 - **2026-04-15** — F2 batch 5: kids/shop detoxed (largest file). 131 inline → 2 dynamic (bgValue preview, equipped-slot coords). RARITY collapsed from 3 parallel hex records into 1 Tailwind class record (text/bg/border). BACKGROUNDS gradient hex retained as data. **All 9 kids pages done.**
 - **2026-04-15** — F2 batch 6: kids/components (LootBox, KidsFooter, AddCustomModal, ItemDisplay, CharacterAvatar) swept. LootBox: 11 static inline → Tailwind (box/modal sizes, fixed animation delays, `bg-black/80 backdrop-blur-lg`); remaining 8 are dynamic per-rarity theming (glow, drop-shadow, rarity badge bg/color) or per-particle geometry. KidsFooter: safe-area pb, icon sizes, badge font moved to Tailwind; active-state transform/filter moved to conditional classes. AddCustomModal: removed 2 redundant `borderWidth:3` duplicates (already had `border-3`).
+- **2026-04-16** — F2 batch 7: kids/ui primitives + components/molecules swept. KidsStatBar/KidsCoinBadge/KidsChallengeItem: coin+xp imgs switched to width/height attrs; label conditional styling → `text-ink-faint line-through` classes. KidsTabBar: active `color:"#fff"` + `rgba(255,255,255,0.3)` + `rgba(0,0,0,0.08)` → `text-white` + `bg-white/30` + `bg-black/[0.08]`. PopupTimer overlay → `bg-slate-900/55 backdrop-blur-[6px]`. Remaining inline across app is now exclusively dynamic: per-item/per-rarity color data, per-particle geometry, progress-pct widths, scroll-driven transforms.

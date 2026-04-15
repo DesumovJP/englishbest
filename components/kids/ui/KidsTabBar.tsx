@@ -54,10 +54,13 @@ export function KidsTabBar({
           <button
             key={t.id}
             onClick={() => onSelect(t.id)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-2xl font-black text-sm whitespace-nowrap shrink-0 transition-transform active:translate-y-0.5"
+            className={[
+              "flex items-center gap-2 px-4 py-2.5 rounded-2xl font-black text-sm whitespace-nowrap shrink-0 transition-transform active:translate-y-0.5",
+              isActive ? "text-white" : "",
+            ].join(" ")}
             style={
               isActive
-                ? { background: t.color, color: "#fff", boxShadow: `0 4px 0 ${t.colorDark}` }
+                ? { background: t.color, boxShadow: `0 4px 0 ${t.colorDark}` }
                 : { background: t.colorLight, color: t.colorDark }
             }
           >
@@ -65,12 +68,11 @@ export function KidsTabBar({
             <span>{t.label}</span>
             {count && (
               <span
-                className="rounded-full px-1.5 py-0.5 text-[10px] font-black leading-none"
-                style={
-                  isActive
-                    ? { background: "rgba(255,255,255,0.3)", color: "#fff" }
-                    : { background: "rgba(0,0,0,0.08)", color: t.colorDark }
-                }
+                className={[
+                  "rounded-full px-1.5 py-0.5 text-[10px] font-black leading-none",
+                  isActive ? "bg-white/30 text-white" : "bg-black/[0.08]",
+                ].join(" ")}
+                style={isActive ? undefined : { color: t.colorDark }}
               >
                 {count}
               </span>

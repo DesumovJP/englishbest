@@ -60,11 +60,10 @@ export function KidsChallengeItem({
 
       {/* Label */}
       <span
-        className="flex-1 text-base font-bold"
-        style={{
-          color: done ? "var(--color-ink-faint)" : "var(--color-ink)",
-          textDecoration: done ? "line-through" : "none",
-        }}
+        className={[
+          "flex-1 text-base font-bold",
+          done ? "text-ink-faint line-through" : "text-ink",
+        ].join(" ")}
       >
         {label}
       </span>
@@ -75,7 +74,7 @@ export function KidsChallengeItem({
         style={{ background: `color-mix(in srgb, ${color} 15%, transparent)` }}
       >
         <span className="text-sm font-black" style={{ color: colorDark }}>+{xp}</span>
-        <img src="/xp.png" alt="XP" style={{ width: 16, height: 16, objectFit: "contain" }} />
+        <img src="/xp.png" alt="XP" width={16} height={16} className="object-contain" />
       </div>
     </div>
   );

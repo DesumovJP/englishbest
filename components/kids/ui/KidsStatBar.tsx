@@ -44,13 +44,13 @@ export function KidsStatBar({
           />
         </div>
         <span className="text-[11px] font-black text-ink-faint shrink-0 whitespace-nowrap flex items-center gap-0.5">
-          {xpThisLevel} <img src="/xp.png" alt="XP" style={{ width: 14, height: 14, objectFit: "contain", display: "inline" }} />
+          {xpThisLevel} <img src="/xp.png" alt="XP" width={14} height={14} className="inline object-contain" />
         </span>
       </div>
 
       {/* Coins */}
       <div className="flex items-center gap-1 shrink-0">
-        <img src="/coin.png" alt="coin" style={{ width: 22, height: 22, objectFit: "contain" }} />
+        <img src="/coin.png" alt="coin" width={22} height={22} className="object-contain" />
         <span className="font-black text-base text-coin">{coins}</span>
       </div>
     </div>
