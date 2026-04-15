@@ -13,10 +13,12 @@ import {
   kidsStateStore,
   onKidsEvent,
   emitKidsEvent,
+  generateId,
   CustomItem,
   CustomRoom,
   CustomCharacter,
   KidsState,
+  PlacedItem,
   DEFAULT_STATE,
 } from "./kids-store";
 
@@ -160,5 +162,78 @@ export function useKidsState() {
     []
   );
 
-  return { state, loading, patch, spendCoins };
+  /**
+   * Purchase a shop item: atomically deducts coins and appends to ownedItemIds.
+   * Returns false if the user can't afford it or already owns it.
+   */
+  const purchaseItem = useCallback(
+    async (itemId: string, price: number): Promise<boolean> => {
+      const current = await kidsStateStore.get();
+      if (current.ownedItemIds.includes(itemId)) return false;
+      if (current.coins < price) return false;
+      await kidsStateStore.patch({
+        coins: current.coins - price,
+        ownedItemIds: [...current.ownedItemIds, itemId],
+      });
+      emitKidsEvent("kids:state-changed");
+      return true;
+    },
+    []
+  );
+
+  /** Add a placement for an owned item. Returns the new placement id. */
+  const placeItem = useCallback(
+    async (itemId: string, pos?: { x?: number; y?: number }): Promise<string> => {
+      const current = await kidsStateStore.get();
+      const id = generateId("place");
+      const next: PlacedItem = {
+        id,
+        itemId,
+        x: pos?.x ?? 0.5,
+        y: pos?.y ?? 0.78,
+        scale: 1,
+      };
+      await kidsStateStore.patch({
+        placedItems: [...current.placedItems, next],
+      });
+      emitKidsEvent("kids:state-changed");
+      return id;
+    },
+    []
+  );
+
+  const movePlacement = useCallback(
+    async (id: string, x: number, y: number): Promise<void> => {
+      const current = await kidsStateStore.get();
+      await kidsStateStore.patch({
+        placedItems: current.placedItems.map((p) =>
+          p.id === id ? { ...p, x, y } : p
+        ),
+      });
+      emitKidsEvent("kids:state-changed");
+    },
+    []
+  );
+
+  const removePlacement = useCallback(
+    async (id: string): Promise<void> => {
+      const current = await kidsStateStore.get();
+      await kidsStateStore.patch({
+        placedItems: current.placedItems.filter((p) => p.id !== id),
+      });
+      emitKidsEvent("kids:state-changed");
+    },
+    []
+  );
+
+  return {
+    state,
+    loading,
+    patch,
+    spendCoins,
+    purchaseItem,
+    placeItem,
+    movePlacement,
+    removePlacement,
+  };
 }

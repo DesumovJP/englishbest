@@ -472,11 +472,12 @@ const RARITY_BORDER: Record<string, string> = {
   common: '#F3F4F6', uncommon: '#BBF7D0', rare: '#BFDBFE', legendary: '#FDE68A',
 };
 
-function CharacterDressRoom({ allItems, ownedIds, balance, onBuyItem }: {
+function CharacterDressRoom({ allItems, ownedIds, balance, onBuyItem, onPlaceItem }: {
   allItems: ShopItem[];
   ownedIds: Set<string>;
   balance: number;
   onBuyItem: (item: ShopItem) => void;
+  onPlaceItem: (itemId: string) => void;
 }) {
   const { state, patch } = useKidsState();
   const characterId = state.activeCharacterId ?? 'fox';
@@ -639,6 +640,48 @@ function CharacterDressRoom({ allItems, ownedIds, balance, onBuyItem }: {
 
       {/* ── Items grid ── */}
       <div className="flex-1 overflow-y-auto p-5" style={{ paddingBottom: 100 }}>
+
+        {/* For home — owned furniture / decor / special */}
+        {(() => {
+          const homeItems = allItems.filter(
+            (i) => (i.tab === "furniture" || i.tab === "decor" || i.tab === "special") && ownedIds.has(i.id)
+          );
+          if (homeItems.length === 0) return null;
+          return (
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-3">
+                <p className="font-black uppercase tracking-widest" style={{ fontSize: 10, color: "#9CA3AF" }}>
+                  Для домівки
+                </p>
+                <span className="font-bold" style={{ fontSize: 10, color: "#9CA3AF" }}>
+                  {homeItems.length} шт.
+                </span>
+              </div>
+              <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(100px, 1fr))" }}>
+                {homeItems.map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => onPlaceItem(item.id)}
+                    className="flex flex-col items-center gap-1.5 rounded-2xl p-3 bg-primary/5 border border-primary/15 hover:border-primary/40 active:scale-95 transition-all text-center"
+                  >
+                    {item.customImageIdle ? (
+                      <img src={item.customImageIdle} alt={item.nameEn} style={{ width: 42, height: 42, objectFit: "contain" }} />
+                    ) : (
+                      <span style={{ fontSize: 34, lineHeight: 1 }}>{item.emoji}</span>
+                    )}
+                    <p className="font-black leading-tight" style={{ fontSize: 10, color: "#1A1A2E" }}>
+                      {item.nameEn}
+                    </p>
+                    <span className="font-black text-[9px] text-primary-dark bg-primary/10 rounded-full px-2 py-0.5">
+                      На домівку →
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
+
         <p className="font-black uppercase tracking-widest mb-4"
           style={{ fontSize: 10, color: "#9CA3AF" }}>Outfit &amp; Accessories</p>
 
@@ -693,15 +736,19 @@ function CharacterDressRoom({ allItems, ownedIds, balance, onBuyItem }: {
 /* ── Page ───────────────────────────────────────────────────────── */
 function ShopPageInner() {
   const user = mockKidsUser;
-  const { state: kidsState, patch: patchState } = useKidsState();
+  const {
+    state: kidsState,
+    patch: patchState,
+    purchaseItem,
+    placeItem,
+  } = useKidsState();
   const { items: customItems } = useCustomItems();
   const searchParams = useSearchParams();
 
-  const coins = kidsState.coins ?? user.coins;
+  const balance = kidsState.coins ?? user.coins;
+  const bought  = new Set(kidsState.ownedItemIds);
   const initTab = (searchParams.get("tab") as TabId | null) ?? "all";
   const [activeTab, setActiveTab] = useState<TabId>(initTab);
-  const [bought, setBought]       = useState<Set<string>>(new Set());
-  const [balance, setBalance]     = useState(coins);
   const [toast, setToast]         = useState<string | null>(null);
   const [buyItem, setBuyItem]     = useState<ShopItem | null>(null);
   const [openBox, setOpenBox]     = useState<BoxRarity | null>(null);
@@ -742,24 +789,32 @@ function ShopPageInner() {
     if (item.price > 0 && balance < item.price) return;
     const newBalance = balance - item.price;
     await patchState({ roomBackground: item.bgValue, coins: Math.max(0, newBalance) });
-    if (item.price > 0) setBalance(newBalance);
     setToast(`Room background set to "${item.nameEn}"!`);
     setTimeout(() => setToast(null), 3000);
   }
 
-  function handleSuccess() {
+  async function handleSuccess() {
     if (!buyItem) return;
-    setBought(prev => new Set([...prev, buyItem.id]));
-    setBalance(b => b - buyItem.price);
-    setToast(`"${buyItem.nameEn}" added to your room!`);
+    const ok = await purchaseItem(buyItem.id, buyItem.price);
+    if (!ok) {
+      setToast("Not enough coins");
+    } else {
+      setToast(`"${buyItem.nameEn}" — додано в інвентар!`);
+    }
     setTimeout(() => setToast(null), 3000);
     setBuyItem(null);
   }
 
-  function handleBoxPurchase(cost: number, item: LootItem) {
-    setBalance(b => b - cost);
+  async function handleBoxPurchase(cost: number, item: LootItem) {
+    await patchState({ coins: Math.max(0, (kidsState.coins ?? 0) - cost) });
     setToast(`${item.emoji} ${item.nameUa} — yours!`);
     setTimeout(() => setToast(null), 4000);
+  }
+
+  async function handlePlaceFromInventory(itemId: string) {
+    await placeItem(itemId);
+    setToast("Додано на домівку — торкни «Редагувати» на головному екрані");
+    setTimeout(() => setToast(null), 3000);
   }
 
   return (
@@ -810,10 +865,10 @@ function ShopPageInner() {
             </button>
           ))}
 
-          {/* My Character — separate section, not a shop category */}
+          {/* Inventory — separate section, not a shop category */}
           <div style={{ margin: "12px 20px 0", borderTop: "1px solid #F3F4F6", paddingTop: 12 }}>
             <p className="font-black uppercase tracking-widest mb-2"
-              style={{ fontSize: 10, color: "#9CA3AF" }}>My Character</p>
+              style={{ fontSize: 10, color: "#9CA3AF" }}>Моє</p>
             <button
               onClick={() => setActiveTab("character")}
               className="flex items-center gap-2.5 w-full rounded-xl px-3 py-2.5 text-left transition-all active:scale-95"
@@ -821,13 +876,16 @@ function ShopPageInner() {
                 background: activeTab === "character" ? "#F5F0FF" : "#F9FAFB",
                 border: activeTab === "character" ? "1.5px solid #DDD6FE" : "1.5px solid #F3F4F6",
               }}>
-              <span style={{ fontSize: 18 }}>🐾</span>
+              <span style={{ fontSize: 18 }}>🎒</span>
               <span className="font-bold flex-1" style={{
                 fontSize: 13,
                 color: activeTab === "character" ? "#7C3AED" : "#6B7280",
                 fontWeight: activeTab === "character" ? 800 : 500,
               }}>
-                Dress Up
+                Інвентар
+              </span>
+              <span className="font-medium" style={{ fontSize: 11, color: "#9CA3AF" }}>
+                {bought.size}
               </span>
             </button>
           </div>
@@ -887,8 +945,8 @@ function ShopPageInner() {
                   color: activeTab === "character" ? "white" : "#7C3AED",
                   border: "1.5px solid #DDD6FE",
                 }}>
-                <span style={{ fontSize: 14 }}>🐾</span>
-                <span className="font-bold" style={{ fontSize: 11 }}>Dress Up</span>
+                <span style={{ fontSize: 14 }}>🎒</span>
+                <span className="font-bold" style={{ fontSize: 11 }}>Інвентар ({bought.size})</span>
               </button>
             </div>
           </div>
@@ -917,6 +975,7 @@ function ShopPageInner() {
                 ownedIds={bought}
                 balance={balance}
                 onBuyItem={item => setBuyItem(item)}
+                onPlaceItem={handlePlaceFromInventory}
               />
             ) : activeTab === "backgrounds" ? (
               <div className="flex flex-col gap-5">

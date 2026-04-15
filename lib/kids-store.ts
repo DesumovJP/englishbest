@@ -66,6 +66,25 @@ export interface CustomCharacter {
   createdAt: number;
 }
 
+/**
+ * A single placement of a shop item on the dashboard canvas.
+ * Coordinates are normalized (0..1) so layouts survive viewport changes.
+ */
+export interface PlacedItem {
+  /** Unique placement instance — same itemId can be placed multiple times. */
+  id: string;
+  /** Shop item id (catalog or custom) to look up visuals. */
+  itemId: string;
+  /** 0..1 normalized x from left edge of dashboard canvas. */
+  x: number;
+  /** 0..1 normalized y from top edge of dashboard canvas. */
+  y: number;
+  /** Visual scale. Defaults to 1. */
+  scale?: number;
+  /** Stacking order. */
+  z?: number;
+}
+
 export interface KidsState {
   coins: number;
   streak: number;
@@ -83,6 +102,10 @@ export interface KidsState {
     scarf?: string;
     bag?: string;
   };
+  /** Shop items the user has purchased. */
+  ownedItemIds: string[];
+  /** Items placed on the dashboard home canvas. */
+  placedItems: PlacedItem[];
 }
 
 // ─── DB setup ────────────────────────────────────────────────────────────────
@@ -212,16 +235,19 @@ export const DEFAULT_STATE: KidsState = {
   activeCharacterId: "fox",
   unlockedRoomIds: [],
   outfit: {},
+  ownedItemIds: [],
+  placedItems: [],
 };
 
 export const kidsStateStore = {
   get: async (): Promise<KidsState> => {
-    const row = await tx<{ key: string; value: KidsState } | undefined>(
+    const row = await tx<{ key: string; value: Partial<KidsState> } | undefined>(
       STORE_STATE,
       "readonly",
       (s) => s.get(STATE_KEY)
     );
-    return row?.value ?? DEFAULT_STATE;
+    // Merge defaults so rows written before a field was introduced still work.
+    return { ...DEFAULT_STATE, ...(row?.value ?? {}) };
   },
 
   set: (state: KidsState): Promise<string> =>

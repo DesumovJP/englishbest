@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import Link from "next/link";
 import { mockKidsUser } from "@/mocks/user";
 import { LootBoxModal } from "@/components/kids/LootBox";
@@ -9,6 +9,8 @@ import CharacterAvatar from "@/components/kids/CharacterAvatar";
 import type { CharacterEmotion } from "@/lib/characters";
 import { useKidsState } from "@/lib/use-kids-store";
 import { HudCard, SpeechBubble, XpBadge, ProgressBar } from "@/components/kids/ui";
+import { SHOP_ITEMS_BY_ID } from "@/lib/shop-catalog";
+import type { PlacedItem } from "@/lib/kids-store";
 
 /* ── Calendar data ───────────────────────────────────────────────── */
 type CalEvent = { id: string; date: string; time?: string; emoji: string; title: string; titleUa: string; color: string };
@@ -133,8 +135,9 @@ function CalendarModal({ onClose }: { onClose: () => void }) {
                     key={d}
                     onClick={() => setSelected(ds)}
                     aria-pressed={isSelected}
+                    aria-label={hasEvent ? `${d} — ${evs.length} подій` : String(d)}
                     className={[
-                      "aspect-square flex flex-col items-center justify-center rounded-xl text-base font-bold transition-all",
+                      "relative aspect-square flex items-center justify-center rounded-xl text-base font-bold transition-all",
                       isSelected
                         ? "bg-primary text-white shadow-press-primary"
                         : isToday
@@ -146,15 +149,13 @@ function CalendarModal({ onClose }: { onClose: () => void }) {
                   >
                     <span className="leading-none">{d}</span>
                     {hasEvent && (
-                      <div className="flex gap-1 mt-1" aria-hidden>
-                        {evs.slice(0, 3).map(ev => (
-                          <span
-                            key={ev.id}
-                            className="w-1.5 h-1.5 rounded-full"
-                            style={{ background: isSelected ? "rgba(255,255,255,0.85)" : ev.color }}
-                          />
-                        ))}
-                      </div>
+                      <span
+                        aria-hidden
+                        className="absolute -top-1 -right-1 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-accent ring-2 ring-white font-black text-white leading-none"
+                        style={{ fontSize: 10 }}
+                      >
+                        {evs.length}
+                      </span>
                     )}
                   </button>
                 );
@@ -447,16 +448,137 @@ function DailiesCard({ onOpenBox }: { onOpenBox: () => void }) {
   );
 }
 
+/* ── Placed-items canvas ────────────────────────────────────────── */
+/**
+ * Renders items the user has placed on their home. In edit mode each placement
+ * is draggable via native pointer events and can be deleted. Position is
+ * persisted as 0..1 normalized coords so the layout survives viewport changes.
+ */
+function PlacedItemsLayer({
+  items,
+  editMode,
+  onMove,
+  onRemove,
+}: {
+  items: PlacedItem[];
+  editMode: boolean;
+  onMove: (id: string, x: number, y: number) => void;
+  onRemove: (id: string) => void;
+}) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  // Transient per-drag positions so we don't persist on every pointermove.
+  const [dragPos, setDragPos] = useState<Record<string, { x: number; y: number }>>({});
+  const dragRef = useRef<{ id: string; offsetX: number; offsetY: number } | null>(null);
+
+  function handlePointerDown(e: React.PointerEvent<HTMLDivElement>, p: PlacedItem) {
+    if (!editMode || !containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const cx = p.x * rect.width;
+    const cy = p.y * rect.height;
+    dragRef.current = {
+      id: p.id,
+      offsetX: e.clientX - (rect.left + cx),
+      offsetY: e.clientY - (rect.top + cy),
+    };
+    (e.currentTarget as HTMLDivElement).setPointerCapture(e.pointerId);
+  }
+
+  function handlePointerMove(e: React.PointerEvent<HTMLDivElement>) {
+    const d = dragRef.current;
+    if (!d || !containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const nx = (e.clientX - rect.left - d.offsetX) / rect.width;
+    const ny = (e.clientY - rect.top - d.offsetY) / rect.height;
+    setDragPos((prev) => ({
+      ...prev,
+      [d.id]: {
+        x: Math.max(0.02, Math.min(0.98, nx)),
+        y: Math.max(0.05, Math.min(0.95, ny)),
+      },
+    }));
+  }
+
+  function handlePointerUp(e: React.PointerEvent<HTMLDivElement>) {
+    const d = dragRef.current;
+    if (!d) return;
+    (e.currentTarget as HTMLDivElement).releasePointerCapture(e.pointerId);
+    const final = dragPos[d.id];
+    if (final) {
+      onMove(d.id, final.x, final.y);
+    }
+    dragRef.current = null;
+    // Clear transient position after persist so the store becomes source of truth.
+    setDragPos((prev) => {
+      const { [d.id]: _discard, ...rest } = prev;
+      return rest;
+    });
+  }
+
+  return (
+    <div
+      ref={containerRef}
+      className="absolute inset-0 z-[5]"
+      style={{ pointerEvents: "none" }}
+    >
+      {items.map((p) => {
+        const catalog = SHOP_ITEMS_BY_ID[p.itemId];
+        const pos = dragPos[p.id] ?? { x: p.x, y: p.y };
+        const scale = p.scale ?? 1;
+
+        return (
+          <div
+            key={p.id}
+            onPointerDown={(e) => handlePointerDown(e, p)}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onPointerCancel={handlePointerUp}
+            className={[
+              "absolute -translate-x-1/2 -translate-y-1/2 select-none",
+              editMode ? "cursor-grab active:cursor-grabbing" : "",
+            ].join(" ")}
+            style={{
+              left: `${pos.x * 100}%`,
+              top: `${pos.y * 100}%`,
+              fontSize: `${64 * scale}px`,
+              lineHeight: 1,
+              pointerEvents: editMode ? "auto" : "none",
+              touchAction: editMode ? "none" : "auto",
+              filter: editMode ? "drop-shadow(0 0 0 2px rgba(79,156,249,0.6))" : "drop-shadow(0 6px 10px rgba(0,0,0,0.25))",
+            }}
+          >
+            <span aria-hidden>{catalog?.emoji ?? "❔"}</span>
+            {editMode && (
+              <button
+                type="button"
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRemove(p.id);
+                }}
+                aria-label="Видалити"
+                className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-danger text-white font-black text-[12px] flex items-center justify-center ring-2 ring-white shadow-md"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 /* ── Page ────────────────────────────────────────────────────────── */
 export default function KidsDashboardPage() {
   const user = mockKidsUser;
-  const { state: kidsState, patch: patchState } = useKidsState();
+  const { state: kidsState, patch: patchState, movePlacement, removePlacement } = useKidsState();
 
   const [emotionIdx, setEmotionIdx] = useState(0);
   const [bubble, setBubble]         = useState<Bubble | null>(null);
   const [bounceKey, setBounceKey]   = useState(0);
   const [openBox, setOpenBox]       = useState<BoxRarity | null>(null);
   const [showCal, setShowCal]       = useState(false);
+  const [editMode, setEditMode]     = useState(false);
 
   const coins   = kidsState.coins ?? user.coins;
   const emotion = EMOTION_CYCLE[emotionIdx];
@@ -475,6 +597,8 @@ export default function KidsDashboardPage() {
     await patchState({ coins: Math.max(0, coins - _cost) });
   }, [patchState, coins]);
 
+  const placedItems = kidsState.placedItems ?? [];
+
   return (
     <div
       className="relative w-full h-[100dvh] overflow-hidden select-none"
@@ -482,6 +606,29 @@ export default function KidsDashboardPage() {
         background: kidsState.roomBackground ?? "url('/kids-dashboard-bg.jpg') center bottom / cover",
       }}
     >
+      {/* ── Placed items ────────────────────────────────────────── */}
+      <PlacedItemsLayer
+        items={placedItems}
+        editMode={editMode}
+        onMove={movePlacement}
+        onRemove={removePlacement}
+      />
+
+      {/* ── Edit toggle ─────────────────────────────────────────── */}
+      {(placedItems.length > 0 || editMode) && (
+        <button
+          onClick={() => setEditMode((v) => !v)}
+          aria-pressed={editMode}
+          className={[
+            "absolute z-30 rounded-full px-3.5 h-9 flex items-center gap-1.5 font-black text-xs shadow-lg transition-colors",
+            editMode ? "bg-primary text-white" : "bg-white/90 text-ink border border-black/5",
+          ].join(" ")}
+          style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 78px)", right: 14 }}
+        >
+          {editMode ? "Готово ✓" : "Редагувати ✎"}
+        </button>
+      )}
+
       {/* ── LEFT COLUMN HUD ─────────────────────────────────────── */}
       <div
         className="absolute z-20 flex flex-col gap-2.5"
