@@ -102,7 +102,7 @@ export function LessonCharacter({ emotion }: { emotion: CharEmotion }) {
           style={{ transformOrigin: "bottom center" }}
         >
           {visible && (
-            <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-1.5 z-50 pointer-events-none">
+            <div className="absolute left-1/2 -translate-x-1/2 bottom-[85%] z-50 pointer-events-none">
               <SpeechBubble text={bubble} maxWidth={160} size="sm" />
             </div>
           )}
