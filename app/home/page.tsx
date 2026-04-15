@@ -216,10 +216,10 @@ export default function HomePage() {
         {/* ── Формати + Ціни ── */}
         <section id="formats" className={`py-20 bg-surface-muted ${G}`}>
           <div className={`${W}`}>
-            <div className="flex flex-col lg:flex-row gap-10 items-start">
+            <div className="flex flex-col lg:flex-row gap-10 lg:items-start">
 
               {/* Ліво: заголовок + список форматів */}
-              <div className="flex-1 flex flex-col gap-6">
+              <div className="w-full lg:flex-1 min-w-0 flex flex-col gap-6">
                 <div>
                   <p className="type-label text-primary mb-3">Формати та ціни</p>
                   <h2 className="type-h1 text-ink">Оберіть формат навчання</h2>
@@ -251,7 +251,7 @@ export default function HomePage() {
               </div>
 
               {/* Право — вчителі */}
-              <div className="flex-1 flex flex-col gap-6">
+              <div className="w-full lg:flex-1 min-w-0 flex flex-col gap-6">
                 <div>
                   <p className="type-label text-primary mb-3">Наші вчителі</p>
                   <h2 className="type-h1 text-ink">50+ педагогів</h2>

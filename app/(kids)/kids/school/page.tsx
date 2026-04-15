@@ -485,9 +485,9 @@ function LibraryCatalog() {
       : [{ header: '', items: visible }];
 
   return (
-    <div className="flex flex-1 overflow-hidden">
-      <div className="flex flex-col flex-shrink-0 overflow-y-auto bg-white w-[196px] border-r border-gray-100 py-5">
-        <p className="px-5 mb-2 font-black uppercase tracking-widest text-[10px] text-gray-400">
+    <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
+      <div className="flex flex-row md:flex-col flex-shrink-0 overflow-x-auto md:overflow-x-visible md:overflow-y-auto bg-white md:w-[196px] border-b md:border-b-0 md:border-r border-gray-100 py-2 md:py-5 px-3 md:px-0 gap-2 md:gap-0">
+        <p className="hidden md:block px-5 mb-2 font-black uppercase tracking-widest text-[10px] text-gray-400">
           Категорія
         </p>
         {LIB_CATEGORIES.map(cat => {
@@ -495,19 +495,21 @@ function LibraryCatalog() {
           return (
             <button key={cat.id} onClick={() => setLibTab(cat.id)}
               className={[
-                'flex items-center justify-between px-5 py-2.5 text-left transition-colors border-l-[3px]',
-                isActive ? 'bg-gray-100 border-gray-900' : 'bg-transparent border-transparent',
+                'flex items-center gap-1.5 md:justify-between shrink-0 md:shrink px-3 md:px-5 py-1.5 md:py-2.5 rounded-full md:rounded-none text-left transition-colors border md:border-0 md:border-l-[3px]',
+                isActive
+                  ? 'bg-gray-900 md:bg-gray-100 border-gray-900 md:border-gray-900'
+                  : 'bg-white md:bg-transparent border-gray-200 md:border-transparent',
               ].join(' ')}>
-              <span className={['text-[13px]', isActive ? 'text-gray-900 font-extrabold' : 'text-gray-500 font-medium'].join(' ')}>
+              <span className={['text-[13px] whitespace-nowrap', isActive ? 'text-white md:text-gray-900 font-extrabold' : 'text-gray-500 font-medium'].join(' ')}>
                 {cat.label}
               </span>
-              <span className="font-medium text-[11px] text-gray-400">{counts[cat.id]}</span>
+              <span className={['font-medium text-[11px]', isActive ? 'text-white/70 md:text-gray-400' : 'text-gray-400'].join(' ')}>{counts[cat.id]}</span>
             </button>
           );
         })}
       </div>
 
-      <div className="flex-1 overflow-y-auto pb-28 bg-white">
+      <div className="flex-1 min-w-0 overflow-y-auto pb-28 bg-white">
         {grouped.map((group, gi) => (
           <div key={gi}>
             {libTab === 'all' && (
