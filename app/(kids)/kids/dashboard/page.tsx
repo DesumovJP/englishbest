@@ -268,7 +268,7 @@ function CalendarWidget({ onOpen }: { onOpen: () => void }) {
           <span className="text-ink-muted text-sm">›</span>
         </div>
         {nextEvents.length > 0 && (
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-1.5 [@media(max-height:500px)]:hidden">
             {nextEvents.map(ev => (
               <div key={ev.id} className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: ev.color }} />
@@ -295,7 +295,7 @@ function StreakWidget({ onOpenCal }: { onOpenCal: () => void }) {
           <span className="font-black text-[16px] sm:text-[22px] text-accent-dark leading-none">{STREAK_DAYS}</span>
           <span className="font-bold text-[9.5px] sm:text-[11px] text-ink-muted">днів</span>
         </div>
-        <div className="flex gap-1">
+        <div className="flex gap-1 [@media(max-height:500px)]:hidden">
           {WEEK_LABELS.map((label, i) => (
             <div key={i} className="flex flex-col items-center gap-0.5 flex-1">
               <div className={`w-full rounded-md h-1.5 ${done[i] ? "bg-accent-dark" : "bg-ink-faint/20"}`} />
@@ -331,7 +331,7 @@ function LootBoxWidget({ coins, onOpen }: { coins: number; onOpen: () => void })
             </div>
           </div>
         </div>
-        <div className={`w-full h-8 sm:h-9 rounded-lg sm:rounded-xl font-black text-white text-[11px] sm:text-xs flex items-center justify-center transition-transform ${canAfford ? "bg-purple shadow-press-purple active:translate-y-1 active:shadow-none" : "bg-ink-faint/50"}`}>
+        <div className={`w-full h-8 sm:h-9 rounded-lg sm:rounded-xl font-black text-white text-[11px] sm:text-xs flex items-center justify-center transition-transform [@media(max-height:500px)]:hidden ${canAfford ? "bg-purple shadow-press-purple active:translate-y-1 active:shadow-none" : "bg-ink-faint/50"}`}>
           {canAfford ? "Відкрити" : "Пізніше"}
         </div>
       </HudCard>
@@ -644,14 +644,14 @@ export default function KidsDashboardPage() {
       )}
 
       {/* ── LEFT COLUMN HUD (landscape mobile + tablet/desktop) ── */}
-      <div className="hidden sm:flex absolute z-20 flex-col gap-2 md:gap-2.5 top-[env(safe-area-inset-top,10px)] md:top-[env(safe-area-inset-top,14px)] left-2 md:left-3 w-[min(160px,36vw)] md:w-[min(185px,44vw)]">
+      <div className="hidden sm:flex absolute z-20 flex-col gap-2 md:gap-2.5 top-[env(safe-area-inset-top,10px)] md:top-[env(safe-area-inset-top,14px)] left-2 md:left-3 w-[min(160px,36vw)] md:w-[min(185px,44vw)] [@media(max-height:500px)]:w-[132px] [@media(max-height:500px)]:gap-1.5 [@media(max-height:500px)]:top-1.5 [@media(max-height:500px)]:left-1.5">
         <CalendarWidget onOpen={() => setShowCal(true)} />
         <StreakWidget onOpenCal={() => setShowCal(true)} />
         <LootBoxWidget coins={coins} onOpen={() => setOpenBox("common")} />
       </div>
 
       {/* ── RIGHT COLUMN HUD (landscape mobile + tablet/desktop) ─ */}
-      <div className="hidden sm:flex absolute z-20 flex-col gap-2 md:gap-2.5 top-[env(safe-area-inset-top,10px)] md:top-[env(safe-area-inset-top,14px)] right-2 md:right-3 w-[min(180px,38vw)] md:w-[min(210px,50vw)]">
+      <div className="hidden sm:flex absolute z-20 flex-col gap-2 md:gap-2.5 top-[env(safe-area-inset-top,10px)] md:top-[env(safe-area-inset-top,14px)] right-2 md:right-3 w-[min(180px,38vw)] md:w-[min(210px,50vw)] [@media(max-height:500px)]:w-[160px] [@media(max-height:500px)]:gap-1.5 [@media(max-height:500px)]:top-1.5 [@media(max-height:500px)]:right-1.5">
         <ContinueCard />
         <DailiesCard onOpenBox={() => setOpenBox("common")} />
       </div>

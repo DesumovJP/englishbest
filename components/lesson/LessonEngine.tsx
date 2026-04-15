@@ -16,6 +16,7 @@ import { StepTranslate }      from './StepTranslate';
 import { StepImage }          from './StepImage';
 import { StepVideo }          from './StepVideo';
 import { StepReading }        from './StepReading';
+import RotateHint             from '@/components/kids/RotateHint';
 
 interface Props {
   lesson: LessonData;
@@ -102,6 +103,7 @@ export function LessonEngine({ lesson, nextLessonSlug, backUrl = '/kids/school',
 
   return (
     <div className="flex flex-col h-dvh relative overflow-hidden bg-lesson-engine">
+      <RotateHint />
 
       {/* Ігрові декорації фону */}
       <div className="pointer-events-none select-none absolute inset-0 overflow-hidden" aria-hidden>
