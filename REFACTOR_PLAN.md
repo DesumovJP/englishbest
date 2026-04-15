@@ -51,7 +51,7 @@ Kids pages:
 - [x] `/kids/dashboard` — 15→dynamic-only, 6 hex are data (event colors)
 - [x] `/kids/lessons` — 37→dynamic-only, 24→0 hex
 - [x] `/kids/school` — 65→dynamic-only, 38→data-only (per-unit accent, COVER_BG per type)
-- [ ] `/kids/shop` — 131 inline, 111 hex (largest)
+- [x] `/kids/shop` — 131→2 dynamic (bgValue preview, slot coords), 111 hex → data-only (BACKGROUNDS gradients); RARITY consolidated from 3 hex maps into 1 Tailwind class map
 - [x] `/kids/characters` — 65→dynamic-only, 57→0 hex
 - [x] `/kids/room` — 30→1 dynamic (activeRoom.bg), 17 hex are room data gradients
 
@@ -119,3 +119,5 @@ For each page: verify layout + interactions at all 6 viewports, portrait + lands
 - **2026-04-15** — F2 batch 1: achievements, coins, library/[id] fully detoxed (124 inline + 107 hex eliminated, only legitimate dynamic values remain).
 - **2026-04-15** — F2 batch 2: kids/lessons, kids/characters detoxed (102 inline + 81 hex → only runtime-dynamic values remain: scroll-scale, per-card accent gradient, per-outfit slot accent). tsc clean; lint errors all pre-existing.
 - **2026-04-15** — F2 batch 3: kids/dashboard, kids/room detoxed. All static styling moved to Tailwind; remaining inline = activeRoom.bg, per-event color, placed-item coords, equipped-item slot offsets. Hex literals that remain are pure data (event colors, gradient room presets).
+- **2026-04-15** — F2 batch 4: kids/school detoxed (732 LOC). Per-unit accent fed via CSS var `--accent`; `bg-[color:var(--accent)]/10` etc. Library row gets `--accent` + `--cover-bg`. Carousel: scroll-snap + `px-[calc(50%-clamp(140px,31vw,190px))]`; per-card transform/opacity kept inline (runtime scroll-driven).
+- **2026-04-15** — F2 batch 5: kids/shop detoxed (largest file). 131 inline → 2 dynamic (bgValue preview, equipped-slot coords). RARITY collapsed from 3 parallel hex records into 1 Tailwind class record (text/bg/border). BACKGROUNDS gradient hex retained as data. **All 9 kids pages done.**
