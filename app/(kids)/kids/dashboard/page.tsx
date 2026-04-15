@@ -151,8 +151,7 @@ function CalendarModal({ onClose }: { onClose: () => void }) {
                     {hasEvent && (
                       <span
                         aria-hidden
-                        className="absolute -top-1 -right-1 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-accent ring-2 ring-white font-black text-white leading-none"
-                        style={{ fontSize: 10 }}
+                        className="absolute -top-1 -right-1 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-accent ring-2 ring-white font-black text-white leading-none text-[10px]"
                       >
                         {evs.length}
                       </span>
@@ -517,8 +516,7 @@ function PlacedItemsLayer({
   return (
     <div
       ref={containerRef}
-      className="absolute inset-0 z-[5]"
-      style={{ pointerEvents: "none" }}
+      className="absolute inset-0 z-[5] pointer-events-none"
     >
       {items.map((p) => {
         const catalog = SHOP_ITEMS_BY_ID[p.itemId];
@@ -533,17 +531,15 @@ function PlacedItemsLayer({
             onPointerUp={handlePointerUp}
             onPointerCancel={handlePointerUp}
             className={[
-              "absolute -translate-x-1/2 -translate-y-1/2 select-none",
-              editMode ? "cursor-grab active:cursor-grabbing" : "",
+              "absolute -translate-x-1/2 -translate-y-1/2 select-none leading-none",
+              editMode
+                ? "cursor-grab active:cursor-grabbing pointer-events-auto touch-none drop-shadow-[0_0_0_2px_rgba(79,156,249,0.6)]"
+                : "pointer-events-none touch-auto drop-shadow-[0_6px_10px_rgba(0,0,0,0.25)]",
             ].join(" ")}
             style={{
               left: `${pos.x * 100}%`,
               top: `${pos.y * 100}%`,
               fontSize: `${64 * scale}px`,
-              lineHeight: 1,
-              pointerEvents: editMode ? "auto" : "none",
-              touchAction: editMode ? "none" : "auto",
-              filter: editMode ? "drop-shadow(0 0 0 2px rgba(79,156,249,0.6))" : "drop-shadow(0 6px 10px rgba(0,0,0,0.25))",
             }}
           >
             <span aria-hidden>{catalog?.emoji ?? "❔"}</span>
@@ -599,12 +595,17 @@ export default function KidsDashboardPage() {
 
   const placedItems = kidsState.placedItems ?? [];
 
+  const bgStyle = kidsState.roomBackground
+    ? { background: kidsState.roomBackground }
+    : undefined;
+
   return (
     <div
-      className="relative w-full h-[100dvh] overflow-hidden select-none"
-      style={{
-        background: kidsState.roomBackground ?? "url('/kids-dashboard-bg.jpg') center bottom / cover",
-      }}
+      className={[
+        "relative w-full h-[100dvh] overflow-hidden select-none",
+        !bgStyle && "bg-[url('/kids-dashboard-bg.jpg')] bg-cover bg-[center_bottom]",
+      ].filter(Boolean).join(" ")}
+      style={bgStyle}
     >
       {/* ── Placed items — raised above character in edit mode so they're draggable ── */}
       <div className={editMode ? "absolute inset-0 z-[15]" : "absolute inset-0 z-[5]"}>
@@ -623,54 +624,39 @@ export default function KidsDashboardPage() {
           aria-pressed={editMode}
           className={[
             "absolute z-30 rounded-full px-3.5 h-9 flex items-center gap-1.5 font-black text-xs shadow-lg transition-colors",
+            "bottom-[calc(env(safe-area-inset-bottom,0px)+78px)] right-[14px]",
             editMode ? "bg-primary text-white" : "bg-white/90 text-ink border border-black/5",
           ].join(" ")}
-          style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 78px)", right: 14 }}
         >
           {editMode ? "Готово ✓" : "Посунути щось ✎"}
         </button>
       )}
 
       {/* ── LEFT COLUMN HUD ─────────────────────────────────────── */}
-      <div
-        className="absolute z-20 flex flex-col gap-2.5"
-        style={{
-          top: "env(safe-area-inset-top, 14px)",
-          left: 12,
-          width: "min(185px, 44vw)",
-        }}
-      >
+      <div className="absolute z-20 flex flex-col gap-2.5 top-[env(safe-area-inset-top,14px)] left-3 w-[min(185px,44vw)]">
         <CalendarWidget onOpen={() => setShowCal(true)} />
         <StreakWidget onOpenCal={() => setShowCal(true)} />
         <LootBoxWidget coins={coins} onOpen={() => setOpenBox("common")} />
       </div>
 
       {/* ── RIGHT COLUMN HUD ────────────────────────────────────── */}
-      <div
-        className="absolute z-20 flex flex-col gap-2.5"
-        style={{
-          top: "env(safe-area-inset-top, 14px)",
-          right: 12,
-          width: "min(210px, 50vw)",
-        }}
-      >
+      <div className="absolute z-20 flex flex-col gap-2.5 top-[env(safe-area-inset-top,14px)] right-3 w-[min(210px,50vw)]">
         <ContinueCard />
         <DailiesCard onOpenBox={() => setOpenBox("common")} />
       </div>
 
       {/* ── CHARACTER — centered ────────────────────────────────── */}
-      <div className="absolute inset-0 flex flex-col items-center justify-center z-10 pointer-events-none"
-        style={{ paddingBottom: 60 }}>
+      <div className="absolute inset-0 flex flex-col items-center justify-center z-10 pointer-events-none pb-[60px]">
 
         <button onClick={handleTap} className="focus:outline-none flex flex-col items-center pointer-events-auto">
           {/* Bubble + character bounce together as one unit */}
-          <div key={bounceKey} className="animate-bounce-in flex flex-col items-center" style={{ transformOrigin: "bottom center" }}>
+          <div key={bounceKey} className="animate-bounce-in flex flex-col items-center origin-bottom">
             {bubble && (
               <div className="mb-3">
                 <SpeechBubble text={bubble.en} subtext={bubble.ua} maxWidth={220} />
               </div>
             )}
-            <div className="active:scale-95 transition-transform relative tk-animate-float" style={{ width: 300, height: 300 }}>
+            <div className="active:scale-95 transition-transform relative tk-animate-float w-[300px] h-[300px]">
               <CharacterAvatar
                 characterId={kidsState.activeCharacterId || "fox"}
                 emotion={emotion}
@@ -684,14 +670,8 @@ export default function KidsDashboardPage() {
                 return (
                   <div
                     key={id}
-                    className="absolute pointer-events-none -translate-x-1/2"
-                    style={{
-                      top: pos.top,
-                      left: pos.left,
-                      fontSize: 300 * 0.28,
-                      filter: "drop-shadow(0 4px 8px rgba(0,0,0,0.22))",
-                      zIndex: 20,
-                    }}
+                    className="absolute pointer-events-none -translate-x-1/2 z-20 text-[84px] drop-shadow-[0_4px_8px_rgba(0,0,0,0.22)]"
+                    style={{ top: pos.top, left: pos.left }}
                   >
                     {item.emoji}
                   </div>

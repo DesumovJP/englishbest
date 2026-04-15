@@ -48,12 +48,12 @@ Kids pages:
 - [x] `/kids/achievements` — 18→0 inline, 17→0 hex
 - [x] `/kids/coins` — 52→0 inline, 41→0 hex
 - [x] `/kids/library/[id]` — 54→1 inline (dynamic cover), 49→0 hex
-- [ ] `/kids/dashboard` — 15 inline, 6 hex
+- [x] `/kids/dashboard` — 15→dynamic-only, 6 hex are data (event colors)
 - [x] `/kids/lessons` — 37→dynamic-only, 24→0 hex
 - [ ] `/kids/school` — 65 inline, 38 hex
 - [ ] `/kids/shop` — 131 inline, 111 hex (largest)
 - [x] `/kids/characters` — 65→dynamic-only, 57→0 hex
-- [ ] `/kids/room` — 30 inline, 17 hex (many legitimate drag/geometry)
+- [x] `/kids/room` — 30→1 dynamic (activeRoom.bg), 17 hex are room data gradients
 
 Kids components:
 - [ ] `AddCustomModal.tsx` — 3 inline, 7 hex
@@ -118,3 +118,4 @@ For each page: verify layout + interactions at all 6 viewports, portrait + lands
 - **2026-04-15** — F1 done: `ARCHITECTURE.md` rewritten (13 sections: stack, directory, routing, data, state, design tokens, responsive contract, components, kids subsystem, conventions, backend checklist, per-page + per-token how-tos).
 - **2026-04-15** — F2 batch 1: achievements, coins, library/[id] fully detoxed (124 inline + 107 hex eliminated, only legitimate dynamic values remain).
 - **2026-04-15** — F2 batch 2: kids/lessons, kids/characters detoxed (102 inline + 81 hex → only runtime-dynamic values remain: scroll-scale, per-card accent gradient, per-outfit slot accent). tsc clean; lint errors all pre-existing.
+- **2026-04-15** — F2 batch 3: kids/dashboard, kids/room detoxed. All static styling moved to Tailwind; remaining inline = activeRoom.bg, per-event color, placed-item coords, equipped-item slot offsets. Hex literals that remain are pure data (event colors, gradient room presets).
