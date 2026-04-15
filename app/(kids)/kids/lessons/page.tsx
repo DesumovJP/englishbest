@@ -1,8 +1,7 @@
 'use client';
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, type CSSProperties } from 'react';
 import Link from 'next/link';
 
-/* ── Types ───────────────────────────────────────────────────────── */
 type LessonStatus = 'done' | 'current' | 'locked';
 type LessonType = 'lesson' | 'vocab' | 'reading' | 'listening' | 'speaking' | 'writing' | 'test';
 
@@ -16,16 +15,6 @@ const TYPE_DESC: Record<string, string> = {
   test:      'Перевір знання',
 };
 
-const TYPE_GRAD: Record<string, string> = {
-  lesson:    'linear-gradient(145deg, #667eea 0%, #764ba2 100%)',
-  vocab:     'linear-gradient(145deg, #f093fb 0%, #c850c0 100%)',
-  reading:   'linear-gradient(145deg, #4facfe 0%, #0262c8 100%)',
-  listening: 'linear-gradient(145deg, #43e97b 0%, #0ba360 100%)',
-  speaking:  'linear-gradient(145deg, #f7971e 0%, #ffd200 100%)',
-  writing:   'linear-gradient(145deg, #a18cd1 0%, #6c63ff 100%)',
-  test:      'linear-gradient(145deg, #f54ea2 0%, #ff7676 100%)',
-};
-
 interface Lesson {
   slug: string; title: string; emoji: string; xp: number; type?: LessonType;
 }
@@ -36,7 +25,6 @@ interface Section {
   lessons: Lesson[];
 }
 
-/* ── Data ────────────────────────────────────────────────────────── */
 const SECTIONS: Section[] = [
   {
     slug: 'basics', unit: 1, title: 'Знайомство', bossEmoji: '👋',
@@ -131,19 +119,24 @@ function getStatus(slug: string): LessonStatus {
   return ti <= ci ? 'done' : 'locked';
 }
 
-/* ── Lesson card — height driven by parent ───────────────────────── */
+/* ── Lesson card ─────────────────────────────────────────────────── */
 function LessonCard({ slug, title, xp, type, emoji, accent, status, isCurrent, unitLabel }: {
   slug: string; title: string; xp: number; type?: LessonType; emoji: string;
   accent: string; status: LessonStatus; isCurrent: boolean; unitLabel?: string;
 }) {
+  // Accent feeds color + shadow + tint via CSS var — all genuinely dynamic.
+  const vars = { '--accent': accent } as CSSProperties;
   return (
-    <div className="relative w-full h-full rounded-[28px] overflow-hidden select-none"
-      style={{
-        background: '#1a1a2e',
-        boxShadow: isCurrent
-          ? `0 0 0 4px ${accent}, 0 12px 40px ${accent}55`
-          : status === 'done' ? '0 4px 16px rgba(0,0,0,0.12)' : '0 10px 28px rgba(0,0,0,0.22)',
-      }}>
+    <div
+      className={[
+        "relative w-full h-full rounded-[28px] overflow-hidden select-none bg-[#1a1a2e]",
+        isCurrent
+          ? "shadow-[0_0_0_4px_var(--accent),0_12px_40px_color-mix(in_oklab,var(--accent),transparent_66%)]"
+          : status === 'done'
+            ? "shadow-[0_4px_16px_rgba(0,0,0,0.12)]"
+            : "shadow-[0_10px_28px_rgba(0,0,0,0.22)]",
+      ].join(" ")}
+      style={vars}>
 
       {/* Blurred photo background */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -151,96 +144,65 @@ function LessonCard({ slug, title, xp, type, emoji, accent, status, isCurrent, u
         src={`https://picsum.photos/seed/${slug}/400/540`}
         alt=""
         aria-hidden
-        className="absolute inset-0 w-full h-full object-cover"
-        style={{ filter: 'blur(5px) saturate(1.2)', transform: 'scale(1.1)' }}
+        className="absolute inset-0 w-full h-full object-cover blur-[5px] saturate-150 scale-110"
       />
 
-      {/* Color tint + dark overlay */}
-      <div className="absolute inset-0"
-        style={{ background: `linear-gradient(165deg, ${accent}70 0%, rgba(0,0,0,0.58) 100%)` }} />
+      {/* Accent tint + dark overlay — dynamic, must stay inline */}
+      <div
+        className="absolute inset-0"
+        style={{ background: `linear-gradient(165deg, ${accent}70 0%, rgba(0,0,0,0.58) 100%)` }}
+      />
 
-      {/* Done: extra scrim */}
-      {status === 'done' && (
-        <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.22)' }} />
-      )}
+      {status === 'done' && <div className="absolute inset-0 bg-black/25" />}
 
-      {/* Locked: full scrim + lock */}
       {status === 'locked' && (
-        <div className="absolute inset-0 flex items-center justify-center"
-          style={{ background: 'rgba(0,0,0,0.5)' }}>
-          <span style={{ fontSize: 'clamp(44px, 8vh, 64px)', filter: 'drop-shadow(0 3px 8px rgba(0,0,0,0.6))' }}>🔒</span>
+        <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+          <span className="text-[clamp(44px,8vh,64px)] drop-shadow-[0_3px_8px_rgba(0,0,0,0.6)]">🔒</span>
         </div>
       )}
 
-      {/* Centered emoji + title + desc + XP */}
       {status !== 'locked' && (
         <div className="absolute inset-0 flex flex-col items-center justify-center px-6 text-center gap-4 pointer-events-none">
-          <div className="rounded-full flex items-center justify-center"
-            style={{
-              width: 72, height: 72,
-              background: 'rgba(255,255,255,0.18)',
-              backdropFilter: 'blur(14px)',
-              border: '1.5px solid rgba(255,255,255,0.28)',
-              boxShadow: '0 6px 20px rgba(0,0,0,0.3)',
-              fontSize: 38,
-            }}>
+          <div className="w-[72px] h-[72px] rounded-full flex items-center justify-center bg-white/20 backdrop-blur-md border-[1.5px] border-white/30 shadow-[0_6px_20px_rgba(0,0,0,0.3)] text-[38px]">
             {emoji}
           </div>
-          <p className="font-black text-white leading-tight drop-shadow-xl"
-            style={{
-              fontSize: 'clamp(24px, 3.2vw, 34px)',
-              letterSpacing: '-0.02em',
-              overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical',
-            }}>
+          <p className="font-black text-white leading-tight drop-shadow-xl text-[clamp(24px,3.2vw,34px)] tracking-tight line-clamp-3">
             {title}
           </p>
-          <p className="font-bold drop-shadow-sm" style={{ fontSize: 15, color: 'rgba(255,255,255,0.75)', letterSpacing: '0.01em' }}>
+          <p className="font-bold drop-shadow-sm text-[15px] text-white/75 tracking-[0.01em]">
             {TYPE_DESC[type ?? 'lesson']}
           </p>
-          <div className="flex items-center gap-2 mt-1 rounded-full px-3.5 py-1.5"
-            style={{ background: 'rgba(255,255,255,0.18)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.22)' }}>
-            <img src="/coin.png" alt="coin" style={{ width: 18, height: 18, objectFit: 'contain' }} />
-            <span style={{ fontSize: 15, color: 'white', fontWeight: 900 }}>+{xp}</span>
-            <img src="/xp.png" alt="XP" style={{ width: 18, height: 18, objectFit: 'contain', marginLeft: 2 }} />
+          <div className="flex items-center gap-2 mt-1 rounded-full px-3.5 py-1.5 bg-white/20 backdrop-blur-sm border border-white/25">
+            <img src="/coin.png" alt="coin" width={18} height={18} className="object-contain" />
+            <span className="text-[15px] text-white font-black">+{xp}</span>
+            <img src="/xp.png" alt="XP" width={18} height={18} className="object-contain ml-0.5" />
           </div>
         </div>
       )}
 
-      {/* Unit chip — only on first card of each unit */}
       {unitLabel && (
-        <div className="absolute top-3 left-3 rounded-full px-2.5 py-1"
-          style={{
-            background: 'rgba(0,0,0,0.42)',
-            backdropFilter: 'blur(10px)',
-            border: '1px solid rgba(255,255,255,0.22)',
-          }}>
-          <span className="font-black text-white" style={{ fontSize: 10, letterSpacing: '0.08em' }}>
-            {unitLabel}
-          </span>
+        <div className="absolute top-3 left-3 rounded-full px-2.5 py-1 bg-black/40 backdrop-blur-md border border-white/25">
+          <span className="font-black text-white text-[10px] tracking-[0.08em]">{unitLabel}</span>
         </div>
       )}
 
-      {/* Completed badge */}
       {status === 'done' && (
-        <div className="absolute top-3 right-3 rounded-full w-7 h-7 flex items-center justify-center"
-          style={{ background: '#16a34a', boxShadow: '0 3px 10px rgba(22,163,74,0.5)' }}>
-          <span className="font-black text-white" style={{ fontSize: 14 }}>✓</span>
+        <div className="absolute top-3 right-3 rounded-full w-7 h-7 flex items-center justify-center bg-green-600 shadow-[0_3px_10px_rgba(22,163,74,0.5)]">
+          <span className="font-black text-white text-sm">✓</span>
         </div>
       )}
 
-      {/* NOW badge */}
       {isCurrent && (
-        <div className="absolute top-3 right-3 rounded-full px-3 py-1.5 flex items-center gap-1"
-          style={{ background: '#22C55E', boxShadow: '0 3px 12px rgba(34,197,94,0.55)' }}>
-          <span style={{ fontSize: 10 }}>▶</span>
-          <span className="font-black text-white" style={{ fontSize: 11, letterSpacing: '0.08em' }}>NOW</span>
+        <div className="absolute top-3 right-3 rounded-full px-3 py-1.5 flex items-center gap-1 bg-green-500 shadow-[0_3px_12px_rgba(34,197,94,0.55)]">
+          <span className="text-[10px]">▶</span>
+          <span className="font-black text-white text-[11px] tracking-[0.08em]">NOW</span>
         </div>
       )}
     </div>
   );
 }
 
-/* ── Carousel (all screens) ──────────────────────────────────────── */
+/* ── Carousel ─────────────────────────────────────────────────────── */
 function LessonsCarousel() {
   const scrollRef  = useRef<HTMLDivElement>(null);
   const currentRef = useRef<HTMLDivElement | null>(null);
@@ -252,7 +214,6 @@ function LessonsCarousel() {
   const pct = Math.round((totalDone / TOTAL) * 100);
   const currentSection = SECTIONS.find(s => s.lessons.some(l => l.slug === ME.currentSlug)) ?? SECTIONS[0];
 
-  /* Recalculate per-card proximity to viewport center */
   function calcScales() {
     const ctr = scrollRef.current;
     if (!ctr) return;
@@ -268,7 +229,6 @@ function LessonsCarousel() {
     setScales(new Map(next));
   }
 
-  /* Attach scroll listener */
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
@@ -287,7 +247,6 @@ function LessonsCarousel() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  /* Auto-scroll to current lesson using getBoundingClientRect */
   useEffect(() => {
     const t = setTimeout(() => {
       const cur = currentRef.current;
@@ -303,68 +262,51 @@ function LessonsCarousel() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  /* Scale: 0.62 (off-center) → 1.0 (centered) | opacity: 0.32 → 1.0 */
-  function getScale(slug: string)   { const t = scales.get(slug) ?? 0; return 0.62 + 0.38 * t; }
-  function getOpacity(slug: string) { const t = scales.get(slug) ?? 0; return 0.32 + 0.68 * t; }
+  const getScale   = (slug: string) => { const t = scales.get(slug) ?? 0; return 0.62 + 0.38 * t; };
+  const getOpacity = (slug: string) => { const t = scales.get(slug) ?? 0; return 0.32 + 0.68 * t; };
 
-  /* Half card width for padding trick — must match card width / 2 */
-  const halfCard = 'clamp(170px, 40vw, 230px)';
+  const sectionVars = { '--section-accent': currentSection.accent } as CSSProperties;
 
   return (
-    <div className="flex flex-col h-[100dvh] overflow-hidden bg-[#FAFAFA]">
-
-      {/* Compact centered top bar */}
-      <div className="flex-shrink-0 bg-white" style={{ borderBottom: '1px solid #F3F4F6' }}>
-        <div className="flex items-center gap-3 px-4 mx-auto"
-          style={{
-            paddingTop: 'env(safe-area-inset-top, 12px)',
-            paddingBottom: 10,
-            maxWidth: 640,
-          }}>
+    <div className="flex flex-col h-dvh overflow-hidden bg-[#FAFAFA]" style={sectionVars}>
+      {/* Top bar */}
+      <div className="flex-shrink-0 bg-white border-b border-gray-100">
+        <div className="flex items-center gap-3 px-4 mx-auto max-w-[640px] pb-2.5 pt-[max(12px,env(safe-area-inset-top))]">
           <Link href="/kids/school"
-            className="w-9 h-9 rounded-xl flex items-center justify-center active:scale-90 transition-transform flex-shrink-0"
-            style={{ background: '#F3F4F6', color: '#374151', fontSize: 16, fontWeight: 900 }}>←</Link>
+            className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 bg-gray-100 text-gray-700 text-base font-black active:scale-90 transition-transform">
+            ←
+          </Link>
 
-          <div className="w-9 h-9 rounded-xl flex items-center justify-center text-lg flex-shrink-0"
-            style={{ background: `${currentSection.accent}18`, border: `1.5px solid ${currentSection.accent}30` }}>
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center text-lg flex-shrink-0 bg-[color:var(--section-accent)]/10 border-[1.5px] border-[color:var(--section-accent)]/20">
             {currentSection.bossEmoji}
           </div>
 
           <div className="flex-1 min-w-0">
-            <p className="font-black leading-none truncate" style={{ fontSize: 13, color: '#1A1A2E' }}>
+            <p className="font-black leading-none truncate text-[13px] text-gray-900">
               Unit {currentSection.unit} — {currentSection.title}
             </p>
-            <p className="font-medium leading-none mt-1 truncate" style={{ fontSize: 10.5, color: '#9CA3AF' }}>
+            <p className="font-medium leading-none mt-1 truncate text-[10.5px] text-gray-400">
               English Kids Starter
             </p>
           </div>
 
           <div className="flex items-center gap-2 flex-shrink-0">
-            <div className="rounded-full overflow-hidden" style={{ width: 64, height: 6, background: '#F3F4F6' }}>
-              <div className="h-full rounded-full" style={{ width: `${pct}%`, background: currentSection.accent, transition: 'width 0.7s ease' }} />
+            <div className="rounded-full overflow-hidden w-16 h-1.5 bg-gray-100">
+              <div className="h-full rounded-full bg-[color:var(--section-accent)] transition-[width] duration-700" style={{ width: `${pct}%` }} />
             </div>
-            <span className="font-black" style={{ fontSize: 12, color: currentSection.accent }}>
-              {totalDone}<span style={{ color: '#D1D5DB', fontWeight: 500 }}>/{TOTAL}</span>
+            <span className="font-black text-xs text-[color:var(--section-accent)]">
+              {totalDone}<span className="text-gray-300 font-medium">/{TOTAL}</span>
             </span>
           </div>
         </div>
       </div>
 
-      {/* Card carousel — center-focus scroll snap */}
+      {/* Carousel */}
       <div
         ref={scrollRef}
-        className="flex-1 flex items-center overflow-x-auto"
-        style={{
-          scrollbarWidth: 'none',
-          msOverflowStyle: 'none',
-          scrollSnapType: 'x mandatory',
-          WebkitOverflowScrolling: 'touch',
-          paddingLeft:  `calc(50% - ${halfCard})`,
-          paddingRight: `calc(50% - ${halfCard})`,
-        }}
+        className="flex-1 flex items-center overflow-x-auto snap-x snap-mandatory [scrollbar-width:none] [-ms-overflow-style:none] [-webkit-overflow-scrolling:touch] pl-[calc(50%-clamp(170px,40vw,230px))] pr-[calc(50%-clamp(170px,40vw,230px))]"
       >
-        <div className="flex items-center gap-5" style={{ paddingTop: 24, paddingBottom: 24 }}>
-
+        <div className="flex items-center gap-5 py-6">
           {SECTIONS.flatMap(sec =>
             sec.lessons.map((lesson, i) => {
               const status    = getStatus(lesson.slug);
@@ -386,15 +328,10 @@ function LessonsCarousel() {
                       if (isCurr) currentRef.current = el;
                     }
                   }}
-                  className="flex-shrink-0"
+                  className="flex-shrink-0 w-[clamp(340px,80vw,460px)] aspect-[3/4] snap-center will-change-[transform,opacity] transition-[transform,opacity] duration-150 ease-out"
                   style={{
-                    width:           'clamp(340px, 80vw, 460px)',
-                    aspectRatio:     '3/4',
-                    scrollSnapAlign: 'center',
-                    transform:       `scale(${getScale(lesson.slug)})`,
-                    opacity:          getOpacity(lesson.slug),
-                    transition:      'transform 0.14s ease-out, opacity 0.14s ease-out',
-                    willChange:      'transform, opacity',
+                    transform: `scale(${getScale(lesson.slug)})`,
+                    opacity: getOpacity(lesson.slug),
                   }}
                 >
                   {status !== 'locked'
@@ -407,16 +344,11 @@ function LessonsCarousel() {
             })
           )}
 
-          <div className="flex-shrink-0 flex flex-col items-center justify-center gap-4 rounded-[28px]"
-            style={{
-              width: 'clamp(240px, 56vw, 320px)', aspectRatio: '3/4',
-              background: '#F9FAFB', border: '2.5px dashed #E5E7EB',
-              scrollSnapAlign: 'center', opacity: 0.6,
-            }}>
-            <span style={{ fontSize: 56 }}>🌟</span>
+          <div className="flex-shrink-0 flex flex-col items-center justify-center gap-4 rounded-[28px] w-[clamp(240px,56vw,320px)] aspect-[3/4] bg-gray-50 border-[2.5px] border-dashed border-gray-200 snap-center opacity-60">
+            <span className="text-[56px]">🌟</span>
             <div className="text-center">
-              <p className="font-black" style={{ fontSize: 17, color: '#9CA3AF' }}>Coming soon</p>
-              <p style={{ fontSize: 13, color: '#C4C4C4', fontWeight: 600, marginTop: 4 }}>Unit 5</p>
+              <p className="font-black text-[17px] text-gray-400">Coming soon</p>
+              <p className="text-[13px] text-gray-300 font-semibold mt-1">Unit 5</p>
             </div>
           </div>
         </div>
@@ -425,7 +357,6 @@ function LessonsCarousel() {
   );
 }
 
-/* ── Page ────────────────────────────────────────────────────────── */
 export default function KidsLessonsPage() {
   return <LessonsCarousel />;
 }

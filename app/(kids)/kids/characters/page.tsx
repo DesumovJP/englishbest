@@ -8,13 +8,14 @@ import AddCustomModal from "@/components/kids/AddCustomModal";
 import { useCustomCharacters, useKidsState } from "@/lib/use-kids-store";
 import { CHARACTERS, type CharacterEmotion } from "@/lib/characters";
 
-/* ── Data ────────────────────────────────────────────────────────── */
-const BUILTIN_CHARS = [
-  { id: "fox",     nameEn: "Rusty",   nameUa: "Рустік",  rarity: "common"    as const, howToGet: "Starter",       unlocked: true  },
-  { id: "raccoon", nameEn: "Rocky",   nameUa: "Роккі",   rarity: "rare"      as const, howToGet: "30-day streak", unlocked: true  },
-  { id: "cat",     nameEn: "Luna",    nameUa: "Луна",    rarity: "uncommon"  as const, howToGet: "Silver Box",    unlocked: false },
-  { id: "rabbit",  nameEn: "Pearl",   nameUa: "Перлина", rarity: "rare"      as const, howToGet: "Gold Box",      unlocked: false },
-  { id: "dragon",  nameEn: "Blaze",   nameUa: "Блейз",   rarity: "legendary" as const, howToGet: "Legendary Box", unlocked: false },
+type Rarity = "common" | "uncommon" | "rare" | "legendary";
+
+const BUILTIN_CHARS: { id: string; nameEn: string; nameUa: string; rarity: Rarity; howToGet: string; unlocked: boolean }[] = [
+  { id: "fox",     nameEn: "Rusty",   nameUa: "Рустік",  rarity: "common",    howToGet: "Starter",       unlocked: true  },
+  { id: "raccoon", nameEn: "Rocky",   nameUa: "Роккі",   rarity: "rare",      howToGet: "30-day streak", unlocked: true  },
+  { id: "cat",     nameEn: "Luna",    nameUa: "Луна",    rarity: "uncommon",  howToGet: "Silver Box",    unlocked: false },
+  { id: "rabbit",  nameEn: "Pearl",   nameUa: "Перлина", rarity: "rare",      howToGet: "Gold Box",      unlocked: false },
+  { id: "dragon",  nameEn: "Blaze",   nameUa: "Блейз",   rarity: "legendary", howToGet: "Legendary Box", unlocked: false },
 ];
 
 const SLOTS = [
@@ -25,17 +26,12 @@ const SLOTS = [
 ] as const;
 type SlotKey = typeof SLOTS[number]["key"];
 
-const RARITY_COLOR: Record<string, string> = {
-  common: "#9CA3AF", uncommon: "#22C55E", rare: "#4F9CF9", legendary: "#F59E0B",
-};
-const RARITY_BG: Record<string, string> = {
-  common: "#F9FAFB", uncommon: "#F0FDF4", rare: "#EFF6FF", legendary: "#FFFBEB",
-};
-const RARITY_BORDER: Record<string, string> = {
-  common: "#F3F4F6", uncommon: "#BBF7D0", rare: "#BFDBFE", legendary: "#FDE68A",
-};
-const RARITY_LABEL: Record<string, string> = {
-  common: "Common", uncommon: "Uncommon", rare: "Rare", legendary: "Legendary",
+// Rarity → Tailwind classes. Single source of truth for all rarity styling.
+const RARITY: Record<Rarity, { text: string; bg: string; border: string; borderStrong: string; shadow: string; label: string }> = {
+  common:    { text: "text-gray-400",  bg: "bg-gray-50",   border: "border-gray-100",  borderStrong: "border-gray-400",  shadow: "shadow-[0_4px_0_#F3F4F6]", label: "Common"    },
+  uncommon:  { text: "text-green-500", bg: "bg-green-50",  border: "border-green-200", borderStrong: "border-green-500", shadow: "shadow-[0_4px_0_#BBF7D0]", label: "Uncommon"  },
+  rare:      { text: "text-blue-500",  bg: "bg-blue-50",   border: "border-blue-200",  borderStrong: "border-blue-500",  shadow: "shadow-[0_4px_0_#BFDBFE]", label: "Rare"      },
+  legendary: { text: "text-amber-500", bg: "bg-amber-50",  border: "border-amber-200", borderStrong: "border-amber-500", shadow: "shadow-[0_4px_0_#FDE68A]", label: "Legendary" },
 };
 
 export default function CharactersPage() {
@@ -72,7 +68,7 @@ export default function CharactersPage() {
     ...BUILTIN_CHARS,
     ...customChars.map(c => ({
       id: c.id, nameEn: c.nameEn, nameUa: c.nameUa,
-      rarity: (c.rarity ?? "common") as "common" | "uncommon" | "rare" | "legendary",
+      rarity: (c.rarity ?? "common") as Rarity,
       howToGet: "Custom", unlocked: true,
     })),
   ];
@@ -82,20 +78,18 @@ export default function CharactersPage() {
   const [previewEmotion, setPreviewEmotion] = useState<CharacterEmotion>('idle');
   const viewChar   = allChars.find(c => c.id === (previewId ?? activeId)) ?? allChars[0];
 
-  // Reset emotion preview when character changes
   useEffect(() => { setPreviewEmotion('idle'); }, [viewChar.id]);
   const isActive   = viewChar.id === activeId;
 
   const activeSlot = SLOTS.find(s => s.key === activeSlotKey) ?? null;
 
   const STATS = [
-    { label: "Рівень",  value: mockKidsUser.level, icon: "🏅" },
-    { label: "XP",      value: String(state.xp ?? 0), icon: null, useXp: true },
-    { label: "Серія",   value: `${state.streak ?? 0}`, icon: "🔥" },
+    { label: "Рівень",  value: mockKidsUser.level, icon: "🏅" as const },
+    { label: "XP",      value: String(state.xp ?? 0), icon: null,   useXp:   true },
+    { label: "Серія",   value: `${state.streak ?? 0}`, icon: "🔥" as const },
     { label: "Монети",  value: String(state.coins ?? 0), icon: null, useCoin: true },
   ];
 
-  /* ── Emotion meta ────────────────────────────────────────────────── */
   const EMOTION_META: { key: CharacterEmotion; label: string }[] = [
     { key: 'idle',      label: 'Спокій'  },
     { key: 'happy',     label: 'Радість' },
@@ -112,37 +106,37 @@ export default function CharactersPage() {
     ? EMOTION_META.filter(e => !!charDef.emotions[e.key])
     : EMOTION_META;
 
-  return (
-    <div className="flex flex-col h-[100dvh] bg-[#F9FAFB] select-none">
+  const view = RARITY[viewChar.rarity];
 
-      {/* ── CHARACTER PICKER MODAL ──────────────────────────────────── */}
+  return (
+    <div className="flex flex-col h-dvh bg-gray-50 select-none">
+      {/* Character picker modal */}
       {showCharPicker && (
         <div
-          className="fixed inset-0 z-50 flex items-end justify-center"
-          style={{ background: 'rgba(0,0,0,0.45)' }}
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/45"
           onClick={() => setShowCharPicker(false)}
         >
           <div
-            className="w-full rounded-t-3xl bg-white overflow-hidden"
-            style={{ maxWidth: 480, paddingBottom: 'env(safe-area-inset-bottom, 20px)' }}
+            className="w-full max-w-[480px] rounded-t-3xl bg-white overflow-hidden pb-[max(20px,env(safe-area-inset-bottom))]"
             onClick={e => e.stopPropagation()}
           >
-            {/* Handle */}
             <div className="flex justify-center pt-3 pb-2">
-              <div className="w-10 h-1 rounded-full" style={{ background: '#E5E7EB' }} />
+              <div className="w-10 h-1 rounded-full bg-gray-200" />
             </div>
 
             <div className="px-5 pb-1 flex items-center justify-between">
-              <p className="font-black" style={{ fontSize: 17, color: '#1A1A2E' }}>Вибери персонажа</p>
+              <p className="font-black text-[17px] text-gray-900">Вибери персонажа</p>
               <button
                 onClick={() => setShowCharPicker(false)}
-                className="w-8 h-8 rounded-full flex items-center justify-center font-black"
-                style={{ background: '#F3F4F6', color: '#6B7280', fontSize: 16 }}>✕</button>
+                className="w-8 h-8 rounded-full flex items-center justify-center font-black bg-gray-100 text-gray-500 text-base">
+                ✕
+              </button>
             </div>
 
-            <div className="flex gap-4 px-5 pt-4 pb-6 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
+            <div className="flex gap-4 px-5 pt-4 pb-6 overflow-x-auto [scrollbar-width:none]">
               {allChars.filter(c => ['fox','raccoon'].includes(c.id) || c.unlocked).map(char => {
                 const isCurrent = (previewId ?? activeId) === char.id;
+                const r = RARITY[char.rarity];
                 return (
                   <button
                     key={char.id}
@@ -152,35 +146,28 @@ export default function CharactersPage() {
                       setShowCharPicker(false);
                     }}
                     disabled={!char.unlocked}
-                    className="flex-shrink-0 flex flex-col items-center gap-2 active:scale-95 transition-transform"
-                    style={{ opacity: char.unlocked ? 1 : 0.4 }}
+                    className={[
+                      "flex-shrink-0 flex flex-col items-center gap-2 active:scale-95 transition-transform",
+                      char.unlocked ? "opacity-100" : "opacity-40",
+                    ].join(" ")}
                   >
-                    <div style={{
-                      width: 100, height: 120,
-                      borderRadius: 22,
-                      background: isCurrent ? RARITY_BG[char.rarity] : '#F9FAFB',
-                      border: `2.5px solid ${isCurrent ? RARITY_COLOR[char.rarity] : '#E5E7EB'}`,
-                      boxShadow: isCurrent ? `0 4px 0 ${RARITY_BORDER[char.rarity]}` : '0 2px 0 #F3F4F6',
-                      display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
-                      overflow: 'hidden',
-                      position: 'relative',
-                    }}>
+                    <div className={[
+                      "w-[100px] h-[120px] rounded-[22px] border-[2.5px] flex items-end justify-center overflow-hidden relative",
+                      isCurrent ? [r.bg, r.borderStrong, r.shadow].join(" ") : "bg-gray-50 border-gray-200 shadow-[0_2px_0_#F3F4F6]",
+                    ].join(" ")}>
                       {isCurrent && (
-                        <div className="absolute top-2 left-2 rounded-full px-1.5 py-0.5"
-                          style={{ background: RARITY_COLOR[char.rarity] }}>
-                          <span style={{ fontSize: 7, color: 'white', fontWeight: 900, letterSpacing: '0.05em' }}>✓</span>
+                        <div className={["absolute top-2 left-2 rounded-full px-1.5 py-0.5", r.borderStrong.replace("border-", "bg-")].join(" ")}>
+                          <span className="text-[7px] text-white font-black tracking-[0.05em]">✓</span>
                         </div>
                       )}
                       {char.unlocked
                         ? <CharacterAvatar characterId={char.id} emotion="idle" size={96} animate={false} />
-                        : <span style={{ fontSize: 36 }}>🔒</span>
+                        : <span className="text-4xl">🔒</span>
                       }
                     </div>
                     <div className="text-center">
-                      <p className="font-black" style={{ fontSize: 13, color: '#1A1A2E' }}>{char.nameEn}</p>
-                      <p style={{ fontSize: 10, color: RARITY_COLOR[char.rarity], fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                        {RARITY_LABEL[char.rarity]}
-                      </p>
+                      <p className="font-black text-[13px] text-gray-900">{char.nameEn}</p>
+                      <p className={["text-[10px] font-bold uppercase tracking-[0.05em]", r.text].join(" ")}>{r.label}</p>
                     </div>
                   </button>
                 );
@@ -190,67 +177,59 @@ export default function CharactersPage() {
         </div>
       )}
 
-      {/* ── TOP BAR ─────────────────────────────────────────────── */}
-      <div className="flex items-center gap-3 px-4 bg-white flex-shrink-0"
-        style={{
-          paddingTop: "env(safe-area-inset-top, 14px)", paddingBottom: 14,
-          borderBottom: "2px solid #F3F4F6",
-        }}>
+      {/* Top bar */}
+      <div className="flex items-center gap-3 px-4 bg-white flex-shrink-0 pb-3.5 border-b-2 border-gray-100 pt-[max(14px,env(safe-area-inset-top))]">
         <Link href="/kids/dashboard"
-          className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-lg flex-shrink-0 active:scale-90 transition-transform"
-          style={{ background: "#F3F4F6", color: "#374151" }}>←</Link>
+          className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-lg flex-shrink-0 bg-gray-100 text-gray-700 active:scale-90 transition-transform">
+          ←
+        </Link>
         <div className="flex-1">
-          <p className="font-black" style={{ fontSize: 17, color: "#1A1A2E" }}>Мій персонаж</p>
-          <p className="font-medium" style={{ fontSize: 11, color: "#9CA3AF" }}>
+          <p className="font-black text-[17px] text-gray-900">Мій персонаж</p>
+          <p className="font-medium text-[11px] text-gray-400">
             {allChars.filter(c => c.unlocked).length}/{allChars.length} персонажів зібрано
           </p>
         </div>
         <button onClick={() => setShowAdd(true)}
-          className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-lg flex-shrink-0 active:scale-90 transition-transform text-white"
-          style={{ background: "#4F9CF9", boxShadow: "0 3px 0 #1D4ED8" }}>+</button>
+          className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-lg flex-shrink-0 text-white bg-blue-500 shadow-[0_3px_0_#1D4ED8] active:scale-90 transition-transform">
+          +
+        </button>
       </div>
 
-      {/* ── SCROLLABLE BODY ─────────────────────────────────────── */}
+      {/* Body */}
       <div className="flex-1 overflow-y-auto pb-28">
-
-        {/* ── CHARACTER CARD ──────────────────────────────────────── */}
-        <div className="mx-4 mt-4 rounded-3xl overflow-hidden bg-white"
-          style={{
-            boxShadow: "0 4px 24px rgba(0,0,0,0.08), 0 1px 0 rgba(0,0,0,0.04)",
-            border: `2px solid ${RARITY_BORDER[viewChar.rarity]}`,
-          }}>
-
-          {/* Rarity color accent strip */}
-          <div className="h-1.5 w-full" style={{ background: RARITY_COLOR[viewChar.rarity] }} />
+        {/* Character card */}
+        <div className={[
+          "mx-4 mt-4 rounded-3xl overflow-hidden bg-white shadow-[0_4px_24px_rgba(0,0,0,0.08)] border-2",
+          view.border,
+        ].join(" ")}>
+          <div className={["h-1.5 w-full", view.borderStrong.replace("border-", "bg-")].join(" ")} />
 
           <div className="flex items-stretch gap-0">
-
-            {/* LEFT: outfit slots + character doll */}
-            <div className="flex items-stretch gap-3 px-4 py-4" style={{ width: "52%" }}>
-
-              {/* Outfit slots column */}
+            {/* LEFT: outfit slots + doll */}
+            <div className="flex items-stretch gap-3 px-4 py-4 w-[52%]">
+              {/* Slots */}
               <div className="flex flex-col justify-center gap-2 flex-shrink-0">
                 {SLOTS.map(slot => {
                   const isSelected = activeSlotKey === slot.key;
                   const hasItem = !!outfit[slot.key];
                   return (
                     <button key={slot.key}
-                      onClick={() => { setActiveSlotKey(isSelected ? null : slot.key); }}
+                      onClick={() => setActiveSlotKey(isSelected ? null : slot.key)}
                       className="flex flex-col items-center gap-0.5 active:scale-90 transition-transform"
                     >
-                      <div style={{
-                        width: 44, height: 44,
-                        background: isSelected ? "#EFF6FF" : hasItem ? "#F0FDF4" : "#F9FAFB",
-                        border: `2px solid ${isSelected ? "#4F9CF9" : hasItem ? "#BBF7D0" : "#E5E7EB"}`,
-                        borderRadius: 12,
-                        boxShadow: isSelected ? "0 0 0 3px rgba(79,156,249,0.15)" : "none",
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        fontSize: outfit[slot.key] ? 22 : 16,
-                        transition: "all 0.12s",
-                      }}>
-                        {outfit[slot.key] || <span style={{ fontSize: 14, color: "#D1D5DB" }}>{slot.emoji}</span>}
+                      <div className={[
+                        "w-11 h-11 rounded-xl flex items-center justify-center border-2 transition-all duration-100",
+                        hasItem ? "text-[22px]" : "text-base",
+                        isSelected
+                          ? "bg-blue-50 border-blue-500 shadow-[0_0_0_3px_rgba(79,156,249,0.15)]"
+                          : hasItem ? "bg-green-50 border-green-200" : "bg-gray-50 border-gray-200",
+                      ].join(" ")}>
+                        {outfit[slot.key] || <span className="text-sm text-gray-300">{slot.emoji}</span>}
                       </div>
-                      <span style={{ fontSize: 8, color: isSelected ? "#4F9CF9" : "#9CA3AF", fontWeight: 800, letterSpacing: "0.05em" }}>
+                      <span className={[
+                        "text-[8px] font-extrabold tracking-[0.05em]",
+                        isSelected ? "text-blue-500" : "text-gray-400",
+                      ].join(" ")}>
                         {slot.label.slice(0, 3).toUpperCase()}
                       </span>
                     </button>
@@ -258,149 +237,125 @@ export default function CharactersPage() {
                 })}
               </div>
 
-              {/* Character doll — tap opens character picker modal */}
+              {/* Doll */}
               <button
                 onClick={() => { setActiveSlotKey(null); setShowCharPicker(true); }}
-                className="relative flex-1 flex items-end justify-center rounded-2xl overflow-hidden active:scale-[0.97] transition-transform"
-                style={{
-                  background: RARITY_BG[viewChar.rarity],
-                  border: `2px solid ${RARITY_BORDER[viewChar.rarity]}`,
-                  minHeight: 150,
-                }}
+                className={[
+                  "relative flex-1 flex items-end justify-center rounded-2xl overflow-hidden min-h-[150px] border-2 active:scale-[0.97] transition-transform",
+                  view.bg, view.border,
+                ].join(" ")}
               >
                 <CharacterAvatar characterId={viewChar.id} emotion={previewEmotion} size={170} animate />
-                <div className="absolute top-2 right-2 rounded-md px-1.5 py-0.5"
-                  style={{ background: "rgba(0,0,0,0.08)" }}>
-                  <span style={{ fontSize: 7.5, color: "#6B7280", fontWeight: 800, letterSpacing: "0.06em" }}>TAP</span>
+                <div className="absolute top-2 right-2 rounded-md px-1.5 py-0.5 bg-black/10">
+                  <span className="text-[7.5px] text-gray-500 font-extrabold tracking-[0.06em]">TAP</span>
                 </div>
               </button>
             </div>
 
-            {/* RIGHT: name + stats + action */}
-            <div className="flex flex-col gap-3 px-4 py-4 flex-1"
-              style={{ borderLeft: "1.5px solid #F3F4F6" }}>
-
-              {/* Name + rarity */}
+            {/* RIGHT: info */}
+            <div className="flex flex-col gap-3 px-4 py-4 flex-1 border-l-[1.5px] border-gray-100">
               <div>
-                <p className="font-black leading-tight" style={{ fontSize: 20, color: "#1A1A2E", letterSpacing: "-0.02em" }}>
-                  {viewChar.nameEn}
-                </p>
-                <p className="font-medium" style={{ fontSize: 11, color: "#9CA3AF" }}>{viewChar.nameUa}</p>
-                <div className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 mt-1"
-                  style={{ background: RARITY_BG[viewChar.rarity], border: `1.5px solid ${RARITY_BORDER[viewChar.rarity]}` }}>
-                  <span style={{ fontSize: 9, color: RARITY_COLOR[viewChar.rarity], fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.07em" }}>
-                    {RARITY_LABEL[viewChar.rarity]}
+                <p className="font-black leading-tight text-xl text-gray-900 tracking-tight">{viewChar.nameEn}</p>
+                <p className="font-medium text-[11px] text-gray-400">{viewChar.nameUa}</p>
+                <div className={[
+                  "inline-flex items-center gap-1 rounded-full px-2 py-0.5 mt-1 border-[1.5px]",
+                  view.bg, view.border,
+                ].join(" ")}>
+                  <span className={["text-[9px] font-extrabold uppercase tracking-[0.07em]", view.text].join(" ")}>
+                    {view.label}
                   </span>
                 </div>
               </div>
 
-              {/* Stats 2×2 */}
+              {/* Stats */}
               <div className="grid grid-cols-2 gap-2 flex-1">
                 {STATS.map(s => (
-                  <div key={s.label} className="rounded-xl px-2.5 py-2"
-                    style={{ background: "#F9FAFB", border: "1.5px solid #F3F4F6" }}>
+                  <div key={s.label} className="rounded-xl px-2.5 py-2 bg-gray-50 border-[1.5px] border-gray-100">
                     <div className="flex items-center gap-1 mb-0.5">
                       {s.useCoin
-                        ? <img src="/coin.png" alt="coin" style={{ width: 12, height: 12, objectFit: "contain" }} />
+                        ? <img src="/coin.png" alt="coin" width={12} height={12} className="object-contain" />
                         : s.useXp
-                        ? <img src="/xp.png" alt="XP" style={{ width: 12, height: 12, objectFit: "contain" }} />
-                        : <span style={{ fontSize: 12 }}>{s.icon}</span>
+                        ? <img src="/xp.png" alt="XP" width={12} height={12} className="object-contain" />
+                        : <span className="text-xs">{s.icon}</span>
                       }
-                      <span style={{ fontSize: 8, color: "#9CA3AF", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em" }}>
-                        {s.label}
-                      </span>
+                      <span className="text-[8px] text-gray-400 font-bold uppercase tracking-[0.06em]">{s.label}</span>
                     </div>
-                    <p className="font-black leading-none" style={{ fontSize: 18, color: "#1A1A2E" }}>{s.value}</p>
+                    <p className="font-black leading-none text-lg text-gray-900">{s.value}</p>
                   </div>
                 ))}
               </div>
 
-              {/* Action button */}
+              {/* Action */}
               {!viewChar.unlocked ? (
-                <div className="rounded-xl py-2.5 text-center"
-                  style={{ background: "#F3F4F6", border: "1.5px solid #E5E7EB" }}>
-                  <p className="font-black" style={{ fontSize: 11, color: "#9CA3AF" }}>🔒 {viewChar.howToGet}</p>
+                <div className="rounded-xl py-2.5 text-center bg-gray-100 border-[1.5px] border-gray-200">
+                  <p className="font-black text-[11px] text-gray-400">🔒 {viewChar.howToGet}</p>
                 </div>
               ) : isActive ? (
-                <div className="rounded-xl py-2.5 text-center"
-                  style={{ background: "#F0FDF4", border: "1.5px solid #BBF7D0" }}>
-                  <p className="font-black" style={{ fontSize: 12, color: "#16A34A" }}>✓ Активний</p>
+                <div className="rounded-xl py-2.5 text-center bg-green-50 border-[1.5px] border-green-200">
+                  <p className="font-black text-xs text-green-600">✓ Активний</p>
                 </div>
               ) : (
                 <button onClick={() => patch({ activeCharacterId: viewChar.id })}
-                  className="w-full rounded-xl font-black text-white active:translate-y-0.5 transition-transform"
-                  style={{ fontSize: 13, padding: "11px 0", background: "#58CC02", boxShadow: "0 3px 0 #389E0D" }}>
+                  className="w-full rounded-xl font-black text-white py-2.5 text-[13px] bg-primary shadow-press-primary active:translate-y-0.5 transition-transform">
                   Обрати →
                 </button>
               )}
             </div>
           </div>
 
-          {/* ── Outfit slot picker ── */}
+          {/* Outfit slot picker */}
           {activeSlot && (
-            <div className="px-4 py-3" style={{ borderTop: "1.5px solid #F3F4F6", background: "#FAFAFA" }}>
-              <p className="font-black mb-2.5" style={{ fontSize: 10, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.09em" }}>
+            <div className="px-4 py-3 border-t-[1.5px] border-gray-100 bg-[#FAFAFA]">
+              <p className="font-black mb-2.5 text-[10px] text-gray-400 uppercase tracking-[0.09em]">
                 {activeSlot.label}: варіанти
               </p>
               <div className="flex gap-2.5 flex-wrap">
-                {(activeSlot.options as readonly string[]).map(opt => (
-                  <button key={opt || "none"}
-                    onClick={() => setSlot(activeSlot.key, opt)}
-                    className="active:scale-90 transition-transform"
-                    style={{
-                      width: 52, height: 52,
-                      background: outfit[activeSlot.key] === opt ? "#EFF6FF" : "#F9FAFB",
-                      border: `2px solid ${outfit[activeSlot.key] === opt ? "#4F9CF9" : "#E5E7EB"}`,
-                      borderRadius: 12,
-                      fontSize: opt ? 26 : 16,
-                      color: opt ? "inherit" : "#D1D5DB",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                    }}>
-                    {opt || "✕"}
-                  </button>
-                ))}
+                {(activeSlot.options as readonly string[]).map(opt => {
+                  const selected = outfit[activeSlot.key] === opt;
+                  return (
+                    <button key={opt || "none"}
+                      onClick={() => setSlot(activeSlot.key, opt)}
+                      className={[
+                        "w-13 h-13 w-[52px] h-[52px] rounded-xl flex items-center justify-center border-2 active:scale-90 transition-transform",
+                        opt ? "text-[26px]" : "text-base text-gray-300",
+                        selected ? "bg-blue-50 border-blue-500" : "bg-gray-50 border-gray-200",
+                      ].join(" ")}>
+                      {opt || "✕"}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}
         </div>
 
-        {/* ── EMOTION GALLERY ─────────────────────────────────────── */}
-        <div className="mx-4 mt-4 rounded-3xl bg-white overflow-hidden"
-          style={{ boxShadow: '0 4px 24px rgba(0,0,0,0.07)', border: '1.5px solid #F3F4F6' }}>
-
-          <div className="px-4 pt-4 pb-3 flex items-center justify-between"
-            style={{ borderBottom: '1.5px solid #F3F4F6' }}>
+        {/* Emotion gallery */}
+        <div className="mx-4 mt-4 rounded-3xl bg-white overflow-hidden shadow-[0_4px_24px_rgba(0,0,0,0.07)] border-[1.5px] border-gray-100">
+          <div className="px-4 pt-4 pb-3 flex items-center justify-between border-b-[1.5px] border-gray-100">
             <div>
-              <p className="font-black" style={{ fontSize: 14, color: '#1A1A2E' }}>Емоції персонажа</p>
-              <p className="font-medium" style={{ fontSize: 11, color: '#9CA3AF' }}>
-                Тисни — побачиш реакцію
-              </p>
+              <p className="font-black text-sm text-gray-900">Емоції персонажа</p>
+              <p className="font-medium text-[11px] text-gray-400">Тисни — побачиш реакцію</p>
             </div>
-            <span className="rounded-full px-2.5 py-1 font-black"
-              style={{ fontSize: 11, background: '#F3F4F6', color: '#6B7280' }}>
+            <span className="rounded-full px-2.5 py-1 font-black text-[11px] bg-gray-100 text-gray-500">
               {availableEmotions.length} шт.
             </span>
           </div>
 
-          <div className="flex gap-3 overflow-x-auto px-4 py-4" style={{ scrollbarWidth: 'none' }}>
+          <div className="flex gap-3 overflow-x-auto px-4 py-4 [scrollbar-width:none]">
             {availableEmotions.map(em => {
-              const isActive = previewEmotion === em.key;
+              const selected = previewEmotion === em.key;
               return (
                 <button
                   key={em.key}
-                  onClick={() => setPreviewEmotion(isActive ? 'idle' : em.key)}
+                  onClick={() => setPreviewEmotion(selected ? 'idle' : em.key)}
                   className="flex-shrink-0 flex flex-col items-center gap-2 active:scale-90 transition-transform"
                 >
-                  <div style={{
-                    width: 72, height: 72,
-                    borderRadius: 20,
-                    background: isActive ? '#EFF6FF' : '#F9FAFB',
-                    border: `2.5px solid ${isActive ? '#4F9CF9' : '#E5E7EB'}`,
-                    boxShadow: isActive ? '0 0 0 3px rgba(79,156,249,0.18)' : '0 2px 0 #F3F4F6',
-                    overflow: 'hidden',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    transition: 'all 0.12s',
-                  }}>
+                  <div className={[
+                    "w-[72px] h-[72px] rounded-[20px] overflow-hidden flex items-center justify-center border-[2.5px] transition-all duration-100",
+                    selected
+                      ? "bg-blue-50 border-blue-500 shadow-[0_0_0_3px_rgba(79,156,249,0.18)]"
+                      : "bg-gray-50 border-gray-200 shadow-[0_2px_0_#F3F4F6]",
+                  ].join(" ")}>
                     <CharacterAvatar
                       characterId={viewChar.id}
                       emotion={em.key}
@@ -408,12 +363,10 @@ export default function CharactersPage() {
                       animate={false}
                     />
                   </div>
-                  <span style={{
-                    fontSize: 10,
-                    color: isActive ? '#4F9CF9' : '#6B7280',
-                    fontWeight: isActive ? 900 : 700,
-                    letterSpacing: '0.03em',
-                  }}>
+                  <span className={[
+                    "text-[10px] tracking-[0.03em]",
+                    selected ? "text-blue-500 font-black" : "text-gray-500 font-bold",
+                  ].join(" ")}>
                     {em.label}
                   </span>
                 </button>
@@ -422,52 +375,48 @@ export default function CharactersPage() {
           </div>
         </div>
 
-        {/* ── CHARACTER ROSTER ────────────────────────────────────── */}
+        {/* Character roster */}
         <div className="mx-4 mt-4">
-          <p className="font-black mb-3" style={{ fontSize: 11, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.09em" }}>
+          <p className="font-black mb-3 text-[11px] text-gray-400 uppercase tracking-[0.09em]">
             Всі персонажі · {allChars.filter(c => c.unlocked).length}/{allChars.length}
           </p>
           <div className="grid grid-cols-3 gap-3">
             {allChars.map(char => {
-              const isSelected = (previewId ?? activeId) === char.id;
+              const selected = (previewId ?? activeId) === char.id;
+              const r = RARITY[char.rarity];
               return (
                 <button key={char.id}
                   onClick={() => char.unlocked && setPreviewId(char.id === activeId ? null : char.id)}
                   disabled={!char.unlocked}
-                  className="flex flex-col items-center gap-2 rounded-2xl py-3 px-2 active:scale-95 transition-all"
-                  style={{
-                    background: isSelected ? RARITY_BG[char.rarity] : "#FFFFFF",
-                    border: `2px solid ${isSelected ? RARITY_COLOR[char.rarity] : "#F3F4F6"}`,
-                    boxShadow: isSelected ? `0 3px 0 ${RARITY_BORDER[char.rarity]}` : "0 2px 0 #F3F4F6",
-                    opacity: char.unlocked ? 1 : 0.45,
-                  }}>
-                  <div style={{
-                    width: 72, height: 72,
-                    background: char.unlocked ? RARITY_BG[char.rarity] : "#F9FAFB",
-                    borderRadius: 18,
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    filter: char.unlocked ? "none" : "grayscale(1)",
-                  }}>
+                  className={[
+                    "flex flex-col items-center gap-2 rounded-2xl py-3 px-2 border-2 active:scale-95 transition-all",
+                    char.unlocked ? "opacity-100" : "opacity-45",
+                    selected
+                      ? [r.bg, r.borderStrong, "shadow-[0_3px_0_#F3F4F6]"].join(" ")
+                      : "bg-white border-gray-100 shadow-[0_2px_0_#F3F4F6]",
+                  ].join(" ")}>
+                  <div className={[
+                    "w-[72px] h-[72px] rounded-[18px] flex items-center justify-center",
+                    char.unlocked ? r.bg : "bg-gray-50 grayscale",
+                  ].join(" ")}>
                     {char.unlocked
                       ? <CharacterAvatar characterId={char.id} emotion="idle" size={64} animate={false} />
-                      : <span style={{ fontSize: 28 }}>🔒</span>
+                      : <span className="text-[28px]">🔒</span>
                     }
                   </div>
                   <div className="text-center">
-                    <p className="font-black leading-tight" style={{ fontSize: 12, color: "#1A1A2E" }}>{char.nameEn}</p>
-                    <p className="font-medium" style={{ fontSize: 10, color: "#9CA3AF" }}>{char.nameUa}</p>
-                    <p className="font-bold mt-0.5" style={{ fontSize: 9, color: RARITY_COLOR[char.rarity], textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                      {RARITY_LABEL[char.rarity]}
-                    </p>
+                    <p className="font-black leading-tight text-xs text-gray-900">{char.nameEn}</p>
+                    <p className="font-medium text-[10px] text-gray-400">{char.nameUa}</p>
+                    <p className={["font-bold mt-0.5 text-[9px] uppercase tracking-[0.05em]", r.text].join(" ")}>{r.label}</p>
                   </div>
                   {!char.unlocked && (
-                    <div className="rounded-full px-2 py-0.5" style={{ background: "#F3F4F6" }}>
-                      <p className="font-bold" style={{ fontSize: 9, color: "#9CA3AF" }}>{char.howToGet}</p>
+                    <div className="rounded-full px-2 py-0.5 bg-gray-100">
+                      <p className="font-bold text-[9px] text-gray-400">{char.howToGet}</p>
                     </div>
                   )}
                   {char.id === activeId && (
-                    <div className="rounded-full px-2 py-0.5" style={{ background: "#F0FDF4", border: "1px solid #BBF7D0" }}>
-                      <p className="font-black" style={{ fontSize: 9, color: "#16A34A" }}>✓ Active</p>
+                    <div className="rounded-full px-2 py-0.5 bg-green-50 border border-green-200">
+                      <p className="font-black text-[9px] text-green-600">✓ Active</p>
                     </div>
                   )}
                 </button>
@@ -475,7 +424,6 @@ export default function CharactersPage() {
             })}
           </div>
         </div>
-
       </div>
 
       {showAdd && <AddCustomModal onClose={() => setShowAdd(false)} />}

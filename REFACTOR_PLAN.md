@@ -49,10 +49,10 @@ Kids pages:
 - [x] `/kids/coins` — 52→0 inline, 41→0 hex
 - [x] `/kids/library/[id]` — 54→1 inline (dynamic cover), 49→0 hex
 - [ ] `/kids/dashboard` — 15 inline, 6 hex
-- [ ] `/kids/lessons` — 37 inline, 24 hex
+- [x] `/kids/lessons` — 37→dynamic-only, 24→0 hex
 - [ ] `/kids/school` — 65 inline, 38 hex
 - [ ] `/kids/shop` — 131 inline, 111 hex (largest)
-- [ ] `/kids/characters` — 65 inline, 57 hex
+- [x] `/kids/characters` — 65→dynamic-only, 57→0 hex
 - [ ] `/kids/room` — 30 inline, 17 hex (many legitimate drag/geometry)
 
 Kids components:
@@ -117,3 +117,4 @@ For each page: verify layout + interactions at all 6 viewports, portrait + lands
 - **2026-04-15** — F0 done (stale md, root PNGs, empty route groups removed; `@source not "../PLAN.md"` stripped).
 - **2026-04-15** — F1 done: `ARCHITECTURE.md` rewritten (13 sections: stack, directory, routing, data, state, design tokens, responsive contract, components, kids subsystem, conventions, backend checklist, per-page + per-token how-tos).
 - **2026-04-15** — F2 batch 1: achievements, coins, library/[id] fully detoxed (124 inline + 107 hex eliminated, only legitimate dynamic values remain).
+- **2026-04-15** — F2 batch 2: kids/lessons, kids/characters detoxed (102 inline + 81 hex → only runtime-dynamic values remain: scroll-scale, per-card accent gradient, per-outfit slot accent). tsc clean; lint errors all pre-existing.
