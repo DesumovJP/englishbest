@@ -5,13 +5,18 @@ import { useState } from 'react';
 
 function getSavedRole(): Role {
   if (typeof window === 'undefined') return 'student';
+  // Prefer demo_role set at login, fall back to sidebar_role
+  const demo = localStorage.getItem('demo_role');
+  if (demo === 'teacher') return 'teacher';
+  if (demo === 'admin')   return 'admin';
+  if (demo === 'parent')  return 'parent';
   const saved = localStorage.getItem('sidebar_role');
-  if (saved === 'student' || saved === 'teacher' || saved === 'admin') return saved;
+  if (saved === 'student' || saved === 'teacher' || saved === 'admin' || saved === 'parent') return saved;
   return 'student';
 }
 
 /* ── Типи ─────────────────────────────────────── */
-type Role = 'student' | 'teacher' | 'admin';
+type Role = 'student' | 'teacher' | 'admin' | 'parent';
 
 interface NavItem {
   label: string;
@@ -25,7 +30,7 @@ interface NavSection {
 }
 
 /* ── Навігація по ролях ───────────────────────── */
-const NAV_FLAT: Record<'student' | 'teacher', NavItem[]> = {
+const NAV_FLAT: Record<'student' | 'teacher' | 'parent', NavItem[]> = {
   student: [
     { label: 'Дашборд',         href: '/dashboard/student',  emoji: '🏠' },
     { label: 'Мої уроки',       href: '/dashboard/lessons',  emoji: '📅' },
@@ -34,12 +39,10 @@ const NAV_FLAT: Record<'student' | 'teacher', NavItem[]> = {
     { label: 'Дитячий модуль',  href: '/kids/dashboard',     emoji: '🧒' },
   ],
   teacher: [
-    { label: 'Дашборд',   href: '/dashboard/teacher',          emoji: '🏠' },
-    { label: 'Учні',      href: '/dashboard/students',         emoji: '👥' },
-    { label: 'Розклад',   href: '/dashboard/teacher-calendar', emoji: '📅' },
-    { label: 'Уроки',     href: '/dashboard/lessons',  emoji: '📚' },
-    { label: 'Матеріали', href: '/library',             emoji: '📖' },
+    { label: 'Дашборд', href: '/dashboard/teacher',  emoji: '🏠' },
+    { label: 'Учні',    href: '/dashboard/students', emoji: '👥' },
   ],
+  parent: [],
 };
 
 const ADMIN_NAV: NavSection[] = [
@@ -71,6 +74,7 @@ const ROLE_LABELS: Record<Role, string> = {
   student: 'Учень',
   teacher: 'Вчитель',
   admin:   'Адмін',
+  parent:  'Батьки',
 };
 
 const MOCK_USER = {
@@ -158,28 +162,6 @@ export function Sidebar() {
               English<span className="text-primary">Best</span>
             </span>
           </Link>
-        </div>
-
-        {/* Перемикач ролей */}
-        <div className="px-3 pt-4 pb-2 flex-shrink-0">
-          <p className="type-label text-ink-muted px-1 mb-2">
-            Режим перегляду
-          </p>
-          <div className="flex bg-surface-muted rounded-xl p-1 gap-0.5">
-            {(['student', 'teacher', 'admin'] as Role[]).map(r => (
-              <button
-                key={r}
-                onClick={() => { setRole(r); localStorage.setItem('sidebar_role', r); }}
-                className={`flex-1 text-[11px] font-bold py-1.5 rounded-lg transition-all ${
-                  role === r
-                    ? 'bg-white text-ink shadow-sm'
-                    : 'text-ink-muted hover:text-ink'
-                }`}
-              >
-                {ROLE_LABELS[r]}
-              </button>
-            ))}
-          </div>
         </div>
 
         {/* Навігація */}

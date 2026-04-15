@@ -31,9 +31,9 @@
   --color-coin-border: #fde68a;
 
   /* ── Surfaces ───────────────────────────────────────────────── */
-  --color-surface:       #FFFFFF;
-  --color-surface-muted: #F7F7F7;
-  --color-border:        #E5E5E5;
+  --color-surface:       #FAFAF8;
+  --color-surface-muted: #F2F1EE;
+  --color-border:        #E3E2DF;
 
   /* ── Text ───────────────────────────────────────────────────── */
   --color-ink:       #1f1f1f;
@@ -140,16 +140,58 @@
   60%       { transform: translateX(-4px); }
   80%       { transform: translateX(4px); }
 }
+@keyframes box-shake {
+  0%,100% { transform: rotate(0deg) scale(1); }
+  15%     { transform: rotate(-9deg) scale(1.07); }
+  30%     { transform: rotate(9deg) scale(1.07); }
+  45%     { transform: rotate(-7deg) scale(1.04); }
+  60%     { transform: rotate(7deg) scale(1.04); }
+  75%     { transform: rotate(-4deg) scale(1.02); }
+  90%     { transform: rotate(4deg) scale(1.02); }
+}
+@keyframes lid-fly {
+  0%   { transform: translateY(0) rotate(0deg) scale(1); opacity: 1; }
+  40%  { transform: translateY(-20px) rotate(-8deg) scale(1.05); opacity: 1; }
+  100% { transform: translateY(-140px) rotate(-25deg) scale(0.8); opacity: 0; }
+}
+@keyframes item-emerge {
+  0%   { transform: translateY(30px) scale(0.2) rotate(-10deg); opacity: 0; }
+  55%  { transform: translateY(-18px) scale(1.2) rotate(5deg); opacity: 1; }
+  75%  { transform: translateY(6px) scale(0.95) rotate(-2deg); }
+  100% { transform: translateY(0) scale(1) rotate(0deg); opacity: 1; }
+}
+@keyframes confetti-burst {
+  0%   { transform: translate(0, 0) scale(1) rotate(0deg); opacity: 1; }
+  100% { transform: translate(var(--cx), var(--cy)) scale(0) rotate(var(--cr)); opacity: 0; }
+}
+@keyframes star-twinkle {
+  0%,100% { transform: scale(0) rotate(0deg);   opacity: 0; }
+  40%,60% { transform: scale(1) rotate(180deg); opacity: 1; }
+}
+@keyframes rarity-glow {
+  0%,100% { box-shadow: 0 0 20px 4px var(--glow-color); }
+  50%     { box-shadow: 0 0 40px 12px var(--glow-color); }
+}
+@keyframes shimmer {
+  0%,100% { opacity: 0.4; transform: translateX(-10%) skewX(-5deg); }
+  50%     { opacity: 0.8; transform: translateX(10%)  skewX(-5deg); }
+}
 
 /* ── Utilities ────────────────────────────────────────────────── */
 @layer utilities {
   /* Animations */
-  .animate-slide-up   { animation: slide-up   0.22s cubic-bezier(0.22, 1, 0.36, 1) both; }
-  .animate-fade-in-up { animation: fade-in-up 0.5s  cubic-bezier(0.22, 1, 0.36, 1) both; }
-  .animate-pop-in     { animation: pop-in     0.4s  cubic-bezier(0.22, 1, 0.36, 1) both; }
-  .animate-bounce-in  { animation: bounce-in  0.6s  cubic-bezier(0.22, 1, 0.36, 1) both; }
-  .animate-float      { animation: float      3s    ease-in-out infinite; }
-  .animate-shake      { animation: shake      0.3s  ease-in-out; }
+  .animate-slide-up    { animation: slide-up    0.22s cubic-bezier(0.22, 1, 0.36, 1) both; }
+  .animate-fade-in-up  { animation: fade-in-up  0.5s  cubic-bezier(0.22, 1, 0.36, 1) both; }
+  .animate-pop-in      { animation: pop-in      0.4s  cubic-bezier(0.22, 1, 0.36, 1) both; }
+  .animate-bounce-in   { animation: bounce-in   0.6s  cubic-bezier(0.22, 1, 0.36, 1) both; }
+  .animate-float       { animation: float       3s    ease-in-out infinite; }
+  .animate-shake       { animation: shake       0.3s  ease-in-out; }
+  .animate-box-shake   { animation: box-shake   0.55s cubic-bezier(0.36, 0.07, 0.19, 0.97) both; }
+  .animate-lid-fly     { animation: lid-fly     0.45s cubic-bezier(0.4, 0, 0.6, 1) both; }
+  .animate-item-emerge { animation: item-emerge 0.65s cubic-bezier(0.22, 1, 0.36, 1) both; }
+  .animate-confetti    { animation: confetti-burst 0.75s cubic-bezier(0, 0.9, 0.57, 1) both; }
+  .animate-star-twinkle { animation: star-twinkle 2s ease-in-out infinite; }
+  .animate-rarity-glow  { animation: rarity-glow  1.8s ease-in-out infinite; }
 
   /* 3D press shadows — paired with active:translate-y-1 */
   .shadow-press-primary   { box-shadow: 0 5px 0 var(--color-primary-dark); }
@@ -195,6 +237,41 @@
   .bg-wall-floor-edge  { background: linear-gradient(180deg, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.0) 100%); }
   .drop-shadow-item    { filter: drop-shadow(0 6px 8px rgba(0,0,0,0.22)); }
   .drop-shadow-floor   { filter: drop-shadow(0px 6px 8px rgba(0,0,0,0.28)); }
+
+  /* ── HUD card — frosted glass for on-scene widgets ─────────── */
+  .hud-card {
+    background: rgba(255, 255, 255, 0.93);
+    backdrop-filter: blur(20px) saturate(1.5);
+    -webkit-backdrop-filter: blur(20px) saturate(1.5);
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  }
+  .hud-card-flat {
+    background: rgba(255, 255, 255, 0.98);
+    border-radius: 20px;
+    border: 1px solid var(--color-border);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+  }
+
+  /* ── Speech bubble — white pill with bottom pointer ────────── */
+  .speech-bubble {
+    position: relative;
+    background: #fff;
+    border-radius: 18px;
+    padding: 10px 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.18);
+  }
+  .speech-bubble::after {
+    content: "";
+    position: absolute;
+    bottom: -7px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-left: 7px solid transparent;
+    border-right: 7px solid transparent;
+    border-top: 8px solid #fff;
+  }
 
   /* ── Semantic typography utilities ────────────────────────────
      Use these instead of composing text-* + font-* + leading-* + tracking-*
@@ -261,6 +338,60 @@
     line-height: 1.4;
   }
 
+  /* ── Glassmorphism — iOS-style translucent surfaces ──────────────
+     Use these instead of composing bg-white/X backdrop-blur-X border border-white/X inline.
+     Always pair with a dark or photo background for the effect to work.
+
+     Hierarchy:
+       .glass-subtle  — very light surface, minimal depth  (nav bars, chips)
+       .glass         — standard card / panel surface
+       .glass-strong  — prominent modal / login card                        */
+
+  .glass-subtle {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+  }
+
+  .glass {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.11);
+  }
+
+  .glass-strong {
+    background: rgba(255, 255, 255, 0.11);
+    backdrop-filter: blur(32px);
+    -webkit-backdrop-filter: blur(32px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+  }
+
+  /* Input/field variant — slightly lighter for legibility */
+  .glass-input {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: white;
+  }
+  .glass-input::placeholder { color: rgba(255, 255, 255, 0.28); }
+  .glass-input:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    background: rgba(255, 255, 255, 0.13);
+    box-shadow: 0 0 0 3px rgba(82, 196, 26, 0.18);
+  }
+
+  /* Nav/header bar */
+  .glass-nav {
+    background: rgba(12, 12, 13, 0.72);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
   /* ── Animation delays — use with animate-* classes */
   .anim-delay-100 { animation-delay: 0.1s; }
   .anim-delay-150 { animation-delay: 0.15s; }
@@ -271,3 +402,314 @@
   .anim-delay-500 { animation-delay: 0.5s; }
   .anim-delay-600 { animation-delay: 0.6s; }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   TOCA BOCA — Kids Zone Design System
+   All rules scoped to .toca wrapper so they never bleed into the adult UI.
+   Usage: wrap all kids pages in <div className="toca">
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Toca Boca keyframes ─────────────────────────────────────────────────── */
+@keyframes tk-bounce {
+  0%, 100% { transform: translateY(0) scale(1); }
+  40%       { transform: translateY(-10px) scale(1.05); }
+  70%       { transform: translateY(4px) scale(0.97); }
+}
+@keyframes tk-pop {
+  0%   { transform: scale(0) rotate(-8deg); opacity: 0; }
+  65%  { transform: scale(1.12) rotate(3deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+@keyframes tk-wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  25%       { transform: rotate(-8deg); }
+  75%       { transform: rotate(8deg); }
+}
+@keyframes tk-press {
+  0%   { transform: scale(1)    translateY(0);  box-shadow: 0 5px 0 var(--tk-btn-shadow); }
+  50%  { transform: scale(0.96) translateY(4px); box-shadow: 0 1px 0 var(--tk-btn-shadow); }
+  100% { transform: scale(1)    translateY(0);  box-shadow: 0 5px 0 var(--tk-btn-shadow); }
+}
+@keyframes tk-float {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-8px); }
+}
+@keyframes tk-spin-slow {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+@keyframes tk-slide-up {
+  from { transform: translateY(40px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+@keyframes tk-coin-pop {
+  0%   { transform: translateY(0) scale(1); opacity: 1; }
+  60%  { transform: translateY(-32px) scale(1.3); opacity: 1; }
+  100% { transform: translateY(-60px) scale(0.8); opacity: 0; }
+}
+
+/* ── Toca Boca CSS variables ─────────────────────────────────────────────── */
+.toca {
+  /* Palette */
+  --tk-blue:    #1CB0F6;
+  --tk-blue-dk: #0e8bc2;
+  --tk-green:   #58CC02;
+  --tk-green-dk:#4aa001;
+  --tk-yellow:  #FFC800;
+  --tk-yellow-dk:#cc9e00;
+  --tk-pink:    #FF4081;
+  --tk-pink-dk: #c4195b;
+  --tk-purple:  #CE82FF;
+  --tk-purple-dk:#9b5dd5;
+  --tk-orange:  #FF9600;
+  --tk-orange-dk:#cc7800;
+  --tk-red:     #FF4B4B;
+  --tk-red-dk:  #cc2e2e;
+  --tk-teal:    #00C9A7;
+  --tk-teal-dk: #009e84;
+
+  /* Surface */
+  --tk-bg:      #F7F9FC;
+  --tk-card:    #FFFFFF;
+  --tk-border:  #E0E8F0;
+
+  /* Text */
+  --tk-ink:     #1a1a2e;
+  --tk-muted:   #6b7280;
+
+  /* Button default */
+  --tk-btn-shadow: rgba(0,0,0,0.25);
+
+  font-family: var(--font-nunito), sans-serif;
+}
+
+/* ── tk-card ─────────────────────────────────────────────────────────────── */
+.toca .tk-card {
+  background: var(--tk-card);
+  border-radius: 20px;
+  border: 3px solid var(--tk-border);
+  box-shadow: 0 4px 0 rgba(0,0,0,0.10);
+  padding: 16px;
+}
+
+/* ── tk-btn ──────────────────────────────────────────────────────────────── */
+.toca .tk-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 24px;
+  border-radius: 16px;
+  border: 3px solid transparent;
+  font-weight: 900;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: transform 0.1s, box-shadow 0.1s;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  box-shadow: 0 5px 0 var(--tk-btn-shadow);
+}
+.toca .tk-btn:active {
+  transform: translateY(4px);
+  box-shadow: 0 1px 0 var(--tk-btn-shadow);
+}
+
+/* Color variants */
+.toca .tk-btn-blue   { background: var(--tk-blue);   color: #fff; --tk-btn-shadow: var(--tk-blue-dk); }
+.toca .tk-btn-green  { background: var(--tk-green);  color: #fff; --tk-btn-shadow: var(--tk-green-dk); }
+.toca .tk-btn-yellow { background: var(--tk-yellow); color: #fff; --tk-btn-shadow: var(--tk-yellow-dk); }
+.toca .tk-btn-pink   { background: var(--tk-pink);   color: #fff; --tk-btn-shadow: var(--tk-pink-dk); }
+.toca .tk-btn-purple { background: var(--tk-purple); color: #fff; --tk-btn-shadow: var(--tk-purple-dk); }
+.toca .tk-btn-orange { background: var(--tk-orange); color: #fff; --tk-btn-shadow: var(--tk-orange-dk); }
+.toca .tk-btn-ghost  { background: #fff; color: var(--tk-ink); --tk-btn-shadow: var(--tk-border); border-color: var(--tk-border); }
+
+/* ── tk-nav-tile — the big square navigation tiles ──────────────────────── */
+.toca .tk-nav-tile {
+  border-radius: 24px;
+  border: 3px solid rgba(0,0,0,0.12);
+  box-shadow: 0 6px 0 rgba(0,0,0,0.18);
+  cursor: pointer;
+  transition: transform 0.1s, box-shadow 0.1s;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px 12px;
+  text-decoration: none;
+}
+.toca .tk-nav-tile:active {
+  transform: translateY(5px);
+  box-shadow: 0 1px 0 rgba(0,0,0,0.18);
+}
+
+/* ── tk-badge — rarity / status badges ──────────────────────────────────── */
+.toca .tk-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 99px;
+  font-weight: 900;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border: 2px solid rgba(0,0,0,0.12);
+}
+.toca .tk-badge-common    { background: #e5e7eb; color: #374151; }
+.toca .tk-badge-uncommon  { background: #bbf7d0; color: #166534; }
+.toca .tk-badge-rare      { background: #bfdbfe; color: #1e40af; }
+.toca .tk-badge-legendary { background: #fde68a; color: #92400e; }
+
+/* ── tk-progress ─────────────────────────────────────────────────────────── */
+.toca .tk-progress-track {
+  background: rgba(0,0,0,0.10);
+  border-radius: 99px;
+  overflow: hidden;
+  height: 12px;
+}
+.toca .tk-progress-fill {
+  height: 100%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, var(--tk-fill-start, #58CC02), var(--tk-fill-end, #8ee000));
+  transition: width 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ── tk-item-card — shop item / furniture card ───────────────────────────── */
+.toca .tk-item-card {
+  background: var(--tk-card);
+  border-radius: 20px;
+  border: 3px solid var(--tk-border);
+  box-shadow: 0 4px 0 rgba(0,0,0,0.08);
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding-bottom: 12px;
+}
+.toca .tk-item-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 0 rgba(0,0,0,0.08);
+}
+.toca .tk-item-card:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 rgba(0,0,0,0.08);
+}
+
+/* ── tk-character-card ───────────────────────────────────────────────────── */
+.toca .tk-character-card {
+  background: var(--tk-card);
+  border-radius: 24px;
+  border: 3px solid var(--tk-border);
+  box-shadow: 0 6px 0 rgba(0,0,0,0.10);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.toca .tk-character-card.active {
+  border-color: var(--tk-blue);
+  box-shadow: 0 6px 0 var(--tk-blue-dk), 0 0 0 4px rgba(28,176,246,0.20);
+}
+.toca .tk-character-card.locked {
+  filter: grayscale(0.7);
+  opacity: 0.7;
+}
+.toca .tk-character-card:hover:not(.locked) {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 0 rgba(0,0,0,0.10);
+}
+
+/* ── tk-hud ──────────────────────────────────────────────────────────────── */
+.toca .tk-hud {
+  background: white;
+  border-radius: 99px;
+  border: 3px solid var(--tk-border);
+  box-shadow: 0 3px 0 rgba(0,0,0,0.08);
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+/* ── tk-modal-overlay ────────────────────────────────────────────────────── */
+.toca .tk-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 100;
+  padding: 16px;
+}
+@media (min-width: 640px) {
+  .toca .tk-modal-overlay { align-items: center; }
+}
+.toca .tk-modal-sheet {
+  background: var(--tk-card);
+  border-radius: 28px;
+  border: 3px solid var(--tk-border);
+  box-shadow: 0 24px 48px rgba(0,0,0,0.25);
+  width: 100%;
+  max-width: 440px;
+  max-height: 92vh;
+  overflow-y: auto;
+  animation: tk-slide-up 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ── tk-tab-bar ──────────────────────────────────────────────────────────── */
+.toca .tk-tab-bar {
+  display: flex;
+  gap: 8px;
+  background: var(--tk-bg);
+  border-radius: 16px;
+  padding: 6px;
+}
+.toca .tk-tab {
+  flex: 1;
+  padding: 10px 8px;
+  border-radius: 12px;
+  font-weight: 900;
+  font-size: 0.8rem;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  color: var(--tk-muted);
+  transition: all 0.15s;
+  text-align: center;
+}
+.toca .tk-tab.active {
+  color: white;
+  box-shadow: 0 3px 0 rgba(0,0,0,0.18);
+}
+
+/* ── Utility animations (toca-scoped) ────────────────────────────────────── */
+.toca .tk-animate-bounce  { animation: tk-bounce   0.6s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.toca .tk-animate-pop     { animation: tk-pop      0.4s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.toca .tk-animate-wiggle  { animation: tk-wiggle   0.5s ease-in-out; }
+.toca .tk-animate-float   { animation: tk-float    3s   ease-in-out infinite; }
+.toca .tk-animate-slide-up { animation: tk-slide-up 0.35s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.toca .tk-animate-coin-pop { animation: tk-coin-pop 0.6s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/* ── Image states for items/characters ──────────────────────────────────── */
+.toca .tk-img-idle   { display: block; }
+.toca .tk-img-hover  { display: none;  }
+.toca .tk-img-active { display: none;  }
+
+.toca .tk-item-display:hover  .tk-img-idle   { display: none; }
+.toca .tk-item-display:hover  .tk-img-hover  { display: block; }
+.toca .tk-item-display:active .tk-img-idle   { display: none; }
+.toca .tk-item-display:active .tk-img-hover  { display: none; }
+.toca .tk-item-display:active .tk-img-active { display: block; }

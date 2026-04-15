@@ -2,101 +2,113 @@ import Link from 'next/link';
 
 interface LessonSuccessProps {
   xp: number;
+  coinsEarned: number;
   lessonTitle: string;
   courseSlug: string;
   nextLessonSlug?: string;
+  backUrl?: string;
   teacherName: string;
   teacherPhoto: string;
   callUrl: string;
 }
 
-export function LessonSuccess({ xp, lessonTitle, courseSlug, nextLessonSlug, teacherName, teacherPhoto, callUrl }: LessonSuccessProps) {
+function RewardStat({ src, value, label }: { src: string; value: number; label: string }) {
   return (
-    <div className="flex-1 flex flex-col min-h-screen bg-lesson-success">
+    <div className="flex-1 flex flex-col items-center gap-2 py-5 px-3 rounded-2xl bg-white/5 border border-white/10">
+      <img src={src} alt="" aria-hidden width={44} height={44} className="object-contain drop-shadow-lg" />
+      <p className="text-white text-3xl font-black leading-none tracking-tight">+{value}</p>
+      <p className="type-label text-white/50">{label}</p>
+    </div>
+  );
+}
 
-      {/* Top celebration area */}
-      <div className="flex-1 flex flex-col items-center justify-center px-6 pt-12 pb-6 text-center">
+export function LessonSuccess({
+  xp, coinsEarned, lessonTitle, courseSlug, nextLessonSlug,
+  backUrl = '/dashboard/lessons', teacherName, teacherPhoto, callUrl,
+}: LessonSuccessProps) {
+  return (
+    <div className="min-h-screen bg-lesson-success flex items-center justify-center px-4 py-10">
+      <div className="w-full max-w-md flex flex-col gap-6">
 
-        {/* Stars decoration */}
-        <div className="flex items-end gap-2 mb-6">
-          <span className="text-3xl opacity-60 -rotate-[15deg]">⭐</span>
-          <span className="text-5xl">⭐</span>
-          <span className="text-3xl opacity-60 rotate-[15deg]">⭐</span>
+        {/* Floating stars */}
+        <div className="flex items-end justify-center gap-2 -mb-2 select-none pointer-events-none" aria-hidden>
+          <span className="text-3xl opacity-50 -rotate-[15deg]">⭐</span>
+          <span className="text-5xl drop-shadow-[0_4px_16px_rgba(255,200,0,0.5)]">⭐</span>
+          <span className="text-3xl opacity-50 rotate-[15deg]">⭐</span>
         </div>
 
-        {/* Trophy */}
-        <div className="w-28 h-28 rounded-3xl bg-gradient-to-br from-accent to-accent-dark flex items-center justify-center shadow-2xl shadow-black/30 mb-5">
-          <span className="text-6xl" role="img" aria-label="Трофей">🏆</span>
-        </div>
+        {/* Celebration sheet */}
+        <div className="rounded-[32px] bg-white/[0.06] border border-white/10 backdrop-blur-sm shadow-2xl shadow-black/40 overflow-hidden">
 
-        <h1 className="text-3xl font-black text-white mb-2">Урок завершено!</h1>
-        <p className="text-white/60 text-sm mb-8">{lessonTitle}</p>
-
-        {/* XP badge */}
-        <div className="inline-flex items-center gap-3 bg-accent/20 border border-accent/40 rounded-2xl px-8 py-4 mb-10">
-          <span className="text-3xl">⚡</span>
-          <div className="text-left">
-            <p className="text-accent/80 text-xs font-bold uppercase tracking-widest">Зароблено</p>
-            <p className="text-accent text-4xl font-black leading-none">+{xp} XP</p>
+          {/* Hero */}
+          <div className="flex flex-col items-center px-6 pt-8 pb-6 text-center">
+            <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-accent to-accent-dark flex items-center justify-center shadow-xl shadow-accent/40 mb-4">
+              <span className="text-5xl" role="img" aria-label="Трофей">🏆</span>
+            </div>
+            <h1 className="text-3xl font-black text-white tracking-tight">Урок завершено!</h1>
+            <p className="text-white/55 text-sm mt-1.5">{lessonTitle}</p>
           </div>
-        </div>
 
-        {/* Navigation */}
-        <div className="flex gap-3 w-full max-w-sm">
-          <Link
-            href="/dashboard/lessons"
-            className="flex-1 py-3.5 rounded-2xl border-2 border-white/30 text-white/70 text-sm font-bold text-center hover:bg-white/10 transition-colors"
+          {/* Rewards */}
+          <div className="flex gap-3 px-5">
+            <RewardStat src="/xp.png"   value={xp}          label="XP" />
+            <RewardStat src="/coin.png" value={coinsEarned} label="Coins" />
+          </div>
+
+          {/* Actions */}
+          <div className="flex gap-3 px-5 pt-5 pb-5">
+            <Link
+              href={backUrl}
+              className="flex-1 h-12 rounded-2xl border border-white/20 text-white/80 text-sm font-bold flex items-center justify-center hover:bg-white/5 transition-colors"
+            >
+              До уроків
+            </Link>
+            {nextLessonSlug ? (
+              <Link
+                href={`/courses/${courseSlug}/lessons/${nextLessonSlug}`}
+                className="flex-1 h-12 rounded-2xl bg-accent text-ink text-sm font-black flex items-center justify-center shadow-press-accent active:translate-y-1 active:shadow-none transition-transform"
+              >
+                Наступний урок →
+              </Link>
+            ) : (
+              <Link
+                href={backUrl}
+                className="flex-1 h-12 rounded-2xl bg-accent text-ink text-sm font-black flex items-center justify-center shadow-press-accent active:translate-y-1 active:shadow-none transition-transform"
+              >
+                Завершити
+              </Link>
+            )}
+          </div>
+
+          {/* Divider */}
+          <div className="h-px bg-white/10 mx-5" />
+
+          {/* Teacher offer — anchored inside same sheet */}
+          <a
+            href={callUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-4 px-5 py-4 hover:bg-white/[0.04] transition-colors group"
           >
-            До уроків
-          </Link>
-          {nextLessonSlug ? (
-            <Link
-              href={`/courses/${courseSlug}/lessons/${nextLessonSlug}`}
-              className="flex-1 py-3.5 rounded-2xl bg-accent text-ink text-sm font-black text-center hover:opacity-90 transition-opacity"
-            >
-              Далі →
-            </Link>
-          ) : (
-            <Link
-              href="/dashboard/lessons"
-              className="flex-1 py-3.5 rounded-2xl bg-accent text-ink text-sm font-black text-center hover:opacity-90 transition-opacity"
-            >
-              Завершити
-            </Link>
-          )}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={teacherPhoto}
+              alt={teacherName}
+              className="w-12 h-12 rounded-2xl object-cover border-2 border-white/20 flex-shrink-0"
+            />
+            <div className="flex-1 min-w-0">
+              <p className="type-label text-white/40 mb-0.5">Закріпи з вчителем</p>
+              <p className="text-white font-black text-base leading-tight truncate">{teacherName}</p>
+              <p className="text-white/50 text-xs mt-0.5 leading-snug">
+                Живе заняття — найкращий спосіб не забути нові слова.
+              </p>
+            </div>
+            <div className="w-10 h-10 rounded-xl bg-success flex items-center justify-center flex-shrink-0 shadow-press-success group-active:translate-y-0.5 group-active:shadow-none transition-transform">
+              <span className="text-lg">📹</span>
+            </div>
+          </a>
         </div>
-      </div>
 
-      {/* Teacher call card — anchored at bottom */}
-      <div className="w-full max-w-sm mx-auto px-4 mb-6">
-      <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-3xl p-5">
-        <div className="flex items-center gap-4 mb-4">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={teacherPhoto}
-            alt={teacherName}
-            className="w-14 h-14 rounded-2xl object-cover border-2 border-white/30 flex-shrink-0"
-          />
-          <div>
-            <p className="text-white/60 text-xs font-bold uppercase tracking-wide">Закріпи з вчителем</p>
-            <p className="text-white font-black text-lg leading-tight">{teacherName}</p>
-          </div>
-          <div className="ml-auto w-10 h-10 rounded-xl bg-success flex items-center justify-center flex-shrink-0">
-            <span className="text-xl">📹</span>
-          </div>
-        </div>
-        <p className="text-white/60 text-sm mb-4">
-          Живе заняття з вчителем — найкращий спосіб не забути нові слова та відпрацювати вимову.
-        </p>
-        <a
-          href={callUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="block w-full py-3.5 rounded-2xl bg-success text-white font-black text-sm text-center hover:opacity-90 transition-opacity"
-        >
-          Записатись на відеозаняття →
-        </a>
-      </div>
       </div>
     </div>
   );

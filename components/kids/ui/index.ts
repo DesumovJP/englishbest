@@ -31,3 +31,8 @@ export { KidsNavCard } from "./KidsNavCard";
 export { KidsToast } from "./KidsToast";
 
 export { KidsProgressBar } from "./KidsProgressBar";
+
+export { HudCard } from "./HudCard";
+export { SpeechBubble } from "./SpeechBubble";
+export { XpBadge } from "./XpBadge";
+export { ProgressBar } from "./ProgressBar";

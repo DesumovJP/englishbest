@@ -1,8 +1,8 @@
 import Link from 'next/link';
 import { QuizWidget } from '@/components/molecules/QuizWidget';
-import { HeroSlider } from '@/components/molecules/HeroSlider';
 import { LanguageSwitcher } from '@/components/atoms/LanguageSwitcher';
 import { PopupTimer } from '@/components/molecules/PopupTimer';
+import { ReviewsSlider } from '@/components/molecules/ReviewsSlider';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -11,15 +11,17 @@ export const metadata: Metadata = {
     'Індивідуальні онлайн-уроки англійської для дітей. Перший урок безкоштовно. Сертифіковані вчителі.',
 };
 
-/* ─── Головний компонент ─────────────────────── */
+const G = 'px-4 sm:px-6 lg:px-10 xl:px-16';
+const W = 'max-w-6xl mx-auto w-full';
+
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-surface">
       <PopupTimer />
 
       {/* ── Навігація ── */}
-      <header className="sticky top-0 z-40 bg-white border-b-2 border-surface-muted">
-        <div className="max-w-5xl mx-auto px-5 h-16 flex items-center justify-between">
+      <header className="sticky top-0 z-40 bg-surface/95 backdrop-blur-md border-b border-border">
+        <div className={`${G} ${W} h-16 flex items-center justify-between`}>
           <Link href="/home" className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center">
               <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" aria-hidden>
@@ -34,15 +36,14 @@ export default function HomePage() {
           <nav aria-label="Навігація" className="hidden md:flex items-center gap-1">
             {[
               { label: 'Як навчаємо', href: '#methodology' },
-              { label: 'Формати', href: '#formats' },
-              { label: 'Ціни', href: '#pricing' },
-              { label: 'Вчителі', href: '#teachers-heading' },
+              { label: 'Формати та ціни', href: '#formats' },
+              { label: 'Вчителі', href: '#formats' },
               { label: 'Батькам', href: '#reviews' },
             ].map(item => (
               <Link
                 key={item.label}
                 href={item.href}
-                className="text-sm font-semibold text-ink-muted hover:text-ink hover:bg-surface-muted transition-colors px-3 py-2 rounded-lg"
+                className="text-sm font-semibold text-ink-muted hover:text-ink transition-colors px-3 py-2 rounded-lg hover:bg-surface-muted"
               >
                 {item.label}
               </Link>
@@ -60,7 +61,8 @@ export default function HomePage() {
             </Link>
             <Link
               href="/login"
-              className="bg-gradient-to-br from-primary to-primary-dark hover:opacity-90 text-white font-black text-sm px-4 py-2.5 rounded-xl transition-opacity shadow-sm"
+              className="bg-primary hover:brightness-110 text-white font-black text-sm px-4 py-2.5 rounded-xl transition-[filter]"
+              style={{ boxShadow: '0 3px 0 var(--color-primary-dark)' }}
             >
               Спробувати безкоштовно
             </Link>
@@ -71,222 +73,121 @@ export default function HomePage() {
       <main>
 
         {/* ── Hero ── */}
-        <section className="min-h-[calc(100vh-4rem)] flex items-center px-5 py-16 bg-white">
-          <div className="max-w-5xl mx-auto w-full grid grid-cols-1 lg:grid-cols-[1fr_1.1fr] gap-10 lg:gap-16 items-center">
+        <section className="relative min-h-[calc(100vh-4rem)] flex items-center justify-center overflow-hidden">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=1920&h=1080&fit=crop&q=85"
+            alt="" aria-hidden
+            className="absolute inset-0 w-full h-full object-cover object-center scale-105"
+          />
+          <div className="absolute inset-0 bg-gradient-to-br from-black/45 via-black/55 to-black/85" />
 
-            {/* Ліва — текст */}
-            <div className="flex flex-col gap-6">
-              <p className="type-label text-primary">
-                Онлайн-школа англійської для дітей
-              </p>
-
-              <h1 className="text-5xl md:text-[3.5rem] font-black text-ink tracking-tight leading-[1.03]">
-                Дитина заговорить<br />
-                <span className="text-primary">англійською</span><br />
-                вже за місяць
-              </h1>
-
-              <p className="text-lg text-ink-muted leading-relaxed max-w-[26rem]">
-                Один на один із сертифікованим вчителем. Програма під вік і характер вашої дитини.
-              </p>
-
-              <div className="flex flex-col gap-4 mt-1">
-                <div className="w-fit">
-                  <QuizWidget variant="primary" />
-                </div>
-
-                {/* Соціальний доказ */}
-                <div className="flex items-center gap-3">
+          <div className="relative z-10 flex flex-col items-center text-center px-4 py-24 w-full max-w-2xl mx-auto gap-5">
+            <span className="inline-flex items-center gap-2 px-3 h-8 rounded-full bg-white/10 border border-white/15 backdrop-blur-sm">
+              <span className="w-1.5 h-1.5 rounded-full bg-primary-light animate-pulse" />
+              <span className="text-xs font-black text-white/85 tracking-widest uppercase">Онлайн-школа для дітей</span>
+            </span>
+            <h1 className="text-5xl md:text-[4rem] font-black text-white leading-[1.05] tracking-tight">
+              Дитина заговорить<br />
+              <span className="text-primary-light">англійською</span><br />
+              вже за місяць
+            </h1>
+            <p className="text-white/70 text-base md:text-lg leading-relaxed max-w-sm">
+              Сертифікований вчитель. Програма під вік і характер вашої дитини.
+            </p>
+            <div className="flex flex-col items-center gap-5 mt-2 w-full">
+              <div className="w-fit"><QuizWidget variant="white" /></div>
+              <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-5">
+                <div className="flex items-center gap-2.5">
                   <div className="flex">
-                    {[
-                      { id: 12, gender: 'women' },
-                      { id: 44, gender: 'women' },
-                      { id: 32, gender: 'men' },
-                      { id: 65, gender: 'women' },
-                    ].map((a, i) => (
+                    {[{ id: 12, gender: 'women' }, { id: 44, gender: 'women' }, { id: 32, gender: 'men' }, { id: 65, gender: 'women' }].map((a, i) => (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        key={a.id}
-                        src={`https://randomuser.me/api/portraits/${a.gender}/${a.id}.jpg`}
-                        alt=""
-                        aria-hidden
-                        className={`w-7 h-7 rounded-full border-2 border-white object-cover${i > 0 ? ' -ml-2' : ''}`}
-                      />
+                      <img key={a.id} src={`https://randomuser.me/api/portraits/${a.gender}/${a.id}.jpg`} alt="" aria-hidden
+                        className={`w-7 h-7 rounded-full border-2 border-white/40 object-cover${i > 0 ? ' -ml-2' : ''}`} />
                     ))}
                   </div>
-                  <p className="text-sm text-ink-muted">
-                    <span className="font-bold text-ink">1 200+ батьків</span> вже обрали нас
+                  <p className="text-sm text-white/60">
+                    <span className="font-bold text-white">1 200+ батьків</span>
                   </p>
+                </div>
+                <span className="hidden sm:block w-px h-5 bg-white/20" aria-hidden />
+                <div className="flex items-center gap-1.5">
+                  <span className="flex text-accent text-sm tracking-tight" aria-hidden>★★★★★</span>
+                  <p className="text-sm text-white/60"><span className="font-bold text-white">4.9</span> · 380+ відгуків</p>
                 </div>
               </div>
             </div>
-
-            {/* Права — слайдер */}
-            <div className="flex justify-center lg:justify-end">
-              <div className="w-full max-w-md drop-shadow-2xl">
-                <HeroSlider />
-              </div>
-            </div>
-
           </div>
         </section>
 
-        {/* ── Логотипи партнерів ── */}
-        <section aria-label="Партнери" className="py-10 px-5 border-y border-border bg-white">
-          <div className="max-w-5xl mx-auto flex flex-col gap-5 items-center">
+        {/* ── Партнери ── */}
+        <section aria-label="Партнери" className={`py-10 border-y border-border bg-surface ${G}`}>
+          <div className={`${W} flex flex-col gap-5 items-center`}>
             <p className="type-label text-ink-muted text-center">Нам довіряють</p>
-            <div className="flex flex-wrap items-center justify-center gap-8 md:gap-12">
-              {[
-                'Lingua Kids Academy',
-                'Oxford Junior Club',
-                'StarEnglish UA',
-                'BrightMinds School',
-                'KidsLearn Online',
-              ].map(name => (
-                <span key={name} className="text-sm font-black text-ink-muted/60 tracking-tight whitespace-nowrap">
-                  {name}
-                </span>
+            <div className="flex flex-wrap items-center justify-center gap-8 md:gap-14">
+              {['Lingua Kids Academy', 'Oxford Junior Club', 'StarEnglish UA', 'BrightMinds School', 'KidsLearn Online'].map(name => (
+                <span key={name} className="text-sm font-black text-ink-faint tracking-tight whitespace-nowrap">{name}</span>
               ))}
             </div>
           </div>
         </section>
 
         {/* ── Як відбувається запис ── */}
-        <section className="py-20 px-5 bg-white">
-          <div className="max-w-5xl mx-auto flex flex-col gap-12">
+        <section className={`py-20 bg-surface-muted ${G}`}>
+          <div className={`${W} flex flex-col gap-12`}>
             <div>
               <p className="type-label text-primary mb-3">Простий старт</p>
-              <h2 className="type-h1 text-ink">
-                Як відбувається запис
-              </h2>
+              <h2 className="type-h1 text-ink">Як відбувається запис</h2>
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <ol className="grid grid-cols-1 md:grid-cols-3 gap-5">
               {[
-                {
-                  step: '01',
-                  emoji: '🎯',
-                  title: 'Запис на безкоштовний пробний урок',
-                  desc: 'Оберіть зручний час і залиште контакти. Адміністратор зателефонує у зручний для вас час — або напише у месенджер, якщо ви обрали цей варіант.',
-                  color: 'bg-purple/5 border-purple/20',
-                  numColor: 'text-purple/20',
-                },
-                {
-                  step: '02',
-                  emoji: '🤝',
-                  title: 'Безкоштовна діагностика',
-                  desc: 'Адміністратор проводить вступне заняття, визначає рівень дитини і підбирає програму. Перший урок — ознайомчий і повністю безкоштовний.',
-                  color: 'bg-accent/5 border-accent/20',
-                  numColor: 'text-accent/20',
-                },
-                {
-                  step: '03',
-                  emoji: '📈',
-                  title: 'Фідбек і старт навчання',
-                  desc: 'Після пробного уроку ви отримуєте зворотній зв\u2019язок, рекомендовану програму та деталі навчання. Підписуємо договір і починаємо!',
-                  color: 'bg-primary/5 border-primary/20',
-                  numColor: 'text-primary/20',
-                },
+                { step: '01', title: 'Залишіть заявку', sub: 'Передзвонимо протягом години і узгодимо час.', panel: 'bg-purple/5 border-purple/20', dot: 'bg-purple text-white' },
+                { step: '02', title: 'Пробний урок безкоштовно', sub: 'Вчитель визначає рівень і підбирає програму.', panel: 'bg-accent/5 border-accent/20', dot: 'bg-accent text-white' },
+                { step: '03', title: 'Починаємо', sub: 'Отримуєте розклад, план і доступ до платформи.', panel: 'bg-primary/5 border-primary/20', dot: 'bg-primary text-white' },
               ].map(s => (
-                <div key={s.step} className={`relative rounded-2xl border-2 p-7 flex flex-col gap-4 ${s.color}`}>
-                  <p className={`absolute top-5 right-6 text-5xl font-black leading-none select-none ${s.numColor}`}>
-                    {s.step}
-                  </p>
-                  <span className="text-3xl">{s.emoji}</span>
-                  <div>
-                    <h3 className="type-h3 text-ink">{s.title}</h3>
-                    <p className="text-sm text-ink-muted mt-2 leading-relaxed">{s.desc}</p>
-                  </div>
-                </div>
+                <li key={s.step} className={`relative rounded-2xl border p-7 pt-10 flex flex-col gap-3 min-h-[180px] ${s.panel}`}>
+                  <span className={`absolute -top-4 left-7 w-9 h-9 rounded-full font-black text-xs flex items-center justify-center shadow-card ${s.dot}`}>{s.step}</span>
+                  <h3 className="type-h3 text-ink">{s.title}</h3>
+                  <p className="text-sm text-ink-muted leading-snug">{s.sub}</p>
+                </li>
               ))}
-            </div>
+            </ol>
           </div>
         </section>
 
-        {/* ── Про нас + підхід ── */}
-        <section id="methodology" className="py-20 px-5 bg-white">
-          <div className="max-w-5xl mx-auto flex flex-col gap-10">
-
-            {/* Заголовок */}
+        {/* ── Методика ── */}
+        <section id="methodology" className={`py-20 bg-surface ${G}`}>
+          <div className={`${W} flex flex-col gap-10`}>
             <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
               <div>
                 <p className="type-label text-primary mb-3">Наша методика</p>
-                <h2 className="type-h1 text-ink">
-                  Ми навчаємо по-іншому
-                </h2>
+                <h2 className="type-h1 text-ink">Ми навчаємо по-іншому</h2>
               </div>
               <p className="text-ink-muted max-w-sm text-sm leading-relaxed">
-                Онлайн-школа з 2019 року. Без шаблонів — кожен урок будується навколо інтересів вашої дитини.
+                Структуровані програми, живі вчителі та регулярна практика — замість зазубрювання правил.
               </p>
             </div>
 
-            {/* Бенто-сітка */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-
-              {/* Великий зелений блок */}
-              <div className="col-span-2 relative overflow-hidden rounded-2xl min-h-[160px] bg-gradient-to-br from-primary to-primary-dark">
-                <svg
-                  viewBox="0 0 320 140"
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="absolute bottom-0 right-0 h-full w-auto opacity-[0.18] pointer-events-none"
-                  aria-hidden
-                  preserveAspectRatio="xMaxYMax meet"
-                >
-                  <rect x="0" y="85" width="22" height="55" fill="white" />
-                  <rect x="25" y="65" width="18" height="75" fill="white" />
-                  <rect x="46" y="78" width="28" height="62" fill="white" />
-                  <rect x="82" y="90" width="16" height="50" fill="white" />
-                  <rect x="84" y="38" width="12" height="54" fill="white" />
-                  <rect x="81" y="54" width="18" height="20" fill="white" />
-                  <polygon points="84,38 90,20 96,38" fill="white" />
-                  <rect x="98" y="90" width="66" height="50" fill="white" />
-                  <rect x="100" y="82" width="5" height="9" fill="white" /><polygon points="100,82 102.5,76 105,82" fill="white" />
-                  <rect x="112" y="84" width="5" height="7" fill="white" /><polygon points="112,84 114.5,78 117,84" fill="white" />
-                  <rect x="124" y="84" width="5" height="7" fill="white" /><polygon points="124,84 126.5,78 129,84" fill="white" />
-                  <rect x="136" y="84" width="5" height="7" fill="white" /><polygon points="136,84 138.5,78 141,84" fill="white" />
-                  <rect x="150" y="82" width="5" height="9" fill="white" /><polygon points="150,82 152.5,76 155,82" fill="white" />
-                  <rect x="162" y="90" width="92" height="5" fill="white" />
-                  <rect x="172" y="50" width="18" height="90" fill="white" />
-                  <rect x="169" y="55" width="24" height="14" fill="white" />
-                  <polygon points="172,50 181,34 190,50" fill="white" />
-                  <polygon points="174,42 181,28 188,42" fill="white" />
-                  <rect x="224" y="50" width="18" height="90" fill="white" />
-                  <rect x="221" y="55" width="24" height="14" fill="white" />
-                  <polygon points="224,50 233,34 242,50" fill="white" />
-                  <polygon points="226,42 233,28 240,42" fill="white" />
-                  <rect x="190" y="57" width="34" height="5" fill="white" />
-                  <line x1="181" y1="62" x2="172" y2="90" stroke="white" strokeWidth="1.5" />
-                  <line x1="186" y1="62" x2="179" y2="90" stroke="white" strokeWidth="1.5" />
-                  <line x1="194" y1="62" x2="194" y2="90" stroke="white" strokeWidth="1.5" />
-                  <line x1="200" y1="62" x2="200" y2="90" stroke="white" strokeWidth="1.5" />
-                  <line x1="206" y1="62" x2="206" y2="90" stroke="white" strokeWidth="1.5" />
-                  <line x1="212" y1="62" x2="215" y2="90" stroke="white" strokeWidth="1.5" />
-                  <line x1="217" y1="62" x2="228" y2="90" stroke="white" strokeWidth="1.5" />
-                  <polygon points="268,140 276,10 284,140" fill="white" />
+              {/* Зелений великий блок */}
+              <div className="col-span-2 relative overflow-hidden rounded-2xl min-h-[200px] bg-gradient-to-br from-primary to-primary-dark">
+                <svg viewBox="0 0 320 140" xmlns="http://www.w3.org/2000/svg" className="absolute bottom-0 right-0 h-full w-auto opacity-[0.15] pointer-events-none" aria-hidden preserveAspectRatio="xMaxYMax meet">
+                  <rect x="0" y="85" width="22" height="55" fill="white" /><rect x="25" y="65" width="18" height="75" fill="white" />
+                  <rect x="46" y="78" width="28" height="62" fill="white" /><rect x="82" y="90" width="16" height="50" fill="white" />
+                  <rect x="84" y="38" width="12" height="54" fill="white" /><polygon points="84,38 90,20 96,38" fill="white" />
+                  <rect x="98" y="90" width="66" height="50" fill="white" /><rect x="172" y="50" width="18" height="90" fill="white" />
+                  <polygon points="172,50 181,34 190,50" fill="white" /><rect x="224" y="50" width="18" height="90" fill="white" />
+                  <polygon points="224,50 233,34 242,50" fill="white" /><polygon points="268,140 276,10 284,140" fill="white" />
                   <rect x="288" y="78" width="20" height="62" fill="white" />
-                  <rect x="290" y="66" width="8" height="74" fill="white" />
-                  <rect x="310" y="88" width="10" height="52" fill="white" />
                 </svg>
-
-                <div className="relative z-10 p-7 flex flex-col justify-between gap-6 h-full min-h-[160px]">
+                <div className="relative z-10 p-7 flex flex-col justify-between gap-6 h-full min-h-[200px]">
                   <p className="text-5xl font-black text-white leading-none">1 200+</p>
                   <div className="flex flex-col gap-3">
                     <div className="flex items-center">
-                      {[
-                        { id: 12, gender: 'women' },
-                        { id: 44, gender: 'women' },
-                        { id: 32, gender: 'men' },
-                        { id: 65, gender: 'women' },
-                        { id: 23, gender: 'women' },
-                      ].map((a, i) => (
+                      {[{ id: 12, gender: 'women' }, { id: 44, gender: 'women' }, { id: 32, gender: 'men' }, { id: 65, gender: 'women' }, { id: 23, gender: 'women' }].map((a, i) => (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          key={a.id}
-                          src={`https://randomuser.me/api/portraits/${a.gender}/${a.id}.jpg`}
-                          alt=""
-                          aria-hidden
-                          className={`w-8 h-8 rounded-full border-2 border-white/40 object-cover ${i > 0 ? '-ml-2' : ''}`}
-                        />
+                        <img key={a.id} src={`https://randomuser.me/api/portraits/${a.gender}/${a.id}.jpg`} alt="" aria-hidden
+                          className={`w-8 h-8 rounded-full border-2 border-white/40 object-cover ${i > 0 ? '-ml-2' : ''}`} />
                       ))}
                     </div>
                     <div>
@@ -297,401 +198,125 @@ export default function HomePage() {
                 </div>
               </div>
 
-              {/* Стат 1 */}
-              <div className="bg-surface-muted rounded-2xl p-6 flex flex-col justify-between min-h-[160px]">
-                <p className="text-4xl font-black text-ink leading-none">93%</p>
-                <p className="text-sm text-ink-muted">учнів продовжують після першого місяця</p>
-              </div>
-
-              {/* Стат 2 */}
-              <div className="bg-surface-muted rounded-2xl p-6 flex flex-col justify-between min-h-[160px]">
-                <p className="text-4xl font-black text-ink leading-none">A0–B2</p>
-                <p className="text-sm text-ink-muted">усі рівні — від першого слова до вільної розмови</p>
-              </div>
-
-              {/* 7 переваг */}
               {[
-                { emoji: '💻', title: 'Власна платформа', text: 'Уроки, домашні завдання та матеріали в одному місці.' },
-                { emoji: '🎮', title: 'Навчання через гру', text: 'Квізи та діалоги замість зубрятини.' },
-                { emoji: '📊', title: 'Щомісячні звіти', text: 'Детальний звіт про прогрес дитини після кожного місяця.' },
-                { emoji: '💬', title: 'Чат із вчителем', text: 'Запитайте вчителя напряму у будь-який момент.' },
-                { emoji: '👨‍👩‍👧', title: 'Кабінет батьків', text: 'Реальний доступ до розкладу, оцінок та прогресу.' },
-                { emoji: '⏰', title: 'Нагадування', text: 'Повідомлення за 30 хвилин до уроку — не пропустите.' },
-                { emoji: '🏆', title: 'Сертифікат рівня', text: 'Офіційний сертифікат після завершення кожного рівня.' },
+                { title: 'Урок — про те, що цікаво', sub: 'Minecraft, футбол, TikTok — все стає приводом говорити англійською.' },
+                { title: 'Вчитель підібраний, не призначений', sub: 'Не хто вільний у розкладі — а хто підходить саме вашій дитині.' },
+                { title: 'Батьки у курсі після кожного уроку', sub: 'Короткий звіт у застосунку — без зайвих дзвінків і питань.' },
+                { title: 'Спробуйте без ризику', sub: 'Перший урок безкоштовний. Не підійде — жодних зобов\'язань.' },
               ].map(item => (
-                <div key={item.title} className="bg-surface-muted rounded-2xl p-5 flex flex-col gap-3">
-                  <span className="text-2xl">{item.emoji}</span>
-                  <div>
-                    <p className="font-black text-ink text-sm">{item.title}</p>
-                    <p className="text-xs text-ink-muted mt-1 leading-relaxed">{item.text}</p>
-                  </div>
+                <div key={item.title} className="bg-surface-muted border border-border rounded-2xl p-6 flex flex-col justify-between min-h-[200px]">
+                  <p className="font-black text-ink leading-snug">{item.title}</p>
+                  <p className="text-sm text-ink-muted leading-snug mt-3">{item.sub}</p>
                 </div>
               ))}
-
             </div>
           </div>
         </section>
 
-        {/* ── Формати навчання ── */}
-        <section id="formats" className="py-20 px-5 bg-surface-muted">
-          <div className="max-w-5xl mx-auto flex flex-col gap-12">
-            <div>
-              <p className="type-label text-primary mb-3">Формати</p>
-              <h2 className="type-h1 text-ink">
-                Оберіть формат навчання
-              </h2>
-              <p className="text-ink-muted mt-3 text-sm max-w-xl leading-relaxed">
-                Кожен формат — для різних цілей і можливостей. Можна поєднувати.
-              </p>
-            </div>
+        {/* ── Формати + Ціни ── */}
+        <section id="formats" className={`py-20 bg-surface-muted ${G}`}>
+          <div className={`${W}`}>
+            <div className="flex flex-col lg:flex-row gap-10 items-start">
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              {[
-                {
-                  emoji: '👤',
-                  title: 'Індивідуальний',
-                  badge: 'Найпопулярніше',
-                  badgeColor: 'bg-primary/10 text-primary-dark',
-                  color: 'border-primary/20 bg-white',
-                  desc: 'Повна увага вчителя — програма, темп і теми підлаштовані під вашу дитину. Найшвидший прогрес.',
-                  features: ['Персональна програма', 'Гнучкий розклад', 'Заміна вчителя безкоштовно'],
-                },
-                {
-                  emoji: '👫',
-                  title: 'Парний',
-                  badge: 'Вдвічі економніше',
-                  badgeColor: 'bg-success/10 text-success-dark',
-                  color: 'border-success/20 bg-white',
-                  desc: 'Навчайтесь разом із другом або братом/сестрою. Атмосфера змагання підвищує мотивацію.',
-                  features: ['Вдвічі дешевше за індивідуальний', 'Спільний прогрес', 'Гра та діалоги'],
-                },
-                {
-                  emoji: '👥',
-                  title: 'Груповий',
-                  badge: '6–8 учнів',
-                  badgeColor: 'bg-accent/10 text-accent-dark',
-                  color: 'border-accent/20 bg-white',
-                  desc: 'До 8 учнів одного рівня. Розмовна практика, командні завдання та жива комунікація.',
-                  features: ['Найбільш економний', 'Групова динаміка', 'Фокус на Speaking'],
-                },
-                {
-                  emoji: '☕',
-                  title: 'Розмовний клуб',
-                  badge: 'Щотижня',
-                  badgeColor: 'bg-purple/10 text-purple-dark',
-                  color: 'border-purple/20 bg-white',
-                  desc: 'Неформальні зустрічі на різні теми. Ідеально для тих, хто хоче практикувати мову в розслабленій атмосфері.',
-                  features: ['Різні теми щотижня', 'Оплата за заняття або пакет', 'Від A2 рівня'],
-                },
-              ].map(f => (
-                <div key={f.title} className={`rounded-2xl border-2 p-7 flex flex-col gap-5 ${f.color}`}>
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <span className="text-3xl">{f.emoji}</span>
-                      <h3 className="type-h3 text-ink">{f.title}</h3>
+              {/* Ліво: заголовок + список форматів */}
+              <div className="flex-1 flex flex-col gap-6">
+                <div>
+                  <p className="type-label text-primary mb-3">Формати та ціни</p>
+                  <h2 className="type-h1 text-ink">Оберіть формат навчання</h2>
+                </div>
+                <div className="flex flex-col gap-2">
+                  {[
+                    { img: 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=120&h=120&fit=crop&q=80', label: 'Індивідуальний', sub: 'Максимальний прогрес — без компромісів', price: '₴ 380', per: 'за урок', highlight: false },
+                    { img: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=120&h=120&fit=crop&q=80', label: 'Парний', sub: 'Вдвічі дешевше — вдвічі веселіше', price: '₴ 220', per: 'за урок / особа', highlight: true, badge: 'Топ' },
+                    { img: 'https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=120&h=120&fit=crop&q=80', label: 'Груповий', sub: 'Жива атмосфера і командна динаміка', price: '₴ 150', per: 'за урок / особа', highlight: false },
+                    { img: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=120&h=120&fit=crop&q=80', label: 'Розмовний клуб', sub: 'Говоріть вільно — без страху', price: '₴ 120', per: 'за заняття', highlight: false },
+                  ].map(f => (
+                    <div key={f.label} className={['flex items-center gap-4 px-4 py-3 rounded-2xl', f.highlight ? 'bg-primary/5 ring-1 ring-primary/25' : 'bg-surface border border-border'].join(' ')}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={f.img} alt="" aria-hidden className="w-14 h-14 rounded-xl object-cover flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="font-black text-ink text-sm">{f.label}</p>
+                          {f.badge && <span className="text-[10px] font-black bg-primary text-white px-1.5 py-0.5 rounded-md leading-none">{f.badge}</span>}
+                        </div>
+                        <p className="text-xs text-ink-muted mt-0.5 truncate">{f.sub}</p>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <p className="font-black text-ink text-sm leading-none">{f.price}</p>
+                        <p className="text-[10px] text-ink-muted mt-0.5">{f.per}</p>
+                      </div>
                     </div>
-                    <span className={`text-xs font-bold px-2.5 py-1 rounded-full whitespace-nowrap ${f.badgeColor}`}>
-                      {f.badge}
-                    </span>
-                  </div>
-                  <p className="text-sm text-ink-muted leading-relaxed">{f.desc}</p>
-                  <ul className="flex flex-col gap-2">
-                    {f.features.map(feat => (
-                      <li key={feat} className="flex items-center gap-2.5 text-sm text-ink">
-                        <span className="w-4 h-4 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
-                          <svg className="w-2.5 h-2.5 text-white" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
-                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                          </svg>
-                        </span>
-                        {feat}
-                      </li>
-                    ))}
-                  </ul>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* ── Ціни ── */}
-        <section id="pricing" className="py-20 px-5 bg-white">
-          <div className="max-w-5xl mx-auto flex flex-col gap-12">
-            <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
-              <div>
-                <p className="type-label text-primary mb-3">Прозорі ціни</p>
-                <h2 className="type-h1 text-ink">
-                  Оберіть свій план
-                </h2>
               </div>
-              <p className="text-ink-muted text-sm max-w-xs leading-relaxed">
-                Усі плани включають перший пробний урок безкоштовно. Жодних прихованих платежів.
-              </p>
-            </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-              {[
-                {
-                  emoji: '👤',
-                  title: 'Індивідуальний',
-                  highlight: false,
-                  price: '₴ 380',
-                  per: 'за урок',
-                  packages: ['₴ 380 / урок — 1 місяць', '₴ 340 / урок — 3 місяці', '₴ 300 / урок — повний рівень'],
-                  cta: 'Записатись',
-                },
-                {
-                  emoji: '👫',
-                  title: 'Парний',
-                  highlight: true,
-                  price: '₴ 220',
-                  per: 'за урок / особа',
-                  packages: ['Вдвічі економніше за індивідуальний', 'Групи підбираємо ми або приводьте друга', 'Гнучкий розклад'],
-                  cta: 'Записатись',
-                },
-                {
-                  emoji: '👥',
-                  title: 'Груповий',
-                  highlight: false,
-                  price: '₴ 150',
-                  per: 'за урок / особа',
-                  packages: ['До 6–8 учнів одного рівня', 'Фіксований розклад', 'Фокус на розмовній практиці'],
-                  cta: 'Записатись',
-                },
-                {
-                  emoji: '☕',
-                  title: 'Розмовний клуб',
-                  highlight: false,
-                  price: '₴ 120',
-                  per: 'за заняття',
-                  packages: ['Пакет 4 заняття — ₴ 420', 'Пакет 8 занять — ₴ 800', 'Різні теми щотижня'],
-                  cta: 'Спробувати',
-                },
-              ].map(plan => (
-                <div
-                  key={plan.title}
-                  className={[
-                    'rounded-2xl border-2 flex flex-col gap-5 overflow-hidden',
-                    plan.highlight
-                      ? 'border-primary bg-gradient-to-b from-primary/5 to-white'
-                      : 'border-border bg-white',
-                  ].join(' ')}
-                >
-                  {plan.highlight && (
-                    <div className="bg-primary text-white text-xs font-black text-center py-2 tracking-widest uppercase">
-                      Найпопулярніше
-                    </div>
-                  )}
-                  <div className={`flex flex-col gap-5 p-6 ${plan.highlight ? 'pt-4' : ''}`}>
-                    <div className="flex items-center gap-2.5">
-                      <span className="text-2xl">{plan.emoji}</span>
-                      <h3 className="font-black text-ink">{plan.title}</h3>
-                    </div>
-                    <div>
-                      <p className="text-3xl font-black text-ink leading-none">{plan.price}</p>
-                      <p className="text-xs text-ink-muted mt-1">{plan.per}</p>
-                    </div>
-                    <ul className="flex flex-col gap-2.5 flex-1">
-                      {plan.packages.map(pkg => (
-                        <li key={pkg} className="flex items-start gap-2 text-xs text-ink-muted leading-snug">
-                          <span className="text-primary font-bold mt-0.5 flex-shrink-0">✓</span>
-                          {pkg}
-                        </li>
-                      ))}
-                    </ul>
-                    <Link
-                      href="#"
-                      className={[
-                        'block text-center py-3 rounded-xl font-black text-sm transition-colors',
-                        plan.highlight
-                          ? 'bg-primary hover:bg-primary-dark text-white'
-                          : 'border-2 border-primary text-primary hover:bg-primary/5',
-                      ].join(' ')}
-                    >
-                      {plan.cta} →
-                    </Link>
-                  </div>
+              {/* Право — вчителі */}
+              <div className="flex-1 flex flex-col gap-6">
+                <div>
+                  <p className="type-label text-primary mb-3">Наші вчителі</p>
+                  <h2 className="type-h1 text-ink">50+ педагогів</h2>
+                  <p className="text-ink-muted text-sm leading-relaxed mt-2 max-w-xs">
+                    Кожен проходить відбір і пробні уроки перед тим, як потрапити до команди.
+                  </p>
                 </div>
-              ))}
-            </div>
-
-            <p className="text-center text-sm text-ink-muted">
-              Маєте питання щодо цін?{' '}
-              <span className="text-primary font-bold cursor-pointer hover:underline">
-                Напишіть нам — відповімо за 10 хвилин →
-              </span>
-            </p>
-          </div>
-        </section>
-
-        {/* ── Вчителі + рівні ── */}
-        <section className="py-20 px-5 bg-surface-muted" aria-labelledby="teachers-heading">
-          <div className="max-w-5xl mx-auto">
-            <div className="mb-12">
-              <p className="type-label text-primary mb-3">Вчителі</p>
-              <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
-                <h2 id="teachers-heading" className="type-h1 text-ink">
-                  50+ сертифікованих вчителів —<br className="hidden md:block" /> для кожного рівня свій
-                </h2>
-                <p className="text-ink-muted text-sm max-w-xs">
-                  Від першого слова до B2. Підбираємо вчителя під рівень, вік і характер дитини.
-                </p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-              {[
-                {
-                  photo: 'https://randomuser.me/api/portraits/women/44.jpg',
-                  name: 'Olga K.',
-                  level: 'A0–A1',
-                  age: '4–8 років',
-                  specialty: 'Пісні, малюнки, тварини. Перші слова через гру.',
-                  badge: 'bg-danger/10 text-danger-dark',
-                  rating: '4.9',
-                },
-                {
-                  photo: 'https://randomuser.me/api/portraits/women/65.jpg',
-                  name: 'Maria S.',
-                  level: 'A1–A2',
-                  age: '7–11 років',
-                  specialty: 'Розмовна англійська, шкільна програма, хобі.',
-                  badge: 'bg-accent/10 text-accent-dark',
-                  rating: '5.0',
-                },
-                {
-                  photo: 'https://randomuser.me/api/portraits/men/32.jpg',
-                  name: 'Dmytro P.',
-                  level: 'B1',
-                  age: '11–15 років',
-                  specialty: 'Підготовка до іспитів, граматика, вимова.',
-                  badge: 'bg-success/10 text-success-dark',
-                  rating: '4.8',
-                },
-                {
-                  photo: 'https://randomuser.me/api/portraits/women/23.jpg',
-                  name: 'Anna V.',
-                  level: 'B2+',
-                  age: '14+ / дорослі',
-                  specialty: 'Business English, сертифікати, вільна розмова.',
-                  badge: 'bg-purple/10 text-purple-dark',
-                  rating: '4.9',
-                },
-              ].map(t => (
-                <div key={t.name} className="bg-white rounded-2xl p-5 flex flex-col gap-4 border border-border">
-                  <div className="flex items-center justify-between">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={t.photo}
-                      alt={t.name}
-                      className="w-12 h-12 rounded-xl object-cover"
-                    />
-                    <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${t.badge}`}>{t.level}</span>
-                  </div>
-                  <div>
-                    <p className="font-black text-ink">{t.name}</p>
-                    <p className="text-xs text-ink-muted mt-0.5">{t.age} · ★ {t.rating}</p>
-                  </div>
-                  <p className="text-sm text-ink-muted leading-relaxed flex-1">{t.specialty}</p>
-                </div>
-              ))}
-            </div>
-
-            <p className="text-center text-sm text-ink-muted mt-8">
-              Не знаєте, з якого рівня почати?{' '}
-              <span className="text-primary font-bold cursor-pointer hover:underline">
-                Пройдіть безкоштовну діагностику →
-              </span>
-            </p>
-          </div>
-        </section>
-
-        {/* ── Відгуки батьків ── */}
-        <section id="reviews" className="py-20 px-5 bg-white">
-          <div className="max-w-5xl mx-auto flex flex-col gap-12">
-            <div>
-              <p className="type-label text-primary mb-3">Відгуки</p>
-              <h2 className="type-h1 text-ink">
-                Батьки кажуть про нас
-              </h2>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {[
-                {
-                  name: 'Олена Коваль',
-                  child: 'мама Аліси, 6 років',
-                  photo: 'https://randomuser.me/api/portraits/women/12.jpg',
-                  rating: 5,
-                  text: 'Аліса почала вчитися у Olga K. у вересні. Вже через 2 місяці сама попросила «ще один урок». Вчителька чудово знаходить підхід до дітей — через ігри, пісні та малюнки. Рекомендую всім батькам малюків!',
-                },
-                {
-                  name: 'Дмитро Бондаренко',
-                  child: 'тато Миколи, 10 років',
-                  photo: 'https://randomuser.me/api/portraits/men/22.jpg',
-                  rating: 5,
-                  text: 'Микола вже рік займається з Maria S. Результат — здав шкільний тест на 94 бали з 100. Але головне — він перестав боятись говорити англійською. Тепер самостійно дивиться YouTube-блогерів в оригіналі.',
-                },
-                {
-                  name: 'Ірина Захаренко',
-                  child: 'мама Катерини, 14 років',
-                  photo: 'https://randomuser.me/api/portraits/women/45.jpg',
-                  rating: 5,
-                  text: 'Катерина готується до складання IELTS. Dmytro P. — неймовірно терплячий і системний. Він пояснює не просто "що", а "чому" — дочка тепер розуміє граматику, а не просто зубрить правила. Дуже задоволені!',
-                },
-              ].map(r => (
-                <div key={r.name} className="bg-surface-muted rounded-2xl p-6 flex flex-col gap-4 border border-border">
-                  <div className="flex items-center gap-1">
-                    {Array.from({ length: r.rating }).map((_, i) => (
-                      <span key={i} className="text-accent text-sm">★</span>
+                <div className="flex items-center gap-3">
+                  <div className="flex">
+                    {[{ id: 44, gender: 'women' }, { id: 65, gender: 'women' }, { id: 32, gender: 'men' }, { id: 23, gender: 'women' }, { id: 12, gender: 'men' }, { id: 55, gender: 'men' }].map((a, i) => (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img key={a.id} src={`https://randomuser.me/api/portraits/${a.gender}/${a.id}.jpg`} alt="" aria-hidden
+                        className={`w-10 h-10 rounded-full border-2 border-surface-muted object-cover${i > 0 ? ' -ml-2.5' : ''}`} />
                     ))}
                   </div>
-                  <p className="text-sm text-ink leading-relaxed flex-1">&ldquo;{r.text}&rdquo;</p>
-                  <div className="flex items-center gap-3 pt-2 border-t border-border">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={r.photo} alt={r.name} className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
-                    <div>
-                      <p className="text-sm font-bold text-ink">{r.name}</p>
-                      <p className="text-xs text-ink-muted">{r.child}</p>
-                    </div>
-                  </div>
+                  <p className="text-sm text-ink-muted">і ще 44+</p>
                 </div>
-              ))}
+                <ul className="flex flex-col gap-3">
+                  {[
+                    { icon: '🎓', text: 'CELTA / TEFL сертифікація або вища педагогічна освіта' },
+                    { icon: '⏱', text: 'Від 3 до 15 років досвіду викладання дітям' },
+                    { icon: '🎯', text: 'Підбираємо під характер і темп дитини, а не за розкладом' },
+                    { icon: '🔄', text: 'Безкоштовна заміна, якщо вчитель не підійшов — без питань' },
+                  ].map(item => (
+                    <li key={item.text} className="flex items-start gap-3">
+                      <span className="text-base leading-none mt-0.5">{item.icon}</span>
+                      <p className="text-sm text-ink-muted leading-snug">{item.text}</p>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
             </div>
           </div>
+        </section>
+
+        {/* ── Відгуки ── */}
+        <section id="reviews" className={`py-20 bg-surface ${G}`}>
+          <div className={`${W}`}><ReviewsSlider /></div>
         </section>
 
         {/* ── Фінальний CTA ── */}
-        <section className="relative overflow-hidden bg-gradient-to-br from-primary to-primary-dark py-24 px-5">
-          <div className="absolute -top-24 -right-24 w-80 h-80 rounded-full bg-white/10 blur-3xl pointer-events-none" aria-hidden />
-          <div className="absolute -bottom-24 -left-24 w-80 h-80 rounded-full bg-white/10 blur-3xl pointer-events-none" aria-hidden />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-white/5 blur-3xl pointer-events-none" aria-hidden />
-
-          <div className="relative max-w-xl mx-auto flex flex-col items-center text-center gap-6">
-            <div className="text-5xl">🦉</div>
-
-            <h2 className="type-h1 text-white">
-              Спробуйте перший урок безкоштовно
-            </h2>
-
-            <p className="text-white/75 text-lg leading-relaxed">
-              Зателефонуємо у зручний для вас час і підберемо вчителя для вашої дитини.
-            </p>
-
-            <div className="w-fit mt-2">
-              <QuizWidget variant="white" />
+        <section className={`relative overflow-hidden bg-gradient-to-br from-primary to-primary-dark py-24 ${G}`}>
+          <div aria-hidden className="pointer-events-none absolute inset-0">
+            <div className="absolute -top-40 -right-40 w-[520px] h-[520px] rounded-full bg-white/10 blur-3xl" />
+            <div className="absolute -bottom-40 -left-40 w-[520px] h-[520px] rounded-full bg-white/10 blur-3xl" />
+          </div>
+          <div className={`${W} relative flex flex-col items-center text-center gap-8`}>
+            <div>
+              <p className="type-label text-white/60 tracking-widest mb-4">Почніть сьогодні</p>
+              <h2 className="type-h1 text-white max-w-2xl">Спробуйте перший урок безкоштовно</h2>
+              <p className="text-white/75 text-lg leading-relaxed max-w-md mx-auto mt-4">
+                Зателефонуємо у зручний для вас час і підберемо вчителя для вашої дитини.
+              </p>
             </div>
 
-            <p className="text-white/50 text-sm">
-              Без зобов&rsquo;язань · Скасування в один клік
-            </p>
+            <div className="w-fit"><QuizWidget variant="white" /></div>
           </div>
         </section>
 
       </main>
 
       {/* ── Footer ── */}
-      <footer className="bg-ink text-white py-12 px-5">
-        <div className="max-w-5xl mx-auto flex flex-col md:flex-row gap-10 justify-between">
+      <footer className={`bg-ink py-12 ${G}`}>
+        <div className={`${W} flex flex-col md:flex-row gap-10 justify-between`}>
           <div>
             <div className="flex items-center gap-2 mb-3">
               <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
@@ -699,9 +324,9 @@ export default function HomePage() {
                   <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
                 </svg>
               </div>
-              <span className="font-black">English<span className="text-primary">Best</span></span>
+              <span className="font-black text-white">English<span className="text-primary-light">Best</span></span>
             </div>
-            <p className="text-white/40 text-sm max-w-xs leading-relaxed">
+            <p className="text-white/30 text-sm max-w-xs leading-relaxed">
               Онлайн-школа англійської для дітей та підлітків з 2019 року.
             </p>
           </div>
@@ -712,15 +337,11 @@ export default function HomePage() {
               { title: 'Підтримка', links: ['Контакти', 'FAQ', 'Умови'] },
             ].map(col => (
               <div key={col.title}>
-                <p className="type-label text-white/40 mb-4">
-                  {col.title}
-                </p>
+                <p className="type-label text-white/30 mb-4">{col.title}</p>
                 <ul className="flex flex-col gap-2.5">
                   {col.links.map(link => (
                     <li key={link}>
-                      <Link href="#" className="text-sm text-white/50 hover:text-white transition-colors">
-                        {link}
-                      </Link>
+                      <Link href="#" className="text-sm text-white/40 hover:text-white transition-colors">{link}</Link>
                     </li>
                   ))}
                 </ul>
@@ -728,13 +349,11 @@ export default function HomePage() {
             ))}
           </div>
         </div>
-        <div className="max-w-5xl mx-auto border-t border-white/10 mt-10 pt-6 flex items-center justify-between">
-          <p className="text-white/30 text-xs">© 2026 EnglishBest</p>
+        <div className={`${W} border-t border-white/10 mt-10 pt-6 flex items-center justify-between`}>
+          <p className="text-white/25 text-xs">© 2026 EnglishBest</p>
           <div className="flex gap-4">
             {['Instagram', 'Facebook', 'TikTok', 'Threads'].map(s => (
-              <Link key={s} href="#" className="text-white/30 hover:text-white text-xs transition-colors">
-                {s}
-              </Link>
+              <Link key={s} href="#" className="text-white/25 hover:text-white text-xs transition-colors">{s}</Link>
             ))}
           </div>
         </div>

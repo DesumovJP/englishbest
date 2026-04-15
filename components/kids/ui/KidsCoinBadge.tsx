@@ -22,7 +22,7 @@ export function KidsCoinBadge({ amount, size = "md" }: KidsCoinBadgeProps) {
   const s = SIZE[size];
   return (
     <div className={`flex items-center gap-2 bg-coin-bg border-2 border-coin rounded-2xl ${s.pad}`}>
-      <span className={`${s.emoji} leading-none`}>🪙</span>
+      <img src="/coin.png" alt="coin" className="leading-none" style={{ width: size === "sm" ? 18 : size === "md" ? 22 : 26, height: size === "sm" ? 18 : size === "md" ? 22 : 26, objectFit: "contain" }} />
       <span className={`${s.text} text-coin`}>{amount}</span>
     </div>
   );

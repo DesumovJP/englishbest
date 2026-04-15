@@ -1,101 +1,103 @@
-'use client';
-import Link from 'next/link';
-import { mockKidsUser } from '@/mocks/user';
+"use client";
+
+import Link from "next/link";
+import { useKidsState } from "@/lib/use-kids-store";
 
 const ACHIEVEMENTS = [
-  { id: 'first-lesson',    emoji: '🎓', title: 'Перший урок',       desc: 'Заверши свій перший урок',          xp: 100, earned: true  },
-  { id: 'streak-3',        emoji: '🔥', title: 'Стрік 3 дні',       desc: 'Займайся 3 дні підряд',             xp: 50,  earned: true  },
-  { id: 'streak-7',        emoji: '🔥', title: 'Стрік 7 днів',      desc: 'Займайся 7 днів підряд',            xp: 150, earned: true  },
-  { id: 'streak-30',       emoji: '🏅', title: 'Стрік місяць',      desc: 'Займайся 30 днів підряд',           xp: 500, earned: false },
-  { id: 'vocab-50',        emoji: '📚', title: '50 слів',           desc: 'Вивчи 50 нових слів',               xp: 200, earned: true  },
-  { id: 'vocab-200',       emoji: '📖', title: '200 слів',          desc: 'Вивчи 200 нових слів',              xp: 500, earned: false },
-  { id: 'quiz-perfect',    emoji: '⚡', title: 'Ідеальний тест',    desc: 'Пройди міні-тест без помилок',      xp: 75,  earned: true  },
-  { id: 'room-decorated',  emoji: '🏠', title: 'Декоратор',         desc: 'Постав 5 предметів у кімнаті',      xp: 100, earned: false },
-  { id: 'coins-500',       emoji: '💰', title: 'Скарбничка',        desc: 'Збери 500 монет',                   xp: 50,  earned: false },
-  { id: 'lessons-10',      emoji: '🌟', title: '10 уроків',         desc: 'Заверши 10 уроків',                 xp: 300, earned: false },
+  { id: "first-lesson",   emoji: "🎓", titleEn: "First Lesson",      desc: "Finish your very first lesson",    xp: 100, earned: true  },
+  { id: "streak-3",       emoji: "🔥", titleEn: "Hot Streak",        desc: "Learn 3 days in a row",            xp: 50,  earned: true  },
+  { id: "streak-7",       emoji: "🔥", titleEn: "On Fire!",          desc: "Learn 7 days in a row",            xp: 150, earned: true  },
+  { id: "streak-30",      emoji: "🏅", titleEn: "Iron Will",         desc: "Learn 30 days in a row",           xp: 500, earned: false },
+  { id: "vocab-50",       emoji: "📚", titleEn: "Word Collector",    desc: "Learn 50 new words",               xp: 200, earned: true  },
+  { id: "vocab-200",      emoji: "📖", titleEn: "Bookworm",          desc: "Learn 200 new words",              xp: 500, earned: false },
+  { id: "quiz-perfect",   emoji: "⚡", titleEn: "Perfect Score!",    desc: "Ace a quiz with no mistakes",       xp: 75,  earned: true  },
+  { id: "room-decorated", emoji: "🏠", titleEn: "Interior Designer", desc: "Place 5 items in your room",       xp: 100, earned: false },
+  { id: "coins-500",      emoji: "💰", titleEn: "Piggy Bank",        desc: "Collect 500 coins",                xp: 50,  earned: false },
+  { id: "lessons-10",     emoji: "🌟", titleEn: "Ten Down!",         desc: "Complete 10 lessons",              xp: 300, earned: false },
 ];
 
 export default function AchievementsPage() {
-  const user = mockKidsUser;
+  const { state } = useKidsState();
   const earned = ACHIEVEMENTS.filter(a => a.earned);
-  const locked = ACHIEVEMENTS.filter(a => !a.earned);
 
   return (
-    <div className="min-h-screen bg-surface-muted">
-      {/* Header */}
-      <header className="flex items-center justify-between px-5 py-3 bg-surface border-b border-border flex-shrink-0">
-        <Link
-          href="/kids/dashboard"
-          className="flex items-center gap-2 text-ink-muted hover:text-ink transition-colors"
-        >
-          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-            <path d="M19 12H5M12 5l-7 7 7 7"/>
-          </svg>
-          <span className="text-sm font-semibold hidden sm:inline">Назад</span>
-        </Link>
-        <h1 className="font-black text-ink text-base">Нагороди 🏆</h1>
-        <div className="flex items-center gap-1.5 bg-coin/10 rounded-xl px-3 py-1.5">
-          <span className="text-base">🪙</span>
-          <span className="font-black text-sm text-ink">{user.coins}</span>
+    <div className="flex flex-col h-[100dvh] bg-[#F9FAFB] overflow-hidden">
+
+      {/* ── TOP BAR ─────────────────────────────────────────────── */}
+      <div className="flex items-center justify-between px-4 py-3 bg-white"
+        style={{ borderBottom: "2px solid #F3F4F6", paddingTop: "env(safe-area-inset-top, 12px)" }}>
+        <Link href="/kids/dashboard"
+          className="w-10 h-10 rounded-full flex items-center justify-center font-black text-lg active:scale-90 transition-transform"
+          style={{ background: "#F3F4F6", color: "#374151" }}>←</Link>
+        <span className="font-black" style={{ fontSize: 17, color: "#1A1A2E" }}>Rewards 🏆</span>
+        <div className="flex items-center gap-1 rounded-full px-3 py-1.5"
+          style={{ background: "#FFFBEB", border: "2px solid #FDE68A" }}>
+          <img src="/xp.png" alt="XP" style={{ width: 18, height: 18, objectFit: "contain" }} />
+          <span className="font-black" style={{ fontSize: 13, color: "#92400E" }}>{state.xp ?? 0}</span>
         </div>
-      </header>
+      </div>
 
-      <div className="px-4 py-5 max-w-2xl mx-auto flex flex-col gap-6">
+      {/* ── CONTENT ─────────────────────────────────────────────── */}
+      <div className="flex-1 overflow-y-auto px-4 py-4">
 
-        {/* Progress summary */}
-        <div className="bg-gradient-to-br from-primary to-primary-dark rounded-3xl p-5 flex items-center gap-4 text-white">
-          <div className="text-4xl">🏆</div>
-          <div>
-            <p className="font-black text-xl">{earned.length} / {ACHIEVEMENTS.length}</p>
-            <p className="text-white/70 text-sm">нагород отримано</p>
-          </div>
-          <div className="ml-auto text-right">
-            <p className="font-black text-lg text-accent">+{earned.reduce((s, a) => s + a.xp, 0)} XP</p>
-            <p className="text-white/60 text-xs">зароблено</p>
-          </div>
+        {/* Mini stats */}
+        <div className="grid grid-cols-3 gap-3 mb-5">
+          {[
+            { icon: "🏆", val: earned.length, label: "Earned" },
+            { icon: "🔥", val: state.streak ?? 0, label: "Streak" },
+            { icon: "xp", val: state.xp ?? 0,     label: "XP" },
+          ].map(s => (
+            <div key={s.label} className="flex flex-col items-center rounded-2xl py-3"
+              style={{ background: "white", border: "2px solid #F3F4F6", boxShadow: "0 3px 0 #E5E7EB" }}>
+              {s.icon === "xp"
+                ? <img src="/xp.png" alt="XP" style={{ width: 22, height: 22, objectFit: "contain" }} />
+                : <span style={{ fontSize: 22 }}>{s.icon}</span>
+              }
+              <p className="font-black" style={{ fontSize: 18, color: "#1A1A2E" }}>{s.val}</p>
+              <p className="font-bold" style={{ fontSize: 10, color: "#9CA3AF" }}>{s.label}</p>
+            </div>
+          ))}
         </div>
 
-        {/* Earned */}
-        <section>
-          <p className="type-label text-ink-muted mb-3">Отримані ({earned.length})</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {earned.map(a => (
-              <div key={a.id} className="bg-white rounded-2xl border-2 border-success/30 p-4 flex items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-success/10 flex items-center justify-center text-2xl flex-shrink-0">
-                  {a.emoji}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-black text-ink text-sm">{a.title}</p>
-                  <p className="text-xs text-ink-muted leading-relaxed line-clamp-2">{a.desc}</p>
-                </div>
-                <span className="text-xs font-black text-success-dark bg-success/10 px-2 py-1 rounded-full flex-shrink-0">
+        {/* Achievement list */}
+        <div className="flex flex-col gap-2 pb-24">
+          {ACHIEVEMENTS.map(a => (
+            <div key={a.id}
+              className="flex items-center gap-3 rounded-2xl px-4 py-3"
+              style={{
+                background: "white",
+                border: `2px solid ${a.earned ? "#BBF7D0" : "#F3F4F6"}`,
+                boxShadow: `0 3px 0 ${a.earned ? "#86EFAC" : "#E5E7EB"}`,
+                opacity: a.earned ? 1 : 0.55,
+              }}>
+              {/* Icon */}
+              <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0"
+                style={{ background: a.earned ? "#F0FDF4" : "#F9FAFB", filter: a.earned ? "none" : "grayscale(1)" }}>
+                {a.earned ? a.emoji : "🔒"}
+              </div>
+
+              {/* Info */}
+              <div className="flex-1 min-w-0">
+                <p className="font-black leading-tight" style={{ fontSize: 14, color: a.earned ? "#1A1A2E" : "#9CA3AF" }}>
+                  {a.titleEn}
+                </p>
+                <p className="font-bold leading-none mt-0.5" style={{ fontSize: 11, color: "#9CA3AF" }}>{a.desc}</p>
+              </div>
+
+              {/* XP badge */}
+              <div className="flex-shrink-0 rounded-xl px-2.5 py-1 flex items-center gap-1"
+                style={{
+                  background: a.earned ? "#F0FDF4" : "#F9FAFB",
+                  border: `2px solid ${a.earned ? "#BBF7D0" : "#E5E7EB"}`,
+                }}>
+                <span className="font-black" style={{ fontSize: 12, color: a.earned ? "#16A34A" : "#9CA3AF" }}>
                   +{a.xp}
                 </span>
+                <img src="/xp.png" alt="XP" style={{ width: 14, height: 14, objectFit: "contain", opacity: a.earned ? 1 : 0.5 }} />
               </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Locked */}
-        <section>
-          <p className="type-label text-ink-muted mb-3">Заблоковані ({locked.length})</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {locked.map(a => (
-              <div key={a.id} className="bg-white rounded-2xl border border-border p-4 flex items-center gap-3 opacity-60">
-                <div className="w-12 h-12 rounded-2xl bg-surface-muted flex items-center justify-center text-2xl flex-shrink-0 grayscale">
-                  {a.emoji}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-black text-ink text-sm">{a.title}</p>
-                  <p className="text-xs text-ink-muted leading-relaxed line-clamp-2">{a.desc}</p>
-                </div>
-                <span className="text-xs font-bold text-ink-muted bg-surface-muted px-2 py-1 rounded-full flex-shrink-0">
-                  🔒
-                </span>
-              </div>
-            ))}
-          </div>
-        </section>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

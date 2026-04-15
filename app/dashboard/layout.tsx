@@ -1,6 +1,18 @@
+'use client';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Sidebar } from '@/components/molecules/Sidebar';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
+
+  useEffect(() => {
+    const role = localStorage.getItem('demo_role');
+    if (role === 'student') {
+      router.replace('/kids/dashboard');
+    }
+  }, [router]);
+
   return (
     <div className="flex min-h-screen bg-surface-muted items-start">
       <Sidebar />

@@ -3,58 +3,43 @@
 import Link from "next/link";
 import { mockKidsUser } from "@/mocks/user";
 
-const features = [
-  { icon: "🔥", text: "Щоденні уроки зі стріком" },
-  { icon: "🎮", text: "Ігровий простір з персонажем" },
-  { icon: "⭐", text: "Монетки за кожне досягнення" },
-  { icon: "👩‍🏫", text: "Живі уроки з вчителем" },
-];
-
 export default function WelcomePage() {
   return (
-    <div className="min-h-screen bg-surface flex flex-col items-center justify-center px-5 py-16 text-center">
+    <div className="min-h-screen bg-gradient-to-b from-surface via-surface to-primary/5 flex flex-col items-center justify-center px-5 py-16">
+      <div className="w-full max-w-md flex flex-col items-center text-center gap-6">
 
-      {/* Owl mascot */}
-      <div className="animate-bounce-in mb-6">
-        <div className="text-8xl animate-float">🦉</div>
-      </div>
+        {/* Fox hero */}
+        <div className="relative w-44 h-44 flex items-center justify-center animate-fade-in-up">
+          <div className="absolute inset-4 rounded-full bg-primary/20 blur-2xl" aria-hidden />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/characters/fox/hi.png"
+            alt="Лисеня вітається"
+            className="relative w-40 h-40 object-contain animate-float drop-shadow-[0_10px_24px_rgba(0,0,0,0.18)]"
+          />
+        </div>
 
-      {/* Greeting */}
-      <div className="animate-fade-in-up anim-delay-150">
-        <h1 className="text-4xl font-black text-ink mb-2">
-          Привіт, {mockKidsUser.name}! 👋
-        </h1>
-        <p className="text-2xl font-black text-primary mb-6">
-          Ласкаво просимо до EnglishBest!
-        </p>
-        <p className="text-ink-muted text-base max-w-sm mx-auto leading-relaxed mb-10">
-          Тут ти вивчатимеш англійську через ігри, уроки та власного персонажа-компаньйона.
-        </p>
-      </div>
-
-      {/* Feature pills */}
-      <div className="grid grid-cols-2 gap-3 max-w-xs w-full mb-10 animate-fade-in-up anim-delay-300">
-        {features.map((f) => (
+        {/* Speech bubble greeting */}
+        <div className="relative bg-white rounded-3xl px-6 py-5 shadow-card-md border border-border animate-fade-in-up anim-delay-150 w-full">
           <div
-            key={f.text}
-            className="flex items-center gap-2 bg-surface-muted rounded-2xl px-4 py-3 text-left"
-          >
-            <span className="text-xl flex-shrink-0">{f.icon}</span>
-            <span className="text-xs font-semibold text-ink leading-tight">{f.text}</span>
-          </div>
-        ))}
-      </div>
+            aria-hidden
+            className="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white border-l border-t border-border rotate-45"
+          />
+          <p className="text-ink-muted type-label mb-1">Привіт!</p>
+          <h1 className="type-h1 text-ink">Я — Лисеня</h1>
+          <p className="text-sm text-ink-muted mt-2 leading-relaxed">
+            Радий бачити тебе, <span className="font-black text-ink">{mockKidsUser.name}</span>! Зараз навчимося англійської разом — через ігри та живі уроки.
+          </p>
+        </div>
 
-      {/* CTA */}
-      <div className="animate-fade-in-up anim-delay-450">
+        {/* CTA */}
         <Link
           href="/onboarding"
-          className="inline-flex items-center gap-2 bg-primary hover:bg-primary-dark text-white font-black text-base px-10 py-4 rounded-2xl transition-colors"
+          className="w-full h-14 rounded-2xl bg-primary shadow-press-primary text-white font-black text-base flex items-center justify-center active:translate-y-1 active:shadow-none transition-transform animate-fade-in-up anim-delay-300"
         >
           Розпочати →
         </Link>
       </div>
-
     </div>
   );
 }

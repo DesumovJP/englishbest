@@ -4,11 +4,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const STEPS = [
-  { href: "/login",      label: "Логін",        emoji: "🔑" },
+  { href: "/login",      label: "Логін",         emoji: "🔑" },
   { href: "/welcome",    label: "Вітання",       emoji: "👋" },
   { href: "/onboarding", label: "Вікова група",  emoji: "🧒" },
   { href: "/placement",  label: "Тест рівня",    emoji: "📝" },
-  { href: "/companion",  label: "Персонаж",      emoji: "🦊" },
 ];
 
 export default function DemoBar() {
@@ -46,7 +45,7 @@ export default function DemoBar() {
       </div>
       <div className="ml-auto flex-shrink-0">
         <Link
-          href="/dashboard"
+          href="/kids/dashboard"
           className="text-white/50 hover:text-white transition-colors whitespace-nowrap"
         >
           ← Дашборд

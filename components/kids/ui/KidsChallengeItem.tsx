@@ -71,12 +71,11 @@ export function KidsChallengeItem({
 
       {/* XP badge */}
       <div
-        className="rounded-full px-3 py-1"
+        className="rounded-full px-3 py-1 flex items-center gap-1"
         style={{ background: `color-mix(in srgb, ${color} 15%, transparent)` }}
       >
-        <span className="text-sm font-black" style={{ color: colorDark }}>
-          +{xp} XP
-        </span>
+        <span className="text-sm font-black" style={{ color: colorDark }}>+{xp}</span>
+        <img src="/xp.png" alt="XP" style={{ width: 16, height: 16, objectFit: "contain" }} />
       </div>
     </div>
   );

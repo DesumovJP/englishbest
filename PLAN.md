@@ -100,3 +100,135 @@
 - [x] 10.10 Фінальний CTA — зелений банер
 - [x] 10.11 Footer — 4 колонки, соцмережі
 - [ ] 10.12 Інші сторінки — переклад на українську
+
+---
+
+### Крок 11 — Типи акаунтів + Demo login
+- [x] 11.1 Login page: 4 картки типів акаунту (Student, Teacher, Admin, Parent) + Demo кнопки без пароля
+- [x] 11.2 Sidebar: прибрати inline role-switcher, читати роль з localStorage('demo_role')
+- [x] 11.3 Kids dashboard: додати 📅 calendar HUD кнопку + CalendarModal (game-style)
+
+**Порядок:** 11.1 → 11.2 → 11.3
+
+---
+
+### Крок 12 — Kids Zone: Library list + Dashboard game HUD
+
+#### 12.1 Library list view + Detail modal (`school/page.tsx`)
+- [x] Replace `LibCard` grid → `LibListRow` horizontal list (emoji tile + title + action)
+- [x] Group by type headers when tab === 'all'
+- [x] Add `LibDetailModal` bottom sheet (large emoji, description, level/price, action btn)
+
+#### 12.2 Dashboard left column HUD (`dashboard/page.tsx`)
+- [x] Calendar widget card: date display + event dots → opens CalendarModal
+- [x] Streak card: flame + days + animated ring
+- [x] Loot box quick-buy: mystery-box img + coin price → opens LootBoxModal
+
+#### 12.3 Dashboard right column refactor (`dashboard/page.tsx`)
+- [x] Continue lesson card: emoji + title + slim progress bar + PLAY button (3D press)
+- [x] Daily challenges card: 3 tasks list + mystery box reward chip at bottom
+
+**Порядок:** 12.1 → 12.2 → 12.3
+
+#### 12.4 Carousel center-focus effect (`school/page.tsx`)
+- [x] CSS scroll-snap (x mandatory) + padding trick so first/last cards reach center
+- [x] Per-card scale via scroll listener + RAF: off-center 0.80, center 1.05
+- [x] Per-card opacity: off-center 0.52, center 1.0
+- [x] transition: transform 0.12s + opacity 0.12s for smooth real-time scaling
+- [x] Auto-scroll to current still uses getBoundingClientRect (works with new layout)
+
+#### 12.5 Library: proper center modal + bigger child-friendly list rows
+- [x] Replace bottom-sheet LibDetailModal with a true centered overlay modal
+- [x] LibListRow: taller rows (min 80px), bigger emoji tile (62px), larger text (15px title)
+- [x] Keep shop-matching style (accent-tinted borders, rounded cards)
+
+#### 12.6 Remove Rewards footer tab + coins page
+- [x] KidsFooter: 3 tabs only — Home, School, Shop
+- [x] coins/page.tsx left in place but unlinked from footer
+
+#### 12.7 Replace XP text with `/public/xp.png` image everywhere in kids zone
+- [x] school/page.tsx — lesson card XP icon
+- [x] lessons/page.tsx — lesson card XP icon
+- [x] dashboard/page.tsx — CONTINUE card "+N" + xp.png
+- [x] components/lesson/LessonProgress.tsx — progress bar XP badge
+- [x] components/lesson/LessonSuccess.tsx — success screen XP display
+- [x] components/kids/ui/KidsChallengeItem.tsx — challenge XP badge
+- [x] components/kids/ui/KidsStatBar.tsx — XP stat
+- [x] achievements/page.tsx — header, mini-stat grid, per-achievement badge
+
+**Порядок:** 12.4 → 12.5 → 12.6 → 12.7
+
+---
+
+### Крок 13 — Kids Zone: UI Polish Round 2
+
+#### 13.1 Library list rows — bigger & bolder
+- [x] LibListRow in `school/page.tsx`: minHeight 80px → 96px, emoji tile 62px → 72px, title font 15px → 17px
+- [x] Added bottom separator `border-b border-[#F3F4F6]` between rows for clarity
+
+#### 13.2 Calendar modal — game-style redesign
+- [x] Replaced dark-navy CalendarModal with bright white bottom-sheet modal (rounded-t-3xl)
+- [x] White card bg, streak strip in warm orange tint, calendar cells min 42px with green today
+- [x] Colored event rows with accent borders/bg, larger fonts throughout
+
+#### 13.3 Lessons carousel center-focus + bigger cards (`lessons/page.tsx`)
+- [x] Added `cardRefs`, `scales`, `calcScales`, RAF scroll listener (same as `school/page.tsx`)
+- [x] Added `scrollSnapType: 'x mandatory'` + padding trick on scroll container
+- [x] Per-card: `scrollSnapAlign: center`, scale 0.80→1.05, opacity 0.52→1.0
+- [x] Increased card width: `clamp(180px, 42vw, 250px)`
+- [x] Auto-scroll uses getBoundingClientRect approach
+
+#### 13.4 Continue button → direct lesson link (`dashboard/page.tsx`)
+- [x] Added `slug: 'food-listening'` to LESSON constant
+- [x] ContinueCard href: `/courses/english-kids-starter/lessons/${LESSON.slug}`
+
+#### 13.5 Shop tabs visual consistency (`shop/page.tsx`)
+- [x] Backgrounds tab: warm green info card + clean grid (no plain description text)
+- [x] Boxes tab: purple info card + clean grid + tip pill at bottom
+- [x] My Character tab: purple section label header to visually separate from other tabs
+
+#### 13.6 Character + speech bubble animation fix (`dashboard/page.tsx`)
+- [x] Bubble + CharacterAvatar wrapped in single `animate-bounce-in` container
+- [x] Both elements bounce together when tapped
+- [x] Re-enabled `animate` on CharacterAvatar (idle float animation)
+
+#### 13.7 LessonCharacter speech bubble unified style + bubble bounces with character
+- [x] `LessonCharacter.tsx`: wrap bubble + CharacterAvatar in single `animate-bounce-in` container
+- [x] `SpeechBubble`: rewritten to match home dashboard style (white bg, shadow, triangle pointer)
+- [x] Idle state: `animate={true}` (float animation active), correct/wrong: `animate={false}`
+- [x] `bounceKey` bumps on every emotion change — container re-mounts the animation
+
+#### 13.8 Lesson card text bigger (both carousels)
+- [x] `school/page.tsx` LessonCard: title 17→20px, type label 10.5→12px, coin/xp icons 12→14px
+- [x] `lessons/page.tsx` LessonCard: same sizes
+
+**Порядок:** 13.1 → 13.2 → 13.3 → 13.4 → 13.5 → 13.6 → 13.7 → 13.8
+
+---
+
+### Крок 14 — Library catalog redesign + Character emotions fix
+
+#### 14.1 Library catalog — повноцінний каталог електронних книг
+- [x] Замінено `LibListRow` + `LibDetailModal` на `LibCatalogCard` (великі картки, 2-col grid)
+- [x] Кожна картка: colored cover area (emoji 88px), назва, опис (2 рядки), рівень, CTA
+- [x] Клік по картці — навігація до `/kids/library/[id]` (а не модалка)
+- [x] Extracted library data → `lib/library-data.ts` (спільний файл для catalog + detail page)
+
+#### 14.2 Сторінка деталей продукту `/kids/library/[id]`
+- [x] Full-screen detail page: великий cover hero з emoji + градієнт
+- [x] Назва, UA переклад, повний опис, метадані (рівень, обсяг, тип)
+- [x] Details grid: 4 картки (рівень, тип, обсяг, доступ)
+- [x] Sticky action bar: купити / отримати / заблоковано / вже є
+- [x] Back button → повернення до бібліотеки
+
+#### 14.3 Fix: символ завжди думає (`idle → thinking`)
+- [x] `LessonCharacter.tsx`: `EMOTION_MAP.idle: 'thinking'` → `'idle'`
+- [x] Тепер idle-стан показує idle-позу замість thinking
+
+#### 14.4 Emotion gallery на сторінці персонажів
+- [x] `/kids/characters/page.tsx`: горизонтальна стрічка з 8 емоціями
+- [x] Тап на емоцію — превʼю на персонажі у главній картці
+- [x] Показуються тільки емоції, що мають PNG для поточного персонажа
+- [x] Скидається на `idle` при зміні персонажа
+
+**Порядок:** 14.3 → 14.4 → 14.1 → 14.2

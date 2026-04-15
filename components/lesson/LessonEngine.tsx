@@ -1,6 +1,7 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { LessonData } from '@/mocks/lessons/types';
+import { useKidsState } from '@/lib/use-kids-store';
 import { LessonProgress }     from './LessonProgress';
 import { LessonSuccess }      from './LessonSuccess';
 import { LessonCharacter }    from './LessonCharacter';
@@ -18,27 +19,53 @@ import { StepReading }        from './StepReading';
 interface Props {
   lesson: LessonData;
   nextLessonSlug?: string;
+  backUrl?: string;
   teacherName: string;
   teacherPhoto: string;
   callUrl: string;
 }
 
-export function LessonEngine({ lesson, nextLessonSlug, teacherName, teacherPhoto, callUrl }: Props) {
+export function LessonEngine({ lesson, nextLessonSlug, backUrl = '/dashboard/lessons', teacherName, teacherPhoto, callUrl }: Props) {
+  const { state: kidsState, patch: patchKids } = useKidsState();
   const [stepIdx,   setStepIdx]   = useState(0);
   const [mistakes,  setMistakes]  = useState(0);
+  const [earned,    setEarned]    = useState<{ xp: number; coins: number } | null>(null);
   const [done,      setDone]      = useState(false);
   const [charEmotion, setCharEmotion] = useState<CharEmotion>('idle');
+  const [stepMistakes, setStepMistakes] = useState(0);
 
   const step = lesson.steps[stepIdx];
   // Лише вправи (не теорія/медіа) рахуються для прогрес-бару
-  const NON_EXERCISE = new Set(['theory', 'image', 'video']);
+  const NON_EXERCISE = new Set<string>(['theory', 'image', 'video']);
+
+  // On exercise steps, settle character into a "thinking" pose after a short beat
+  useEffect(() => {
+    if (NON_EXERCISE.has(step.type)) return;
+    const t = setTimeout(() => {
+      setCharEmotion(prev => (prev === 'idle' ? 'thinking' : prev));
+    }, 400);
+    return () => clearTimeout(t);
+  }, [stepIdx, step.type]);
   const exerciseSteps = lesson.steps.filter(s => !NON_EXERCISE.has(s.type));
   const exerciseDone  = lesson.steps.slice(0, stepIdx).filter(s => !NON_EXERCISE.has(s.type)).length;
 
-  function next() {
+  async function next() {
     setCharEmotion('correct');
-    setTimeout(() => setCharEmotion('idle'), 1800);
+    setStepMistakes(0);
+    // After celebration, return to thinking on the next exercise step, idle on theory/media
+    setTimeout(() => {
+      const nextStep = lesson.steps[stepIdx + 1];
+      if (!nextStep) return;
+      setCharEmotion(NON_EXERCISE.has(nextStep.type) ? 'idle' : 'thinking');
+    }, 1800);
     if (stepIdx + 1 >= lesson.steps.length) {
+      const earnedXp    = Math.max(5, lesson.xp - mistakes * 2);
+      const earnedCoins = Math.ceil(earnedXp / 2);
+      setEarned({ xp: earnedXp, coins: earnedCoins });
+      await patchKids({
+        xp:    (kidsState.xp    ?? 0) + earnedXp,
+        coins: (kidsState.coins ?? 0) + earnedCoins,
+      });
       setDone(true);
     } else {
       setStepIdx(i => i + 1);
@@ -47,16 +74,24 @@ export function LessonEngine({ lesson, nextLessonSlug, teacherName, teacherPhoto
 
   function onWrong() {
     setMistakes(m => m + 1);
-    setCharEmotion('wrong');
+    setStepMistakes(n => {
+      const next = n + 1;
+      setCharEmotion(next === 1 ? 'wrong-soft' : next === 2 ? 'wrong' : 'wrong-hard');
+      return next;
+    });
+    // settle back into thinking pose after the wrong-reaction
+    setTimeout(() => setCharEmotion('thinking'), 2200);
   }
 
-  if (done) {
+  if (done && earned) {
     return (
       <LessonSuccess
-        xp={Math.max(5, lesson.xp - mistakes * 2)}
+        xp={earned.xp}
+        coinsEarned={earned.coins}
         lessonTitle={lesson.title}
         courseSlug={lesson.courseSlug}
         nextLessonSlug={nextLessonSlug}
+        backUrl={backUrl}
         teacherName={teacherName}
         teacherPhoto={teacherPhoto}
         callUrl={callUrl}

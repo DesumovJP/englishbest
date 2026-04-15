@@ -2,6 +2,8 @@
 import { useState } from 'react';
 import type { StepMultipleChoice } from '@/mocks/lessons/types';
 import { FeedbackPanel } from './FeedbackPanel';
+import { StepFrame } from './StepFrame';
+import { OptionButton, type OptionState } from './OptionButton';
 
 interface Props {
   step: StepMultipleChoice;
@@ -18,6 +20,13 @@ function randomFrom(arr: string[]) {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
+function resolveState(i: number, selected: number | null, state: State, correctIndex: number): OptionState {
+  if (selected === i) return state === 'correct' ? 'selected-correct' : state === 'wrong' ? 'selected-wrong' : 'idle';
+  if (state !== 'idle' && i === correctIndex) return 'reveal-correct';
+  if (state !== 'idle') return 'disabled';
+  return 'idle';
+}
+
 export function StepMultipleChoice({ step, onCorrect, onWrong }: Props) {
   const [selected, setSelected] = useState<number | null>(null);
   const [state, setState] = useState<State>('idle');
@@ -29,20 +38,13 @@ export function StepMultipleChoice({ step, onCorrect, onWrong }: Props) {
   function handleSelect(i: number) {
     if (state !== 'idle') return;
     setSelected(i);
-    if (i === step.correctIndex) {
-      setState('correct');
-    } else {
-      setState('wrong');
-      onWrong();
-    }
+    if (i === step.correctIndex) setState('correct');
+    else { setState('wrong'); onWrong(); }
   }
 
   function handleContinue() {
     if (state === 'correct') onCorrect();
-    else {
-      setSelected(null);
-      setState('idle');
-    }
+    else { setSelected(null); setState('idle'); }
   }
 
   const hint = state === 'wrong'
@@ -52,40 +54,25 @@ export function StepMultipleChoice({ step, onCorrect, onWrong }: Props) {
     : undefined;
 
   return (
-    <div className={"flex flex-col gap-6 w-full max-w-xl mx-auto"}>
-      <h2 className="text-xl font-black text-ink">{step.question}</h2>
-
+    <StepFrame title={step.question}>
       <ul className="flex flex-col gap-3">
         {step.options.map((opt, i) => {
-          let cls = 'border-border bg-white text-ink hover:border-primary/40 hover:bg-primary/5';
-          if (selected === i) {
-            cls = state === 'correct'
-              ? 'border-success/60 bg-success/8 text-success-dark'
-              : 'border-danger/60 bg-danger/8 text-danger-dark';
-          } else if (state !== 'idle' && i === step.correctIndex) {
-            cls = 'border-success/60 bg-success/8 text-success-dark';
-          }
-
-          const letter = String.fromCharCode(65 + i);
-
+          const optState = resolveState(i, selected, state, step.correctIndex);
+          const letter   = String.fromCharCode(65 + i);
+          const leading  = state !== 'idle' && selected === i
+            ? (state === 'correct' ? '✓' : '✕')
+            : state !== 'idle' && i === step.correctIndex
+            ? '✓'
+            : letter;
           return (
             <li key={i}>
-              <button
+              <OptionButton
+                label={opt}
+                state={optState}
                 onClick={() => handleSelect(i)}
                 disabled={state !== 'idle'}
-                className={`w-full text-left px-5 py-4 rounded-2xl border-2 font-semibold text-base transition-all ${cls} disabled:cursor-default`}
-              >
-                <span className="inline-flex items-center gap-3">
-                  <span className="w-7 h-7 rounded-full border-2 border-current flex items-center justify-center text-xs font-black flex-shrink-0">
-                    {state !== 'idle' && selected === i
-                      ? (state === 'correct' ? '✓' : '✕')
-                      : state !== 'idle' && i === step.correctIndex
-                      ? '✓'
-                      : letter}
-                  </span>
-                  {opt}
-                </span>
-              </button>
+                leading={leading}
+              />
             </li>
           );
         })}
@@ -100,6 +87,6 @@ export function StepMultipleChoice({ step, onCorrect, onWrong }: Props) {
           onContinue={handleContinue}
         />
       )}
-    </div>
+    </StepFrame>
   );
 }

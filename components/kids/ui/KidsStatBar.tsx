@@ -43,14 +43,14 @@ export function KidsStatBar({
             style={{ width: `${pct}%` }}
           />
         </div>
-        <span className="text-[11px] font-black text-ink-faint shrink-0 whitespace-nowrap">
-          {xpThisLevel} XP
+        <span className="text-[11px] font-black text-ink-faint shrink-0 whitespace-nowrap flex items-center gap-0.5">
+          {xpThisLevel} <img src="/xp.png" alt="XP" style={{ width: 14, height: 14, objectFit: "contain", display: "inline" }} />
         </span>
       </div>
 
       {/* Coins */}
       <div className="flex items-center gap-1 shrink-0">
-        <span className="text-2xl leading-none">🪙</span>
+        <img src="/coin.png" alt="coin" style={{ width: 22, height: 22, objectFit: "contain" }} />
         <span className="font-black text-base text-coin">{coins}</span>
       </div>
     </div>
