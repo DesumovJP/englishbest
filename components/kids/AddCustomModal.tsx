@@ -500,7 +500,7 @@ function AddCharacterTab({ onDone }: { onDone: () => void }) {
         <label className="block text-xs font-black text-[var(--tk-muted)] mb-2 uppercase tracking-wide">
           Images per mood (PNG / GIF)
         </label>
-        <div className="grid grid-cols-5 gap-3 bg-[var(--tk-bg)] rounded-2xl p-4">
+        <div className="grid grid-cols-3 sm:grid-cols-5 gap-3 bg-[var(--tk-bg)] rounded-2xl p-4">
           {ALL_MOODS.map((m) => (
             <div key={m.id} className="flex flex-col items-center gap-1">
               <span className="text-lg">{m.emoji}</span>

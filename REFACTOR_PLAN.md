@@ -84,6 +84,13 @@ Other:
 - [ ] Test matrix execution — rolled into F4 (iPhone SE / 15 / iPad portrait / iPad landscape / 13" / 27")
 
 ### F4 — Page-by-page responsive pass
+**Static sweep (done 2026-04-16):**
+- [x] Grep `min-w-[>=500px]` — all are `<table>` inside `overflow-x-auto` wrappers (payments, teachers, students, library); safe on mobile.
+- [x] Grep `w-[>=500px]` — all are decorative absolute-positioned blur circles (home) or `max-w-*` caps; no overflow.
+- [x] Grep `grid-cols-[4-9]` — all legitimate (calendar 7, kids grids 4 = narrow cells). Fixed: `AddCustomModal` mood picker was `grid-cols-5` (368px at 3-col min-width on iPhone SE 335 content) → `grid-cols-3 sm:grid-cols-5`.
+- [x] Grep `100vh` — fully eliminated in F3; replaced with `100dvh`.
+
+**Physical device verification — pending user-driven Playwright pass at:**
 For each page: verify layout + interactions at all 6 viewports, portrait + landscape.
 - [ ] `/` + `/home` (landing)
 - [ ] `/welcome`, `/login`, `/onboarding`, `/placement`, `/companion`
@@ -122,5 +129,6 @@ For each page: verify layout + interactions at all 6 viewports, portrait + lands
 - **2026-04-15** — F2 batch 4: kids/school detoxed (732 LOC). Per-unit accent fed via CSS var `--accent`; `bg-[color:var(--accent)]/10` etc. Library row gets `--accent` + `--cover-bg`. Carousel: scroll-snap + `px-[calc(50%-clamp(140px,31vw,190px))]`; per-card transform/opacity kept inline (runtime scroll-driven).
 - **2026-04-15** — F2 batch 5: kids/shop detoxed (largest file). 131 inline → 2 dynamic (bgValue preview, equipped-slot coords). RARITY collapsed from 3 parallel hex records into 1 Tailwind class record (text/bg/border). BACKGROUNDS gradient hex retained as data. **All 9 kids pages done.**
 - **2026-04-15** — F2 batch 6: kids/components (LootBox, KidsFooter, AddCustomModal, ItemDisplay, CharacterAvatar) swept. LootBox: 11 static inline → Tailwind (box/modal sizes, fixed animation delays, `bg-black/80 backdrop-blur-lg`); remaining 8 are dynamic per-rarity theming (glow, drop-shadow, rarity badge bg/color) or per-particle geometry. KidsFooter: safe-area pb, icon sizes, badge font moved to Tailwind; active-state transform/filter moved to conditional classes. AddCustomModal: removed 2 redundant `borderWidth:3` duplicates (already had `border-3`).
+- **2026-04-16** — F4 static sweep: scanned for known responsive pitfalls (oversized min-w, fixed grid cols, hidden overflow). Only actionable fix: AddCustomModal mood picker `grid-cols-5` → `grid-cols-3 sm:grid-cols-5` (was 368px min width, broke on iPhone SE). Tables all already wrapped; decorative blurs are absolute-positioned. Physical device matrix deferred to Playwright-driven verification.
 - **2026-04-16** — F3: responsive contract landed. All `min-h-screen` → `min-h-dvh` in full-screen surfaces (lesson engine/success, onboarding, home, dashboard/lessons, layout body, sidebar) and `min-h-svh` in stable scroll layouts (dashboard/library/calendar/auth). All `calc(100vh-*)` → `100dvh` (chat, parent). Fluid typography via `clamp()` on --text-display/h1/h2. Landscape short-viewport rules + physical device test matrix deferred into F4.
 - **2026-04-16** — F2 batch 7: kids/ui primitives + components/molecules swept. KidsStatBar/KidsCoinBadge/KidsChallengeItem: coin+xp imgs switched to width/height attrs; label conditional styling → `text-ink-faint line-through` classes. KidsTabBar: active `color:"#fff"` + `rgba(255,255,255,0.3)` + `rgba(0,0,0,0.08)` → `text-white` + `bg-white/30` + `bg-black/[0.08]`. PopupTimer overlay → `bg-slate-900/55 backdrop-blur-[6px]`. Remaining inline across app is now exclusively dynamic: per-item/per-rarity color data, per-particle geometry, progress-pct widths, scroll-driven transforms.
