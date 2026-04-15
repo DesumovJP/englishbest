@@ -9,7 +9,7 @@ import CharacterAvatar from "@/components/kids/CharacterAvatar";
 import type { CharacterEmotion } from "@/lib/characters";
 import { useKidsState } from "@/lib/use-kids-store";
 import { HudCard, SpeechBubble, XpBadge, ProgressBar } from "@/components/kids/ui";
-import { SHOP_ITEMS_BY_ID } from "@/lib/shop-catalog";
+import { SHOP_ITEMS_BY_ID, SLOT_OFFSET } from "@/lib/shop-catalog";
 import type { PlacedItem } from "@/lib/kids-store";
 
 /* ── Calendar data ───────────────────────────────────────────────── */
@@ -606,13 +606,15 @@ export default function KidsDashboardPage() {
         background: kidsState.roomBackground ?? "url('/kids-dashboard-bg.jpg') center bottom / cover",
       }}
     >
-      {/* ── Placed items ────────────────────────────────────────── */}
-      <PlacedItemsLayer
-        items={placedItems}
-        editMode={editMode}
-        onMove={movePlacement}
-        onRemove={removePlacement}
-      />
+      {/* ── Placed items — raised above character in edit mode so they're draggable ── */}
+      <div className={editMode ? "absolute inset-0 z-[15]" : "absolute inset-0 z-[5]"}>
+        <PlacedItemsLayer
+          items={placedItems}
+          editMode={editMode}
+          onMove={movePlacement}
+          onRemove={removePlacement}
+        />
+      </div>
 
       {/* ── Edit toggle ─────────────────────────────────────────── */}
       {(placedItems.length > 0 || editMode) && (
@@ -625,7 +627,7 @@ export default function KidsDashboardPage() {
           ].join(" ")}
           style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 78px)", right: 14 }}
         >
-          {editMode ? "Готово ✓" : "Редагувати ✎"}
+          {editMode ? "Готово ✓" : "Посунути щось ✎"}
         </button>
       )}
 
@@ -657,10 +659,10 @@ export default function KidsDashboardPage() {
       </div>
 
       {/* ── CHARACTER — centered ────────────────────────────────── */}
-      <div className="absolute inset-0 flex flex-col items-center justify-center z-10"
+      <div className="absolute inset-0 flex flex-col items-center justify-center z-10 pointer-events-none"
         style={{ paddingBottom: 60 }}>
 
-        <button onClick={handleTap} className="focus:outline-none flex flex-col items-center">
+        <button onClick={handleTap} className="focus:outline-none flex flex-col items-center pointer-events-auto">
           {/* Bubble + character bounce together as one unit */}
           <div key={bounceKey} className="animate-bounce-in flex flex-col items-center" style={{ transformOrigin: "bottom center" }}>
             {bubble && (
@@ -668,13 +670,33 @@ export default function KidsDashboardPage() {
                 <SpeechBubble text={bubble.en} subtext={bubble.ua} maxWidth={220} />
               </div>
             )}
-            <div className="active:scale-95 transition-transform">
+            <div className="active:scale-95 transition-transform relative tk-animate-float" style={{ width: 300, height: 300 }}>
               <CharacterAvatar
                 characterId={kidsState.activeCharacterId || "fox"}
                 emotion={emotion}
                 size={300}
-                animate
+                animate={false}
               />
+              {(kidsState.equippedItemIds ?? []).map((id) => {
+                const item = SHOP_ITEMS_BY_ID[id];
+                if (!item) return null;
+                const pos = SLOT_OFFSET[id] ?? { top: "0%", left: "50%" };
+                return (
+                  <div
+                    key={id}
+                    className="absolute pointer-events-none -translate-x-1/2"
+                    style={{
+                      top: pos.top,
+                      left: pos.left,
+                      fontSize: 300 * 0.28,
+                      filter: "drop-shadow(0 4px 8px rgba(0,0,0,0.22))",
+                      zIndex: 20,
+                    }}
+                  >
+                    {item.emoji}
+                  </div>
+                );
+              })}
             </div>
           </div>
         </button>

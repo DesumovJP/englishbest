@@ -4,6 +4,43 @@ import CharacterAvatar from '@/components/kids/CharacterAvatar';
 import { useKidsState } from '@/lib/use-kids-store';
 import type { CharacterEmotion } from '@/lib/characters';
 import { SpeechBubble } from '@/components/kids/ui';
+import { SHOP_ITEMS_BY_ID, SLOT_OFFSET } from '@/lib/shop-catalog';
+
+function EquippedAvatar({
+  characterId, emotion, size, animate, equippedIds,
+}: {
+  characterId: string;
+  emotion: CharacterEmotion;
+  size: number;
+  animate: boolean;
+  equippedIds: string[];
+}) {
+  return (
+    <div className={`relative ${animate ? 'tk-animate-float' : ''}`} style={{ width: size, height: size }}>
+      <CharacterAvatar characterId={characterId} emotion={emotion} size={size} animate={false} />
+      {equippedIds.map((id) => {
+        const item = SHOP_ITEMS_BY_ID[id];
+        if (!item) return null;
+        const pos = SLOT_OFFSET[id] ?? { top: "0%", left: "50%" };
+        return (
+          <div
+            key={id}
+            className="absolute pointer-events-none -translate-x-1/2"
+            style={{
+              top: pos.top,
+              left: pos.left,
+              fontSize: size * 0.28,
+              filter: 'drop-shadow(0 3px 6px rgba(0,0,0,0.22))',
+              zIndex: 20,
+            }}
+          >
+            {item.emoji}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 export type CharEmotion =
   | 'idle'
@@ -66,11 +103,12 @@ export function LessonCharacter({ emotion }: { emotion: CharEmotion }) {
           style={{ transformOrigin: "bottom center" }}
         >
           {visible && <div className="mb-2"><SpeechBubble text={bubble} maxWidth={160} size="sm" /></div>}
-          <CharacterAvatar
+          <EquippedAvatar
             characterId={characterId}
             emotion={EMOTION_MAP[emotion]}
             size={108}
             animate={emotion === 'idle' || emotion === 'thinking'}
+            equippedIds={state.equippedItemIds ?? []}
           />
         </div>
       </div>
@@ -83,11 +121,12 @@ export function LessonCharacter({ emotion }: { emotion: CharEmotion }) {
           style={{ transformOrigin: "bottom center" }}
         >
           {visible && <div className="mb-2"><SpeechBubble text={bubble} maxWidth={160} size="sm" /></div>}
-          <CharacterAvatar
+          <EquippedAvatar
             characterId={characterId}
             emotion={EMOTION_MAP[emotion]}
             size={200}
             animate={emotion === 'idle' || emotion === 'thinking'}
+            equippedIds={state.equippedItemIds ?? []}
           />
         </div>
       </div>

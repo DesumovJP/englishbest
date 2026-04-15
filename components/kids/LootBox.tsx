@@ -263,9 +263,9 @@ function RevealCard({ item, onClose, onOpenAnother, canAfford }: {
 
       {/* Item name */}
       <div className="text-center animate-fade-in-up" style={{ animationDelay: '0.5s' }}>
-        <p className="text-3xl font-black text-ink">{item.nameUa}</p>
+        <p className="text-3xl font-black text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)]">{item.nameUa}</p>
         {item.isCharacter && (
-          <p className="text-sm font-bold text-ink-muted mt-1">Тепер він у твоїй колекції!</p>
+          <p className="text-sm font-bold text-white/75 mt-1">Тепер він у твоїй колекції!</p>
         )}
       </div>
 
@@ -273,7 +273,7 @@ function RevealCard({ item, onClose, onOpenAnother, canAfford }: {
       <div className="flex gap-3 w-full max-w-[280px] animate-fade-in-up" style={{ animationDelay: '0.65s' }}>
         <button
           onClick={onClose}
-          className="flex-1 h-12 rounded-2xl border-2 border-border font-black text-sm text-ink-muted hover:border-ink-muted hover:text-ink transition-colors"
+          className="flex-1 h-12 rounded-2xl border-2 border-white/30 bg-white/10 backdrop-blur-sm font-black text-sm text-white hover:bg-white/20 hover:border-white/50 transition-colors"
         >
           До кімнати →
         </button>
@@ -398,7 +398,7 @@ export function LootBoxModal({ boxType, balance, onClose, onPurchase }: LootBoxM
 
         {/* Box name + price */}
         <div className="text-center animate-fade-in-up">
-          <p className="text-xs font-black text-white/40 uppercase tracking-widest mb-1">
+          <p className="text-xs font-black text-white/70 uppercase tracking-widest mb-1">
             {cfg.name} бокс
           </p>
           <div className="flex items-center justify-center gap-1.5">

@@ -35,7 +35,7 @@ export const mockKidsUser: KidsUser = {
   name: "Софія",
   age: 8,
   level: "A1",
-  coins: 340,
+  coins: 2000,
   streak: 7,
   xp: 1240,
   companion: {

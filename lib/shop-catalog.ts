@@ -46,3 +46,14 @@ export const SHOP_ITEMS: CatalogShopItem[] = [
 export const SHOP_ITEMS_BY_ID: Record<string, CatalogShopItem> = Object.fromEntries(
   SHOP_ITEMS.map((i) => [i.id, i])
 );
+
+/** Relative offsets (to character center) for rendering equipped outfit items. */
+export const SLOT_OFFSET: Record<string, { top: string; left: string }> = {
+  hat:      { top: "-14%", left: "50%" },
+  crown:    { top: "-14%", left: "50%" },
+  glasses:  { top: "26%",  left: "50%" },
+  scarf:    { top: "56%",  left: "50%" },
+  backpack: { top: "38%",  left: "105%" },
+  trophy:   { top: "38%",  left: "-10%" },
+  rocket:   { top: "10%",  left: "-10%" },
+};

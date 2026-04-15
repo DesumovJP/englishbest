@@ -104,8 +104,12 @@ export interface KidsState {
   };
   /** Shop items the user has purchased. */
   ownedItemIds: string[];
+  /** Shop items currently equipped on the active character (outfit/special). */
+  equippedItemIds: string[];
   /** Items placed on the dashboard home canvas. */
   placedItems: PlacedItem[];
+  /** Seed version — used to re-apply new DEFAULT_STATE fields to existing installs. */
+  seedVersion?: number;
 }
 
 // ─── DB setup ────────────────────────────────────────────────────────────────
@@ -227,16 +231,30 @@ export const charactersStore = {
 
 const STATE_KEY = "main";
 
+/**
+ * Bump this when seed fields (coins, ownedItemIds) should be re-applied
+ * to existing local installs. On load, if stored.seedVersion < current,
+ * coins + ownedItemIds are overwritten from DEFAULT_STATE.
+ */
+const SEED_VERSION = 2;
+
 export const DEFAULT_STATE: KidsState = {
-  coins: 120,
+  coins: 2000,
   streak: 3,
   xp: 40,
   level: 1,
   activeCharacterId: "fox",
   unlockedRoomIds: [],
   outfit: {},
-  ownedItemIds: [],
+  ownedItemIds: [
+    "sofa", "bookshelf", "armchair", "lamp",
+    "globe", "plant", "clock", "rainbow",
+    "hat", "scarf", "backpack",
+    "trophy", "rocket",
+  ],
   placedItems: [],
+  equippedItemIds: [],
+  seedVersion: SEED_VERSION,
 };
 
 export const kidsStateStore = {
@@ -247,7 +265,18 @@ export const kidsStateStore = {
       (s) => s.get(STATE_KEY)
     );
     // Merge defaults so rows written before a field was introduced still work.
-    return { ...DEFAULT_STATE, ...(row?.value ?? {}) };
+    const storedSeed = row?.value?.seedVersion ?? 0;
+    const merged = { ...DEFAULT_STATE, ...(row?.value ?? {}) };
+    // Re-seed coins + ownedItemIds if local copy is below current seed version.
+    if (storedSeed < SEED_VERSION) {
+      merged.coins = DEFAULT_STATE.coins;
+      merged.ownedItemIds = [...DEFAULT_STATE.ownedItemIds];
+      merged.seedVersion = SEED_VERSION;
+      await tx(STORE_STATE, "readwrite", (s) =>
+        s.put({ key: STATE_KEY, value: merged })
+      );
+    }
+    return merged;
   },
 
   set: (state: KidsState): Promise<string> =>

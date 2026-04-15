@@ -336,11 +336,6 @@ function ProductCard({ item, isBought, isLocked, canAfford, onBuyClick }: {
               : <><img src="/coin.png" alt="coin" style={{ width: 13, height: 13, objectFit: "contain" }} />{item.price}</>
             }
           </span>
-          {!isBought && !isLocked && !canAfford && (
-            <span className="font-bold" style={{ fontSize: 9, color: "#F59E0B" }}>
-              need +{item.price} <img src="/coin.png" alt="coin" style={{ width: 10, height: 10, objectFit: "contain", display: "inline", verticalAlign: "middle" }} />
-            </span>
-          )}
           {/* Mobile tap-to-buy (sm and below, ghost cart always visible) */}
           {!isBought && !isLocked && canAfford && (
             <button
@@ -481,9 +476,13 @@ function CharacterDressRoom({ allItems, ownedIds, balance, onBuyItem, onPlaceIte
 }) {
   const { state, patch } = useKidsState();
   const characterId = state.activeCharacterId ?? 'fox';
-  const [equippedIds, setEquippedIds] = useState<string[]>([]);
+  const equippedIds = state.equippedItemIds ?? [];
   const [previewEmotion, setPreviewEmotion] = useState<CharacterEmotion>('idle');
+  const [invSubTab, setInvSubTab] = useState<"character" | "room">("character");
   const outfitItems = allItems.filter(i => i.tab === "outfit" || i.tab === "special");
+  const roomItems   = allItems.filter(
+    (i) => (i.tab === "furniture" || i.tab === "decor" || i.tab === "special") && ownedIds.has(i.id)
+  );
 
   const charDef = CHARACTERS[characterId];
   const availableEmotions = charDef
@@ -491,7 +490,10 @@ function CharacterDressRoom({ allItems, ownedIds, balance, onBuyItem, onPlaceIte
     : EMOTION_META;
 
   function toggleEquip(id: string) {
-    setEquippedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+    const next = equippedIds.includes(id)
+      ? equippedIds.filter((x) => x !== id)
+      : [...equippedIds, id];
+    patch({ equippedItemIds: next });
   }
 
   function selectCharacter(id: string) {
@@ -641,24 +643,61 @@ function CharacterDressRoom({ allItems, ownedIds, balance, onBuyItem, onPlaceIte
       {/* ── Items grid ── */}
       <div className="flex-1 overflow-y-auto p-5" style={{ paddingBottom: 100 }}>
 
-        {/* For home — owned furniture / decor / special */}
-        {(() => {
-          const homeItems = allItems.filter(
-            (i) => (i.tab === "furniture" || i.tab === "decor" || i.tab === "special") && ownedIds.has(i.id)
-          );
-          if (homeItems.length === 0) return null;
-          return (
-            <div className="mb-6">
-              <div className="flex items-center justify-between mb-3">
-                <p className="font-black uppercase tracking-widest" style={{ fontSize: 10, color: "#9CA3AF" }}>
-                  Для домівки
+        {/* Sub-tab switcher: Character / Room */}
+        <div className="flex gap-2 mb-5 p-1 rounded-2xl" style={{ background: "#F3F4F6" }}>
+          <button
+            onClick={() => setInvSubTab("character")}
+            className="flex-1 flex items-center justify-center gap-1.5 rounded-xl py-2 transition-all active:scale-95"
+            style={{
+              background: invSubTab === "character" ? "#FFFFFF" : "transparent",
+              boxShadow: invSubTab === "character" ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
+            }}
+          >
+            <span style={{ fontSize: 14 }}>👤</span>
+            <span className="font-black" style={{
+              fontSize: 11,
+              color: invSubTab === "character" ? "#1A1A2E" : "#9CA3AF",
+              letterSpacing: "0.02em",
+            }}>
+              Персонаж ({outfitItems.filter(i => ownedIds.has(i.id)).length})
+            </span>
+          </button>
+          <button
+            onClick={() => setInvSubTab("room")}
+            className="flex-1 flex items-center justify-center gap-1.5 rounded-xl py-2 transition-all active:scale-95"
+            style={{
+              background: invSubTab === "room" ? "#FFFFFF" : "transparent",
+              boxShadow: invSubTab === "room" ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
+            }}
+          >
+            <span style={{ fontSize: 14 }}>🏠</span>
+            <span className="font-black" style={{
+              fontSize: 11,
+              color: invSubTab === "room" ? "#1A1A2E" : "#9CA3AF",
+              letterSpacing: "0.02em",
+            }}>
+              Кімната ({roomItems.length})
+            </span>
+          </button>
+        </div>
+
+        {invSubTab === "room" ? (
+          <>
+            <p className="font-black uppercase tracking-widest mb-4"
+              style={{ fontSize: 10, color: "#9CA3AF" }}>Для домівки</p>
+            {roomItems.length === 0 ? (
+              <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
+                <span style={{ fontSize: 48, opacity: 0.5 }}>🛋️</span>
+                <p className="font-bold" style={{ fontSize: 14, color: "#6B7280" }}>
+                  Поки нічого для домівки
                 </p>
-                <span className="font-bold" style={{ fontSize: 10, color: "#9CA3AF" }}>
-                  {homeItems.length} шт.
-                </span>
+                <p style={{ fontSize: 12, color: "#9CA3AF" }}>
+                  Купи меблі, декор або спеціальні предмети в магазині
+                </p>
               </div>
+            ) : (
               <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(100px, 1fr))" }}>
-                {homeItems.map((item) => (
+                {roomItems.map((item) => (
                   <button
                     key={item.id}
                     onClick={() => onPlaceItem(item.id)}
@@ -678,10 +717,10 @@ function CharacterDressRoom({ allItems, ownedIds, balance, onBuyItem, onPlaceIte
                   </button>
                 ))}
               </div>
-            </div>
-          );
-        })()}
-
+            )}
+          </>
+        ) : (
+        <>
         <p className="font-black uppercase tracking-widest mb-4"
           style={{ fontSize: 10, color: "#9CA3AF" }}>Outfit &amp; Accessories</p>
 
@@ -728,6 +767,8 @@ function CharacterDressRoom({ allItems, ownedIds, balance, onBuyItem, onPlaceIte
             );
           })}
         </div>
+        </>
+        )}
       </div>
     </div>
   );
