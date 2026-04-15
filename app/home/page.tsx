@@ -82,17 +82,17 @@ export default function HomePage() {
           />
           <div className="absolute inset-0 bg-gradient-to-br from-black/45 via-black/55 to-black/85" />
 
-          <div className="relative z-10 flex flex-col items-center text-center px-4 py-24 w-full max-w-2xl mx-auto gap-5">
-            <span className="inline-flex items-center gap-2 px-3 h-8 rounded-full bg-white/10 border border-white/15 backdrop-blur-sm">
+          <div className="relative z-10 flex flex-col items-center text-center px-4 py-12 sm:py-20 md:py-24 w-full max-w-2xl mx-auto gap-4 sm:gap-5">
+            <span className="inline-flex items-center gap-2 px-3 h-7 sm:h-8 rounded-full bg-white/10 border border-white/15 backdrop-blur-sm">
               <span className="w-1.5 h-1.5 rounded-full bg-primary-light animate-pulse" />
-              <span className="text-xs font-black text-white/85 tracking-widest uppercase">Онлайн-школа для дітей</span>
+              <span className="text-[10px] sm:text-xs font-black text-white/85 tracking-widest uppercase">Онлайн-школа для дітей</span>
             </span>
-            <h1 className="text-5xl md:text-[4rem] font-black text-white leading-[1.05] tracking-tight">
+            <h1 className="text-[2rem] sm:text-4xl md:text-5xl xl:text-[4rem] font-black text-white leading-[1.05] tracking-tight">
               Дитина заговорить<br />
               <span className="text-primary-light">англійською</span><br />
               вже за місяць
             </h1>
-            <p className="text-white/70 text-base md:text-lg leading-relaxed max-w-sm">
+            <p className="text-white/70 text-sm sm:text-base md:text-lg leading-relaxed max-w-sm">
               Сертифікований вчитель. Програма під вік і характер вашої дитини.
             </p>
             <div className="flex flex-col items-center gap-5 mt-2 w-full">

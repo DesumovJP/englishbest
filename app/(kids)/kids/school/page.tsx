@@ -281,31 +281,31 @@ function LessonsCarousel() {
       <div aria-hidden className="absolute inset-0 bg-gradient-to-b from-white/70 via-white/55 to-white/85" />
 
       {/* Unit description panel */}
-      <div className="relative z-10 flex-shrink-0 px-4 pt-4 pb-3">
-        <div className="mx-auto w-full max-w-[880px] rounded-3xl bg-white/85 backdrop-blur-xl border border-white/60 shadow-[0_10px_40px_rgba(15,23,42,0.10)] overflow-hidden">
-          <div className="flex items-stretch gap-4 p-4 md:p-5">
-            <div className="flex-shrink-0 rounded-2xl flex flex-col items-center justify-center px-3 py-2.5 min-w-[76px] bg-[color:var(--accent)]/10 border-[1.5px] border-[color:var(--accent)]/30">
-              <span className="text-[34px] leading-none" aria-hidden>{currentSection.bossEmoji}</span>
-              <span className="font-black tracking-widest mt-1.5 text-[9px] text-[color:var(--accent)]">
+      <div className="relative z-10 flex-shrink-0 px-3 pt-2 pb-2 md:px-4 md:pt-4 md:pb-3">
+        <div className="mx-auto w-full max-w-[880px] rounded-2xl md:rounded-3xl bg-white/85 backdrop-blur-xl border border-white/60 shadow-[0_10px_40px_rgba(15,23,42,0.10)] overflow-hidden">
+          <div className="flex items-center gap-3 p-2.5 md:items-stretch md:gap-4 md:p-5">
+            <div className="flex-shrink-0 rounded-xl md:rounded-2xl flex flex-col items-center justify-center px-2 py-1.5 min-w-[52px] md:min-w-[76px] md:px-3 md:py-2.5 bg-[color:var(--accent)]/10 border-[1.5px] border-[color:var(--accent)]/30">
+              <span className="text-[22px] md:text-[34px] leading-none" aria-hidden>{currentSection.bossEmoji}</span>
+              <span className="font-black tracking-widest mt-1 md:mt-1.5 text-[8px] md:text-[9px] text-[color:var(--accent)]">
                 UNIT {currentSection.unit}
               </span>
             </div>
 
             <div className="flex-1 min-w-0 flex flex-col">
               <div className="flex items-center gap-2 flex-wrap">
-                <p className="font-black text-ink leading-tight text-[clamp(17px,2.2vw,22px)] -tracking-[0.02em]">
+                <p className="font-black text-ink leading-tight text-[15px] md:text-[clamp(17px,2.2vw,22px)] -tracking-[0.02em]">
                   {currentSection.title}
                 </p>
-                <span className="rounded-full px-2 py-0.5 font-black tracking-wide text-[9.5px] bg-[color:var(--accent)]/10 text-[color:var(--accent)] border border-[color:var(--accent)]/20">
-                  KIDS STARTER · A1
+                <span className="rounded-full px-2 py-0.5 font-black tracking-wide text-[9px] md:text-[9.5px] bg-[color:var(--accent)]/10 text-[color:var(--accent)] border border-[color:var(--accent)]/20">
+                  A1
                 </span>
               </div>
 
-              <p className="text-ink-muted font-medium leading-snug mt-1.5 text-[13.5px]">
+              <p className="hidden md:block text-ink-muted font-medium leading-snug mt-1.5 text-[13.5px]">
                 {currentSection.description}
               </p>
 
-              <div className="flex items-center gap-1.5 flex-wrap mt-2.5">
+              <div className="hidden md:flex items-center gap-1.5 flex-wrap mt-2.5">
                 {currentSection.skills.map(skill => (
                   <span key={skill} className="rounded-full px-2.5 py-1 font-bold bg-surface-muted text-ink text-[10.5px]">
                     {skill}
@@ -316,24 +316,22 @@ function LessonsCarousel() {
                   +{xpInUnit} XP
                 </span>
               </div>
-            </div>
 
-            <div className="hidden md:flex flex-col items-stretch justify-center gap-2 flex-shrink-0 min-w-[180px]">
-              <Link
-                href={`/courses/english-kids-starter/lessons/${currentLesson.slug}`}
-                className="flex items-center justify-center gap-1.5 rounded-2xl h-11 font-black text-white text-sm bg-[color:var(--accent)] active:translate-y-1 transition-transform"
-                style={{ boxShadow: `0 4px 0 ${currentSection.accent}b0` }}
-              >
-                Продовжити →
-              </Link>
-              <p className="text-[11px] font-bold text-ink-muted text-center leading-tight truncate">
-                {currentLesson.emoji} {currentLesson.title}
-              </p>
+              <div className="md:hidden flex items-center gap-1.5 mt-1">
+                <span className="inline-flex items-center gap-1 font-black text-accent-dark text-[10.5px]">
+                  <img src="/xp.png" alt="" aria-hidden width={11} height={11} className="object-contain" />
+                  +{xpInUnit} XP
+                </span>
+                <span className="text-ink-faint" aria-hidden>·</span>
+                <span className="font-bold text-ink-muted text-[11px] truncate">
+                  {sectionDone}/{sectionTotal} уроків
+                </span>
+              </div>
             </div>
           </div>
 
-          {/* Progress strip */}
-          <div className="flex items-center gap-3 px-4 md:px-5 py-3 border-t border-black/5 bg-white/40">
+          {/* Progress strip — desktop only (mobile shows inline + thin bar below) */}
+          <div className="hidden md:flex items-center gap-3 px-4 md:px-5 py-3 border-t border-black/5 bg-white/40">
             <div className="flex-1 rounded-full overflow-hidden h-[7px] bg-[color:var(--accent)]/15">
               <div
                 className="h-full rounded-full transition-all duration-700"
@@ -350,19 +348,19 @@ function LessonsCarousel() {
             </span>
           </div>
 
-          <Link
-            href={`/courses/english-kids-starter/lessons/${currentLesson.slug}`}
-            className="md:hidden flex items-center justify-center gap-1.5 rounded-b-3xl h-11 font-black text-white text-sm text-center transition-transform active:scale-[0.98] bg-[color:var(--accent)]"
-          >
-            Продовжити: {currentLesson.title} →
-          </Link>
+          <div className="md:hidden h-[3px] bg-[color:var(--accent)]/15">
+            <div
+              className="h-full transition-all duration-700"
+              style={{ width: `${sectionPct}%`, background: currentSection.accent }}
+            />
+          </div>
         </div>
       </div>
 
       {/* Card carousel */}
       <div
         ref={scrollRef}
-        className="flex-1 flex items-center overflow-x-auto snap-x snap-mandatory [scrollbar-width:none] [-ms-overflow-style:none] [-webkit-overflow-scrolling:touch] [&::-webkit-scrollbar]:hidden px-[calc(50%-clamp(140px,31vw,190px))]"
+        className="flex-1 flex items-center overflow-x-auto snap-x snap-mandatory [scrollbar-width:none] [-ms-overflow-style:none] [-webkit-overflow-scrolling:touch] [&::-webkit-scrollbar]:hidden px-[calc(50%-clamp(110px,29vw,190px))]"
       >
         <div className="flex items-center gap-4 py-4">
           {SECTIONS.flatMap(sec =>
@@ -381,7 +379,7 @@ function LessonsCarousel() {
                       if (isCurr) currentRef.current = el;
                     }
                   }}
-                  className="flex-shrink-0 snap-center w-[clamp(280px,62vw,380px)] aspect-[3/4] [will-change:transform,opacity] transition-[transform,opacity] duration-[120ms] ease-out"
+                  className="flex-shrink-0 snap-center w-[clamp(220px,58vw,380px)] aspect-[4/5] sm:aspect-[3/4] [will-change:transform,opacity] transition-[transform,opacity] duration-[120ms] ease-out"
                   style={{ transform: `scale(${getScale(lesson.slug)})`, opacity: getOpacity(lesson.slug) }}
                 >
                   {status !== 'locked'
