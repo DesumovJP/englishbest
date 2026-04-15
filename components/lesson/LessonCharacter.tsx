@@ -98,10 +98,14 @@ export function LessonCharacter({ emotion }: { emotion: CharEmotion }) {
       <div className="flex lg:hidden [@media(max-height:500px)]:hidden flex-shrink-0 flex-col items-center gap-0 pt-10 sm:pt-4 pb-0 select-none">
         <div
           key={bounceKey}
-          className={`flex flex-col items-center ${emotion === 'correct' ? 'animate-bounce-in' : ''}`}
+          className={`relative flex flex-col items-center ${emotion === 'correct' ? 'animate-bounce-in' : ''}`}
           style={{ transformOrigin: "bottom center" }}
         >
-          {visible && <div className="mb-1.5"><SpeechBubble text={bubble} maxWidth={160} size="sm" /></div>}
+          {visible && (
+            <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-1.5 pointer-events-none">
+              <SpeechBubble text={bubble} maxWidth={160} size="sm" />
+            </div>
+          )}
           <div className="sm:hidden">
             <EquippedAvatar
               characterId={characterId}
