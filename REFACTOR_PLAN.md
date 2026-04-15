@@ -50,7 +50,7 @@ Kids pages:
 - [x] `/kids/library/[id]` — 54→1 inline (dynamic cover), 49→0 hex
 - [x] `/kids/dashboard` — 15→dynamic-only, 6 hex are data (event colors)
 - [x] `/kids/lessons` — 37→dynamic-only, 24→0 hex
-- [ ] `/kids/school` — 65 inline, 38 hex
+- [x] `/kids/school` — 65→dynamic-only, 38→data-only (per-unit accent, COVER_BG per type)
 - [ ] `/kids/shop` — 131 inline, 111 hex (largest)
 - [x] `/kids/characters` — 65→dynamic-only, 57→0 hex
 - [x] `/kids/room` — 30→1 dynamic (activeRoom.bg), 17 hex are room data gradients
