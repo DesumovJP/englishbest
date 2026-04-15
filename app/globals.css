@@ -45,10 +45,10 @@
   --radius-lg: 16px;
   --radius-xl: 24px;
 
-  /* ── Typography scale ───────────────────────────────────────── */
-  --text-display: 3rem;       /* 48px — hero */
-  --text-h1:      2rem;       /* 32px — page title */
-  --text-h2:      1.5rem;     /* 24px — section title */
+  /* ── Typography scale (fluid on mobile → desktop via clamp) ─── */
+  --text-display: clamp(2.25rem, 4vw + 1.25rem, 3.5rem); /* 36→56 */
+  --text-h1:      clamp(1.625rem, 2vw + 1rem, 2.25rem);  /* 26→36 */
+  --text-h2:      clamp(1.25rem, 1vw + 0.9rem, 1.5rem);  /* 20→24 */
   --text-h3:      1.125rem;   /* 18px — card / widget title */
   --text-body-lg: 1rem;       /* 16px — lead paragraph */
   --text-body:    0.875rem;   /* 14px — standard body */

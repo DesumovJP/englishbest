@@ -27,7 +27,7 @@ export function LessonSuccess({
   backUrl = '/dashboard/lessons', teacherName, teacherPhoto, callUrl,
 }: LessonSuccessProps) {
   return (
-    <div className="min-h-screen bg-lesson-success flex items-center justify-center px-4 py-10">
+    <div className="min-h-dvh bg-lesson-success flex items-center justify-center px-4 py-10">
       <div className="w-full max-w-md flex flex-col gap-6">
 
         {/* Floating stars */}

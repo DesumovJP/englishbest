@@ -220,7 +220,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-surface flex flex-col">
+    <div className="min-h-dvh bg-surface flex flex-col">
 
       {/* Header */}
       <header className="bg-surface border-b border-border flex items-center justify-between px-6 h-16 flex-shrink-0">

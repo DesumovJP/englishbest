@@ -125,7 +125,7 @@ export default function PlacementPage() {
   if (isResult && level) {
     const info = LEVEL_LABELS[level];
     return (
-      <div className="min-h-screen bg-gradient-to-b from-surface to-primary/5 flex flex-col">
+      <div className="min-h-dvh bg-gradient-to-b from-surface to-primary/5 flex flex-col">
         <Header progressPct={100} label="Готово" />
         <main className="flex-1 flex flex-col items-center justify-center px-5 py-12 text-center">
           <div className="w-full max-w-md flex flex-col items-center gap-6">
@@ -162,7 +162,7 @@ export default function PlacementPage() {
   const progressPct = (step / QUESTIONS.length) * 100;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-surface to-primary/5 flex flex-col">
+    <div className="min-h-dvh bg-gradient-to-b from-surface to-primary/5 flex flex-col">
       <Header progressPct={progressPct} label={`${step + 1} / ${QUESTIONS.length}`} />
 
       <main className="flex-1 flex flex-col items-center justify-center px-5 py-10">

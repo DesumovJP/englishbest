@@ -139,7 +139,7 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-6rem)] md:h-[calc(100vh-4rem)] rounded-2xl overflow-hidden border border-border shadow-sm">
+    <div className="flex flex-col h-[calc(100dvh-6rem)] md:h-[calc(100dvh-4rem)] rounded-2xl overflow-hidden border border-border shadow-sm">
 
       {/* Role switcher banner */}
       <div className="flex items-center gap-3 px-4 py-2 bg-white border-b border-border flex-shrink-0">

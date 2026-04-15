@@ -146,7 +146,7 @@ export function Sidebar() {
 
       {/* Sidebar панель */}
       <aside
-        className={`fixed top-0 left-0 z-40 h-full w-60 bg-white border-r border-border flex flex-col transition-transform duration-300 md:sticky md:top-0 md:h-screen md:translate-x-0 md:flex-shrink-0 ${
+        className={`fixed top-0 left-0 z-40 h-full w-60 bg-white border-r border-border flex flex-col transition-transform duration-300 md:sticky md:top-0 md:h-dvh md:translate-x-0 md:flex-shrink-0 ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >

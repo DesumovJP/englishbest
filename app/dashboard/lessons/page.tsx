@@ -148,7 +148,7 @@ export default function LessonsPage() {
   const done = p.doneSlugs.length;
   const pct  = Math.round((done / TOTAL) * 100);
   return (
-    <div className="-mx-6 md:-mx-8 -mt-6 md:-mt-8 px-6 md:px-8 pt-6 md:pt-8 min-h-screen relative overflow-hidden bg-lesson-map">
+    <div className="-mx-6 md:-mx-8 -mt-6 md:-mt-8 px-6 md:px-8 pt-6 md:pt-8 min-h-dvh relative overflow-hidden bg-lesson-map">
 
       {/* ── Декоративний фон ─────────────────────── */}
       <div className="pointer-events-none select-none" aria-hidden>

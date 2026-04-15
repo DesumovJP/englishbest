@@ -35,7 +35,7 @@ export default function RegisterPage() {
   const labelCls = 'text-xs font-black text-ink-muted uppercase tracking-wide mb-1.5 block';
 
   return (
-    <div className="min-h-screen flex bg-surface-muted">
+    <div className="min-h-svh flex bg-surface-muted">
 
       {/* Ліва брендова панель */}
       <div className="hidden lg:flex flex-col justify-between w-[420px] flex-shrink-0 bg-gradient-to-br from-primary to-primary-dark px-10 py-12">

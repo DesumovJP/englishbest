@@ -147,10 +147,10 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="flex min-h-screen bg-surface-muted items-start">
+    <div className="flex min-h-svh bg-surface-muted items-start">
       <Sidebar />
 
-      <main className="flex-1 p-6 md:p-8 pt-16 md:pt-8 min-w-0 min-h-screen">
+      <main className="flex-1 p-6 md:p-8 pt-16 md:pt-8 min-w-0 min-h-svh">
         <div className="flex flex-col gap-6">
 
           {/* Заголовок */}

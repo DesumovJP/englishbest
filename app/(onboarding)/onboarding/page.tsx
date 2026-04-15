@@ -71,7 +71,7 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-surface to-primary/5 flex flex-col">
+    <div className="min-h-dvh bg-gradient-to-b from-surface to-primary/5 flex flex-col">
       <Header current={1} total={2} />
 
       <main className="flex-1 flex flex-col items-center justify-center px-5 py-10">

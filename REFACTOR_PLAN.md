@@ -76,12 +76,12 @@ Other:
 - [ ] Dedupe overlapping animations (`.animate-*` vs `.tk-animate-*`)
 
 ### F3 — Responsive contract
-- [ ] Define breakpoints: `xs` (<480), `sm` (480), `md` (768), `lg` (1024), `xl` (1280), `2xl` (1536)
-- [ ] Adopt `100dvh` / `100svh` in full-screen layouts (lesson engine, kids room, onboarding)
-- [ ] Add safe-area paddings to sticky headers/footers (`env(safe-area-inset-*)`)
-- [ ] Landscape rules: short-viewport (`@media (max-height: 480px)`) → compact headers, collapsible sidebars
-- [ ] Typography: switch hero / display to `clamp()` based on viewport
-- [ ] Test matrix: iPhone SE / iPhone 15 / iPad portrait / iPad landscape / MacBook 13" / 27" desktop
+- [x] Use Tailwind v4 default breakpoints (sm 640, md 768, lg 1024, xl 1280, 2xl 1536); no custom xs needed — mobile-first base handles <640
+- [x] Adopt `dvh` in full-screen/interactive surfaces (lesson engine + success, onboarding welcome/login/onboarding/placement/layout, app/layout body, home, dashboard/lessons, dashboard/chat, dashboard/parent, Sidebar md:h) and `svh` in stable scroll layouts (dashboard/library/calendar/auth layouts)
+- [x] Safe-area paddings already applied via `pt-[env(safe-area-inset-top,...)]` in kids pages + `pb-[env(safe-area-inset-bottom,0px)]` in KidsFooter (F2 batch 6)
+- [x] Typography: `--text-display` → `clamp(2.25rem, 4vw + 1.25rem, 3.5rem)`, `--text-h1` → `clamp(1.625rem, 2vw + 1rem, 2.25rem)`, `--text-h2` → `clamp(1.25rem, 1vw + 0.9rem, 1.5rem)`
+- [ ] Landscape rules: short-viewport (`@media (max-height: 480px)`) compact headers/collapsible sidebars — deferred until F4 per-page pass reveals specific offenders
+- [ ] Test matrix execution — rolled into F4 (iPhone SE / 15 / iPad portrait / iPad landscape / 13" / 27")
 
 ### F4 — Page-by-page responsive pass
 For each page: verify layout + interactions at all 6 viewports, portrait + landscape.
@@ -122,4 +122,5 @@ For each page: verify layout + interactions at all 6 viewports, portrait + lands
 - **2026-04-15** — F2 batch 4: kids/school detoxed (732 LOC). Per-unit accent fed via CSS var `--accent`; `bg-[color:var(--accent)]/10` etc. Library row gets `--accent` + `--cover-bg`. Carousel: scroll-snap + `px-[calc(50%-clamp(140px,31vw,190px))]`; per-card transform/opacity kept inline (runtime scroll-driven).
 - **2026-04-15** — F2 batch 5: kids/shop detoxed (largest file). 131 inline → 2 dynamic (bgValue preview, equipped-slot coords). RARITY collapsed from 3 parallel hex records into 1 Tailwind class record (text/bg/border). BACKGROUNDS gradient hex retained as data. **All 9 kids pages done.**
 - **2026-04-15** — F2 batch 6: kids/components (LootBox, KidsFooter, AddCustomModal, ItemDisplay, CharacterAvatar) swept. LootBox: 11 static inline → Tailwind (box/modal sizes, fixed animation delays, `bg-black/80 backdrop-blur-lg`); remaining 8 are dynamic per-rarity theming (glow, drop-shadow, rarity badge bg/color) or per-particle geometry. KidsFooter: safe-area pb, icon sizes, badge font moved to Tailwind; active-state transform/filter moved to conditional classes. AddCustomModal: removed 2 redundant `borderWidth:3` duplicates (already had `border-3`).
+- **2026-04-16** — F3: responsive contract landed. All `min-h-screen` → `min-h-dvh` in full-screen surfaces (lesson engine/success, onboarding, home, dashboard/lessons, layout body, sidebar) and `min-h-svh` in stable scroll layouts (dashboard/library/calendar/auth). All `calc(100vh-*)` → `100dvh` (chat, parent). Fluid typography via `clamp()` on --text-display/h1/h2. Landscape short-viewport rules + physical device test matrix deferred into F4.
 - **2026-04-16** — F2 batch 7: kids/ui primitives + components/molecules swept. KidsStatBar/KidsCoinBadge/KidsChallengeItem: coin+xp imgs switched to width/height attrs; label conditional styling → `text-ink-faint line-through` classes. KidsTabBar: active `color:"#fff"` + `rgba(255,255,255,0.3)` + `rgba(0,0,0,0.08)` → `text-white` + `bg-white/30` + `bg-black/[0.08]`. PopupTimer overlay → `bg-slate-900/55 backdrop-blur-[6px]`. Remaining inline across app is now exclusively dynamic: per-item/per-rarity color data, per-particle geometry, progress-pct widths, scroll-driven transforms.

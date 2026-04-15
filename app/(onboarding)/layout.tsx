@@ -3,7 +3,7 @@ import DemoBar from "@/components/atoms/DemoBar";
 
 export default function OnboardingLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-dvh">
       <DemoBar />
       {children}
     </div>

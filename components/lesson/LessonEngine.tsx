@@ -100,7 +100,7 @@ export function LessonEngine({ lesson, nextLessonSlug, backUrl = '/dashboard/les
   }
 
   return (
-    <div className="flex flex-col min-h-screen relative overflow-hidden bg-lesson-engine">
+    <div className="flex flex-col min-h-dvh relative overflow-hidden bg-lesson-engine">
 
       {/* Ігрові декорації фону */}
       <div className="pointer-events-none select-none absolute inset-0 overflow-hidden" aria-hidden>

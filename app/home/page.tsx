@@ -16,7 +16,7 @@ const W = 'max-w-6xl mx-auto w-full';
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-surface">
+    <div className="min-h-dvh bg-surface">
       <PopupTimer />
 
       {/* ── Навігація ── */}
@@ -73,7 +73,7 @@ export default function HomePage() {
       <main>
 
         {/* ── Hero ── */}
-        <section className="relative min-h-[calc(100vh-4rem)] flex items-center justify-center overflow-hidden">
+        <section className="relative min-h-[calc(100dvh-4rem)] flex items-center justify-center overflow-hidden">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=1920&h=1080&fit=crop&q=85"

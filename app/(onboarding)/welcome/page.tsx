@@ -5,7 +5,7 @@ import { mockKidsUser } from "@/mocks/user";
 
 export default function WelcomePage() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-surface via-surface to-primary/5 flex flex-col items-center justify-center px-5 py-16">
+    <div className="min-h-dvh bg-gradient-to-b from-surface via-surface to-primary/5 flex flex-col items-center justify-center px-5 py-16">
       <div className="w-full max-w-md flex flex-col items-center text-center gap-6">
 
         {/* Fox hero */}
