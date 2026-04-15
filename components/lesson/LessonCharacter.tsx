@@ -95,7 +95,7 @@ export function LessonCharacter({ emotion }: { emotion: CharEmotion }) {
   /* ── Mobile: inline, centered ───────────────────────────────────── */
   return (
     <>
-      <div className="flex lg:hidden [@media(max-height:500px)]:hidden flex-shrink-0 flex-col items-center gap-0 pt-10 sm:pt-4 pb-1 select-none">
+      <div className="flex lg:hidden [@media(max-height:500px)]:hidden flex-shrink-0 flex-col items-center gap-0 pt-10 sm:pt-4 pb-0 select-none">
         <div
           key={bounceKey}
           className={`flex flex-col items-center ${emotion === 'correct' ? 'animate-bounce-in' : ''}`}
