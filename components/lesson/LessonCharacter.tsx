@@ -95,21 +95,31 @@ export function LessonCharacter({ emotion }: { emotion: CharEmotion }) {
   /* ── Mobile: inline, centered ───────────────────────────────────── */
   return (
     <>
-      <div className="hidden sm:flex lg:hidden [@media(max-height:500px)]:hidden flex-col items-center gap-0 pt-1 pb-1 select-none">
-        {/* Bubble + character wrapped together — both animate on bounce */}
+      <div className="flex lg:hidden [@media(max-height:500px)]:hidden flex-shrink-0 flex-col items-center gap-0 pt-1 pb-0 select-none">
         <div
           key={bounceKey}
           className={`flex flex-col items-center ${emotion === 'correct' ? 'animate-bounce-in' : ''}`}
           style={{ transformOrigin: "bottom center" }}
         >
-          {visible && <div className="mb-2"><SpeechBubble text={bubble} maxWidth={160} size="sm" /></div>}
-          <EquippedAvatar
-            characterId={characterId}
-            emotion={EMOTION_MAP[emotion]}
-            size={108}
-            animate={emotion === 'idle' || emotion === 'thinking'}
-            equippedIds={state.equippedItemIds ?? []}
-          />
+          {visible && <div className="mb-1.5"><SpeechBubble text={bubble} maxWidth={160} size="sm" /></div>}
+          <div className="sm:hidden">
+            <EquippedAvatar
+              characterId={characterId}
+              emotion={EMOTION_MAP[emotion]}
+              size={76}
+              animate={emotion === 'idle' || emotion === 'thinking'}
+              equippedIds={state.equippedItemIds ?? []}
+            />
+          </div>
+          <div className="hidden sm:block">
+            <EquippedAvatar
+              characterId={characterId}
+              emotion={EMOTION_MAP[emotion]}
+              size={108}
+              animate={emotion === 'idle' || emotion === 'thinking'}
+              equippedIds={state.equippedItemIds ?? []}
+            />
+          </div>
         </div>
       </div>
 

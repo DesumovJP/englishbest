@@ -129,15 +129,15 @@ export function LessonEngine({ lesson, nextLessonSlug, backUrl = '/kids/school',
       />
       <LessonCharacter emotion={charEmotion} />
 
-      {/* Mobile: full-screen compact theory (separate layout) */}
+      {/* Mobile: compact theory (separate layout) */}
       {step.type === 'theory' && (
-        <div className="sm:hidden flex-1 min-h-0 relative">
+        <div className="sm:hidden flex-1 min-h-0 flex">
           <StepTheoryMobile step={step} onContinue={next} />
         </div>
       )}
 
       {/* Desktop / tablet content */}
-      <div className={`${step.type === 'theory' ? 'hidden sm:flex' : 'flex'} flex-1 min-h-0 overflow-y-auto overscroll-contain flex-col items-stretch sm:items-center px-3 sm:px-4 py-3 sm:py-8 lg:justify-center relative`}>
+      <div className={`${step.type === 'theory' ? 'hidden sm:flex' : 'flex'} flex-1 min-h-0 overflow-y-auto overscroll-contain flex-col items-stretch sm:items-center px-3 sm:px-4 py-3 sm:py-8 justify-center relative`}>
         {step.type === 'theory' && (
           <StepTheory step={step} onContinue={next} />
         )}
