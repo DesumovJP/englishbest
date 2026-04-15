@@ -127,7 +127,7 @@ export function LessonEngine({ lesson, nextLessonSlug, backUrl = '/kids/school',
       <LessonCharacter emotion={charEmotion} />
 
       {/* Контент кроку */}
-      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain flex flex-col items-center px-3 sm:px-4 py-3 sm:py-8 lg:justify-center relative">
+      <div className="flex-1 min-h-0 overflow-hidden sm:overflow-y-auto overscroll-contain flex flex-col items-stretch sm:items-center px-3 sm:px-4 py-3 sm:py-8 lg:justify-center relative">
         {step.type === 'theory' && (
           <StepTheory step={step} onContinue={next} />
         )}

@@ -6,7 +6,7 @@ interface StepFrameProps {
 
 export function StepFrame({ title, subtitle, children }: StepFrameProps) {
   return (
-    <div className="flex flex-col gap-3 sm:gap-6 w-full max-w-xl mx-auto">
+    <div className="flex flex-col gap-3 sm:gap-6 w-full max-w-xl mx-auto h-full min-h-0">
       {(title || subtitle) && (
         <div>
           {subtitle && <p className="type-label text-primary mb-1 text-[10px] sm:text-xs">{subtitle}</p>}
