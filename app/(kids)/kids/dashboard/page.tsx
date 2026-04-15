@@ -255,15 +255,15 @@ function CalendarWidget({ onOpen }: { onOpen: () => void }) {
 
   return (
     <button onClick={onOpen} className="w-full text-left active:scale-[0.97] transition-transform">
-      <HudCard className="p-3.5 overflow-hidden">
-        <div className="flex items-center gap-2.5 mb-2.5">
-          <div className="flex flex-col items-center justify-center rounded-xl flex-shrink-0 w-[46px] h-[46px] bg-danger shadow-press-danger">
-            <span className="font-black text-white leading-none text-[20px]">{dayNum}</span>
-            <span className="font-bold text-white/85 leading-none text-[8px]">{monthAbbr}</span>
+      <HudCard className="p-2.5 sm:p-3.5 overflow-hidden">
+        <div className="flex items-center gap-2 sm:gap-2.5 mb-2 sm:mb-2.5">
+          <div className="flex flex-col items-center justify-center rounded-lg sm:rounded-xl flex-shrink-0 w-[36px] h-[36px] sm:w-[46px] sm:h-[46px] bg-danger shadow-press-danger">
+            <span className="font-black text-white leading-none text-[15px] sm:text-[20px]">{dayNum}</span>
+            <span className="font-bold text-white/85 leading-none text-[7px] sm:text-[8px]">{monthAbbr}</span>
           </div>
           <div className="flex-1 min-w-0">
-            <p className="font-black leading-none text-[15px] text-ink">Розклад</p>
-            <p className="font-medium text-[11px] text-ink-muted mt-0.5">{weekday}, сьогодні</p>
+            <p className="font-black leading-none text-[12px] sm:text-[15px] text-ink">Розклад</p>
+            <p className="font-medium text-[9.5px] sm:text-[11px] text-ink-muted mt-0.5 truncate">{weekday}, сьогодні</p>
           </div>
           <span className="text-ink-muted text-sm">›</span>
         </div>
@@ -289,11 +289,11 @@ function StreakWidget({ onOpenCal }: { onOpenCal: () => void }) {
   const done = [true, true, true, true, true, true, false];
   return (
     <button onClick={onOpenCal} className="w-full active:scale-[0.97] transition-transform">
-      <HudCard className="px-3.5 pt-3 pb-2.5">
-        <div className="flex items-center gap-2 mb-2">
-          <span className="text-[22px] leading-none">🔥</span>
-          <span className="font-black text-[22px] text-accent-dark leading-none">{STREAK_DAYS}</span>
-          <span className="font-bold text-[11px] text-ink-muted">днів</span>
+      <HudCard className="px-2.5 pt-2.5 pb-2 sm:px-3.5 sm:pt-3 sm:pb-2.5">
+        <div className="flex items-center gap-1.5 sm:gap-2 mb-1.5 sm:mb-2">
+          <span className="text-[16px] sm:text-[22px] leading-none">🔥</span>
+          <span className="font-black text-[16px] sm:text-[22px] text-accent-dark leading-none">{STREAK_DAYS}</span>
+          <span className="font-bold text-[9.5px] sm:text-[11px] text-ink-muted">днів</span>
         </div>
         <div className="flex gap-1">
           {WEEK_LABELS.map((label, i) => (
@@ -315,23 +315,23 @@ function LootBoxWidget({ coins, onOpen }: { coins: number; onOpen: () => void })
   const canAfford = coins >= 50;
   return (
     <button onClick={onOpen} className="w-full text-left">
-      <HudCard className="p-3.5 flex flex-col gap-3">
-        <div className="flex items-center gap-3">
+      <HudCard className="p-2.5 sm:p-3.5 flex flex-col gap-2 sm:gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           <img
             src="/mystery-box.png" alt="" aria-hidden
             width={44} height={44}
-            className={`object-contain flex-shrink-0 ${canAfford ? "" : "grayscale opacity-60"}`}
+            className={`w-8 h-8 sm:w-11 sm:h-11 object-contain flex-shrink-0 ${canAfford ? "" : "grayscale opacity-60"}`}
           />
           <div className="flex-1 min-w-0">
-            <p className="font-black text-sm text-ink">Mystery Box</p>
+            <p className="font-black text-[12px] sm:text-sm text-ink">Mystery Box</p>
             <div className="flex items-center gap-1 mt-0.5">
               <img src="/coin.png" alt="" aria-hidden width={12} height={12} className="object-contain" />
-              <span className={`font-black text-xs ${canAfford ? "text-accent-dark" : "text-ink-muted"}`}>50</span>
+              <span className={`font-black text-[11px] sm:text-xs ${canAfford ? "text-accent-dark" : "text-ink-muted"}`}>50</span>
               {!canAfford && <span className="font-medium text-[10px] text-ink-muted">мало</span>}
             </div>
           </div>
         </div>
-        <div className={`w-full h-9 rounded-xl font-black text-white text-xs flex items-center justify-center transition-transform ${canAfford ? "bg-purple shadow-press-purple active:translate-y-1 active:shadow-none" : "bg-ink-faint/50"}`}>
+        <div className={`w-full h-8 sm:h-9 rounded-lg sm:rounded-xl font-black text-white text-[11px] sm:text-xs flex items-center justify-center transition-transform ${canAfford ? "bg-purple shadow-press-purple active:translate-y-1 active:shadow-none" : "bg-ink-faint/50"}`}>
           {canAfford ? "Відкрити" : "Пізніше"}
         </div>
       </HudCard>
@@ -343,32 +343,32 @@ function LootBoxWidget({ coins, onOpen }: { coins: number; onOpen: () => void })
 function ContinueCard() {
   return (
     <HudCard className="overflow-hidden">
-      <div className="flex items-center gap-3 px-4 py-3 bg-primary">
-        <span className="text-[28px]">{LESSON.emoji}</span>
+      <div className="flex items-center gap-2 sm:gap-3 px-2.5 py-2 sm:px-4 sm:py-3 bg-primary">
+        <span className="text-[20px] sm:text-[28px]">{LESSON.emoji}</span>
         <div className="flex-1 min-w-0">
-          <p className="font-black text-white truncate leading-tight text-[15px]">
+          <p className="font-black text-white truncate leading-tight text-[12px] sm:text-[15px]">
             {LESSON.lessonTitle}
           </p>
-          <p className="font-bold leading-none text-[11px] text-white/65">
+          <p className="font-bold leading-none text-[9.5px] sm:text-[11px] text-white/65 mt-0.5 truncate">
             Unit {LESSON.unit} · Lesson {LESSON.lessonNum}
           </p>
         </div>
         <XpBadge amount={LESSON.xpReward} size="sm" tone="onDark" />
       </div>
 
-      <div className="px-4 py-3">
+      <div className="px-2.5 py-2 sm:px-4 sm:py-3">
         <ProgressBar
           current={LESSON.lessonsCompleted}
           total={LESSON.lessonsTotal}
           tone="primary"
           size="md"
           showCount
-          className="mb-3"
+          className="mb-2 sm:mb-3"
         />
 
         <Link
           href={`/courses/english-kids-starter/lessons/${LESSON.slug}`}
-          className="flex items-center justify-center w-full rounded-xl font-black text-white text-[15px] py-3 bg-primary shadow-press-primary active:translate-y-1 active:shadow-none transition-transform">
+          className="flex items-center justify-center w-full rounded-lg sm:rounded-xl font-black text-white text-[12px] sm:text-[15px] py-2 sm:py-3 bg-primary shadow-press-primary active:translate-y-1 active:shadow-none transition-transform">
           CONTINUE →
         </Link>
       </div>
@@ -384,30 +384,30 @@ function DailiesCard({ onOpenBox }: { onOpenBox: () => void }) {
 
   return (
     <HudCard className="overflow-hidden">
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-        <p className="font-black text-[13px] text-ink">Щоденні завдання</p>
-        <div className="flex items-center gap-1.5">
+      <div className="flex items-center justify-between px-2.5 py-2 sm:px-4 sm:py-3 border-b border-border">
+        <p className="font-black text-[11px] sm:text-[13px] text-ink truncate">Щоденні завдання</p>
+        <div className="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
           {CHALLENGES.map((_, i) => (
-            <div key={i} className={`w-2.5 h-2.5 rounded-full ${done[i] ? "bg-primary" : "bg-border"}`} />
+            <div key={i} className={`w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full ${done[i] ? "bg-primary" : "bg-border"}`} />
           ))}
         </div>
       </div>
 
-      <div className="px-4 py-2 flex flex-col gap-1">
+      <div className="px-2.5 py-1 sm:px-4 sm:py-2 flex flex-col gap-0.5 sm:gap-1">
         {CHALLENGES.map((c, i) => (
           <button key={i} onClick={() => setDone(prev => { const n = [...prev]; n[i] = !n[i]; return n; })}
-            className="flex items-center gap-2.5 py-2 active:scale-[0.98] transition-transform text-left w-full">
-            <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${done[i] ? "bg-primary" : "bg-surface-muted border-[1.5px] border-border"}`}>
+            className="flex items-center gap-2 sm:gap-2.5 py-1.5 sm:py-2 active:scale-[0.98] transition-transform text-left w-full">
+            <div className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center flex-shrink-0 ${done[i] ? "bg-primary" : "bg-surface-muted border-[1.5px] border-border"}`}>
               {done[i]
-                ? <span className="font-black text-white text-xs">✓</span>
-                : <span className="text-[13px]">{c.icon}</span>}
+                ? <span className="font-black text-white text-[10px] sm:text-xs">✓</span>
+                : <span className="text-[11px] sm:text-[13px]">{c.icon}</span>}
             </div>
-            <p className={`flex-1 font-bold leading-none text-[13px] ${done[i] ? "text-ink-muted line-through" : "text-ink"}`}>
+            <p className={`flex-1 min-w-0 font-bold leading-tight text-[11px] sm:text-[13px] truncate ${done[i] ? "text-ink-muted line-through" : "text-ink"}`}>
               {c.ua}
             </p>
-            <span className="font-black flex items-center gap-0.5 flex-shrink-0 text-xs text-accent-dark">
+            <span className="font-black flex items-center gap-0.5 flex-shrink-0 text-[11px] sm:text-xs text-accent-dark">
               +{c.coins}
-              <img src="/coin.png" alt="" aria-hidden width={12} height={12} className="object-contain" />
+              <img src="/coin.png" alt="" aria-hidden width={10} height={10} className="w-2.5 h-2.5 sm:w-3 sm:h-3 object-contain" />
             </span>
           </button>
         ))}
@@ -415,7 +415,7 @@ function DailiesCard({ onOpenBox }: { onOpenBox: () => void }) {
 
       <div
         className={[
-          "mx-4 mb-4 rounded-xl flex flex-col gap-2.5 p-3 transition-all",
+          "mx-2.5 mb-2.5 sm:mx-4 sm:mb-4 rounded-lg sm:rounded-xl flex flex-col gap-2 sm:gap-2.5 p-2 sm:p-3 transition-all",
           allDone
             ? "bg-gradient-to-br from-purple to-purple-dark"
             : "bg-surface-muted border-[1.5px] border-dashed border-border",
@@ -633,14 +633,14 @@ export default function KidsDashboardPage() {
       )}
 
       {/* ── LEFT COLUMN HUD ─────────────────────────────────────── */}
-      <div className="absolute z-20 flex flex-col gap-2.5 top-[env(safe-area-inset-top,14px)] left-3 w-[min(185px,44vw)]">
+      <div className="absolute z-20 flex flex-col gap-2 sm:gap-2.5 top-[env(safe-area-inset-top,10px)] sm:top-[env(safe-area-inset-top,14px)] left-2 sm:left-3 w-[min(152px,40vw)] sm:w-[min(185px,44vw)]">
         <CalendarWidget onOpen={() => setShowCal(true)} />
         <StreakWidget onOpenCal={() => setShowCal(true)} />
         <LootBoxWidget coins={coins} onOpen={() => setOpenBox("common")} />
       </div>
 
       {/* ── RIGHT COLUMN HUD ────────────────────────────────────── */}
-      <div className="absolute z-20 flex flex-col gap-2.5 top-[env(safe-area-inset-top,14px)] right-3 w-[min(210px,50vw)]">
+      <div className="absolute z-20 flex flex-col gap-2 sm:gap-2.5 top-[env(safe-area-inset-top,10px)] sm:top-[env(safe-area-inset-top,14px)] right-2 sm:right-3 w-[min(168px,44vw)] sm:w-[min(210px,50vw)]">
         <ContinueCard />
         <DailiesCard onOpenBox={() => setOpenBox("common")} />
       </div>
@@ -656,7 +656,7 @@ export default function KidsDashboardPage() {
                 <SpeechBubble text={bubble.en} subtext={bubble.ua} maxWidth={220} />
               </div>
             )}
-            <div className="active:scale-95 transition-transform relative tk-animate-float w-[300px] h-[300px]">
+            <div className="active:scale-95 transition-transform relative tk-animate-float w-[300px] h-[300px] scale-[0.6] sm:scale-100 origin-center">
               <CharacterAvatar
                 characterId={kidsState.activeCharacterId || "fox"}
                 emotion={emotion}
@@ -670,7 +670,7 @@ export default function KidsDashboardPage() {
                 return (
                   <div
                     key={id}
-                    className="absolute pointer-events-none -translate-x-1/2 z-20 text-[84px] drop-shadow-[0_4px_8px_rgba(0,0,0,0.22)]"
+                    className="absolute pointer-events-none -translate-x-1/2 z-20 text-[54px] sm:text-[84px] drop-shadow-[0_4px_8px_rgba(0,0,0,0.22)]"
                     style={{ top: pos.top, left: pos.left }}
                   >
                     {item.emoji}

@@ -24,7 +24,7 @@ function RewardStat({ src, value, label }: { src: string; value: number; label: 
 
 export function LessonSuccess({
   xp, coinsEarned, lessonTitle, courseSlug, nextLessonSlug,
-  backUrl = '/dashboard/lessons', teacherName, teacherPhoto, callUrl,
+  backUrl = '/kids/school', teacherName, teacherPhoto, callUrl,
 }: LessonSuccessProps) {
   return (
     <div className="min-h-dvh bg-lesson-success flex items-center justify-center px-4 py-10">

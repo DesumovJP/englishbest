@@ -40,17 +40,15 @@ export default async function LessonPage({
 }: {
   params: Promise<{ courseSlug: string; lessonSlug: string }>;
 }) {
-  const { courseSlug, lessonSlug } = await params;
+  const { lessonSlug } = await params;
   const lesson = LESSON_REGISTRY[lessonSlug as keyof typeof LESSON_REGISTRY]
     ?? LESSON_REGISTRY['hello-goodbye'];
-
-  const backUrl = courseSlug === 'english-kids-starter' ? '/kids/school' : '/dashboard/lessons';
 
   return (
     <LessonEngine
       lesson={lesson}
       nextLessonSlug={NEXT_LESSON[lessonSlug]}
-      backUrl={backUrl}
+      backUrl="/kids/school"
       teacherName={TEACHER.name}
       teacherPhoto={TEACHER.photo}
       callUrl={TEACHER.callUrl}

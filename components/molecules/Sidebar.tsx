@@ -33,7 +33,7 @@ interface NavSection {
 const NAV_FLAT: Record<'student' | 'teacher' | 'parent', NavItem[]> = {
   student: [
     { label: 'Дашборд',         href: '/dashboard/student',  emoji: '🏠' },
-    { label: 'Мої уроки',       href: '/dashboard/lessons',  emoji: '📅' },
+    { label: 'Мої уроки',       href: '/kids/school',        emoji: '📅' },
     { label: 'Бібліотека',      href: '/library',             emoji: '📖' },
     { label: 'Календар',        href: '/calendar',            emoji: '📆' },
     { label: 'Дитячий модуль',  href: '/kids/dashboard',     emoji: '🧒' },

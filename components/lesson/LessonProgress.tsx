@@ -12,7 +12,7 @@ export function LessonProgress({ current, total, xp }: LessonProgressProps) {
   return (
     <header className="flex items-center gap-4 px-4 py-3 bg-white/70 backdrop-blur-md border-b border-white/60 flex-shrink-0 relative z-10">
       <Link
-        href="/dashboard/lessons"
+        href="/kids/school"
         aria-label="Вийти з уроку"
         className="w-9 h-9 rounded-xl flex items-center justify-center text-ink-muted hover:bg-surface-muted hover:text-ink transition-colors flex-shrink-0"
       >

@@ -25,7 +25,7 @@ interface Props {
   callUrl: string;
 }
 
-export function LessonEngine({ lesson, nextLessonSlug, backUrl = '/dashboard/lessons', teacherName, teacherPhoto, callUrl }: Props) {
+export function LessonEngine({ lesson, nextLessonSlug, backUrl = '/kids/school', teacherName, teacherPhoto, callUrl }: Props) {
   const { state: kidsState, patch: patchKids } = useKidsState();
   const [stepIdx,   setStepIdx]   = useState(0);
   const [mistakes,  setMistakes]  = useState(0);
