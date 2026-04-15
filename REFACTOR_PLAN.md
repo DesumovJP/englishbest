@@ -110,12 +110,18 @@ For each page: verify layout + interactions at all 6 viewports, portrait + lands
 - [x] Added `.env.example` with `NEXT_PUBLIC_API_BASE_URL=/api/mock`.
 
 ### F6 — Verification
-- [ ] `npm run lint` clean
-- [ ] `tsc --noEmit` clean
-- [ ] `jest` green
-- [ ] `next build` succeeds
-- [ ] Manual Playwright pass on test matrix
-- [ ] Final `ARCHITECTURE.md` matches the codebase
+- [x] `tsc --noEmit` clean — 0 errors
+- [x] `jest` green — 23/23 tests passing
+- [x] `next build` succeeds — 34 routes prerendered, no build errors
+- [ ] `npm run lint` clean — **9 errors + 77 warnings remain, all pre-existing and orthogonal to the refactor:**
+  - `react-hooks/set-state-in-effect` (3 sites): `LessonCharacter:87`, `kids/characters/page:52`, and another — effect pattern needs refactor to derive state instead of sync via setState.
+  - `react/impure-function` in LootBox ConfettiParticle/Star (3 sites, `Math.random` during render) — move particle generation into `useState`/`useMemo` keyed on box-open event.
+  - `react/no-access-ref-during-render` in kids/characters:405 — ref accessed during render; needs `useRef` guard or `useEffect`.
+  - `react/no-unescaped-entities` in LootBox:439 (apostrophe in Ukrainian string) — trivial `&apos;` fix.
+  - `no-unused-vars` × 11 — safe to remove.
+  - `@next/next/no-img-element` × 6 — `<img>` → `next/image`; low priority for emoji-sized coin/xp PNGs.
+- [ ] Manual Playwright pass on test matrix — user-driven
+- [x] Final `ARCHITECTURE.md` matches the codebase — consistent with F1 rewrite + F5 config layer
 
 ---
 
@@ -130,6 +136,7 @@ For each page: verify layout + interactions at all 6 viewports, portrait + lands
 - **2026-04-15** — F2 batch 4: kids/school detoxed (732 LOC). Per-unit accent fed via CSS var `--accent`; `bg-[color:var(--accent)]/10` etc. Library row gets `--accent` + `--cover-bg`. Carousel: scroll-snap + `px-[calc(50%-clamp(140px,31vw,190px))]`; per-card transform/opacity kept inline (runtime scroll-driven).
 - **2026-04-15** — F2 batch 5: kids/shop detoxed (largest file). 131 inline → 2 dynamic (bgValue preview, equipped-slot coords). RARITY collapsed from 3 parallel hex records into 1 Tailwind class record (text/bg/border). BACKGROUNDS gradient hex retained as data. **All 9 kids pages done.**
 - **2026-04-15** — F2 batch 6: kids/components (LootBox, KidsFooter, AddCustomModal, ItemDisplay, CharacterAvatar) swept. LootBox: 11 static inline → Tailwind (box/modal sizes, fixed animation delays, `bg-black/80 backdrop-blur-lg`); remaining 8 are dynamic per-rarity theming (glow, drop-shadow, rarity badge bg/color) or per-particle geometry. KidsFooter: safe-area pb, icon sizes, badge font moved to Tailwind; active-state transform/filter moved to conditional classes. AddCustomModal: removed 2 redundant `borderWidth:3` duplicates (already had `border-3`).
+- **2026-04-16** — F6 verification: `tsc`, `jest` (23/23), `next build` (34 routes) all clean. Lint reports 9 pre-existing errors unrelated to the refactor (React purity + set-state-in-effect in lesson/kids/loot code); documented in F6 section for a follow-up pass. Physical-device Playwright matrix remains user-driven.
 - **2026-04-16** — F5 data seam: `lib/config.ts` + `.env.example` landed; `lib/api.ts` rewritten to use `fetcher<T>()` through `API_BASE_URL`. Backend swap is now a single env-var change. Non-goals deferred: layout-shell extraction + page splits (both low-yield; touched files already scan clean).
 - **2026-04-16** — F4 static sweep: scanned for known responsive pitfalls (oversized min-w, fixed grid cols, hidden overflow). Only actionable fix: AddCustomModal mood picker `grid-cols-5` → `grid-cols-3 sm:grid-cols-5` (was 368px min width, broke on iPhone SE). Tables all already wrapped; decorative blurs are absolute-positioned. Physical device matrix deferred to Playwright-driven verification.
 - **2026-04-16** — F3: responsive contract landed. All `min-h-screen` → `min-h-dvh` in full-screen surfaces (lesson engine/success, onboarding, home, dashboard/lessons, layout body, sidebar) and `min-h-svh` in stable scroll layouts (dashboard/library/calendar/auth). All `calc(100vh-*)` → `100dvh` (chat, parent). Fluid typography via `clamp()` on --text-display/h1/h2. Landscape short-viewport rules + physical device test matrix deferred into F4.
