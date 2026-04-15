@@ -61,10 +61,11 @@ export default function HomePage() {
             </Link>
             <Link
               href="/login"
-              className="bg-primary hover:brightness-110 text-white font-black text-sm px-4 py-2.5 rounded-xl transition-[filter]"
+              className="bg-primary hover:brightness-110 text-white font-black text-[13px] sm:text-sm px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl transition-[filter] whitespace-nowrap"
               style={{ boxShadow: '0 3px 0 var(--color-primary-dark)' }}
             >
-              Спробувати безкоштовно
+              <span className="sm:hidden">Спробувати</span>
+              <span className="hidden sm:inline">Спробувати безкоштовно</span>
             </Link>
           </div>
         </div>

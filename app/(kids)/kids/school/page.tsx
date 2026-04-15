@@ -421,37 +421,37 @@ function LibListItem({ item, isLocked, onNavigate }: {
   return (
     <div
       className={[
-        'flex gap-5 px-6 py-5 cursor-pointer transition-colors border-b border-gray-100',
+        'flex gap-3 px-3 py-3 md:gap-5 md:px-6 md:py-5 cursor-pointer transition-colors border-b border-gray-100',
         isLocked ? 'opacity-65' : 'opacity-100',
       ].join(' ')}
       style={rowVars}
       onClick={onNavigate}
     >
       <div className={[
-        'flex-shrink-0 rounded-xl overflow-hidden flex items-center justify-center w-24 h-[130px] text-[52px] shadow-[0_4px_16px_rgba(0,0,0,0.25)] bg-[image:var(--cover-bg)]',
+        'flex-shrink-0 rounded-lg md:rounded-xl overflow-hidden flex items-center justify-center w-16 h-[88px] text-[36px] md:w-24 md:h-[130px] md:text-[52px] shadow-[0_4px_16px_rgba(0,0,0,0.25)] bg-[image:var(--cover-bg)]',
         isLocked && 'grayscale-50',
       ].filter(Boolean).join(' ')}>
         {item.emoji}
       </div>
 
       <div className="flex-1 min-w-0 flex flex-col">
-        <p className="font-black leading-snug text-lg text-gray-900 -tracking-[0.02em]">
+        <p className="font-black leading-snug text-[15px] md:text-lg text-gray-900 -tracking-[0.02em]">
           {item.titleEn}
-          <span className="font-medium text-[15px] text-gray-500"> — {item.subtitle}</span>
+          <span className="font-medium text-[13px] md:text-[15px] text-gray-500"> — {item.subtitle}</span>
         </p>
-        <p className="font-medium mt-0.5 text-[13px] text-gray-400">{item.titleUa}</p>
+        <p className="font-medium mt-0.5 text-[11.5px] md:text-[13px] text-gray-400">{item.titleUa}</p>
 
         {desc && (
-          <p className="font-medium leading-relaxed mt-2 text-[13.5px] text-gray-700 line-clamp-3">
+          <p className="hidden md:block font-medium leading-relaxed mt-2 text-[13.5px] text-gray-700 line-clamp-3">
             {desc}
           </p>
         )}
 
-        <div className="flex items-center gap-2 mt-auto pt-3 flex-wrap">
-          <span className="rounded-md px-2.5 py-0.5 font-bold text-[11.5px] bg-[color:var(--accent)]/10 text-[color:var(--accent)] border border-[color:var(--accent)]/25">
+        <div className="flex items-center gap-1.5 md:gap-2 mt-auto pt-2 md:pt-3 flex-wrap">
+          <span className="rounded-md px-2 py-0.5 font-bold text-[10.5px] md:text-[11.5px] bg-[color:var(--accent)]/10 text-[color:var(--accent)] border border-[color:var(--accent)]/25">
             {TYPE_LABEL[item.type]}
           </span>
-          <span className="rounded-md px-2.5 py-0.5 font-bold text-[11.5px] bg-gray-100 text-gray-700 border border-gray-200">
+          <span className="rounded-md px-2 py-0.5 font-bold text-[10.5px] md:text-[11.5px] bg-gray-100 text-gray-700 border border-gray-200">
             {item.level}
           </span>
           {isLocked && <span className="text-sm">🔒</span>}
