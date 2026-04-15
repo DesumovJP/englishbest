@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 const REVIEWS = [
   {
@@ -61,12 +61,29 @@ const REVIEWS = [
   },
 ];
 
+function getPerPage(w: number) {
+  if (w < 640) return 1;
+  if (w < 1024) return 2;
+  return 3;
+}
+
 export function ReviewsSlider() {
   const [index, setIndex] = useState(0);
+  const [perPage, setPerPage] = useState(3);
+
+  useEffect(() => {
+    const update = () => setPerPage(getPerPage(window.innerWidth));
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, []);
 
   const total = REVIEWS.length;
-  const perPage = 3;
-  const maxIndex = total - perPage;
+  const maxIndex = Math.max(0, total - perPage);
+
+  useEffect(() => {
+    setIndex(i => Math.min(i, maxIndex));
+  }, [maxIndex]);
 
   function prev() {
     setIndex(i => Math.max(0, i - 1));
@@ -116,7 +133,7 @@ export function ReviewsSlider() {
           {REVIEWS.map(r => (
             <div
               key={r.name}
-              className="bg-surface border border-border rounded-2xl p-6 flex flex-col gap-4 flex-shrink-0 shadow-card"
+              className="bg-surface border border-border rounded-2xl p-5 md:p-6 flex flex-col gap-3 md:gap-4 flex-shrink-0 shadow-card"
               style={{ width: `calc(100% / ${perPage} - ${(perPage - 1) * 20 / perPage}px)` }}
             >
               <div className="flex items-center gap-0.5">

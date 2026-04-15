@@ -442,7 +442,7 @@ function LibListItem({ item, isLocked, onNavigate }: {
         <p className="font-medium mt-0.5 text-[11.5px] md:text-[13px] text-gray-400">{item.titleUa}</p>
 
         {desc && (
-          <p className="hidden md:block font-medium leading-relaxed mt-2 text-[13.5px] text-gray-700 line-clamp-3">
+          <p className="font-medium leading-snug md:leading-relaxed mt-1 md:mt-2 text-[12px] md:text-[13.5px] text-gray-700 line-clamp-2 md:line-clamp-3">
             {desc}
           </p>
         )}
@@ -465,6 +465,7 @@ function LibraryCatalog() {
   const router = useRouter();
   const user   = mockKidsUser;
   const [libTab, setLibTab] = useState<LibTabId>('all');
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const visible = LIB_ITEMS.filter(i => libTab === 'all' || i.type === libTab);
   const counts: Record<LibTabId, number> = {
@@ -482,10 +483,27 @@ function LibraryCatalog() {
           .filter(g => g.items.length > 0)
       : [{ header: '', items: visible }];
 
+  const activeCat = LIB_CATEGORIES.find(c => c.id === libTab) ?? LIB_CATEGORIES[0];
+
   return (
     <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
-      <div className="flex flex-row md:flex-col flex-shrink-0 overflow-x-auto md:overflow-x-visible md:overflow-y-auto bg-white md:w-[196px] border-b md:border-b-0 md:border-r border-gray-100 py-2 md:py-5 px-3 md:px-0 gap-2 md:gap-0">
-        <p className="hidden md:block px-5 mb-2 font-black uppercase tracking-widest text-[10px] text-gray-400">
+      {/* Mobile: drawer trigger */}
+      <button
+        onClick={() => setDrawerOpen(true)}
+        className="md:hidden flex items-center justify-between gap-2 px-4 h-11 bg-white border-b border-gray-100 text-left"
+      >
+        <span className="flex items-center gap-2 min-w-0">
+          <span className="font-black text-[14px] text-gray-900 truncate">{activeCat.label}</span>
+          <span className="font-bold text-[11px] text-gray-400">{counts[activeCat.id]}</span>
+        </span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden className="flex-shrink-0 text-gray-500">
+          <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+
+      {/* Desktop sidebar */}
+      <div className="hidden md:flex flex-col flex-shrink-0 overflow-y-auto bg-white w-[196px] border-r border-gray-100 py-5">
+        <p className="px-5 mb-2 font-black uppercase tracking-widest text-[10px] text-gray-400">
           Категорія
         </p>
         {LIB_CATEGORIES.map(cat => {
@@ -493,19 +511,52 @@ function LibraryCatalog() {
           return (
             <button key={cat.id} onClick={() => setLibTab(cat.id)}
               className={[
-                'flex items-center gap-1.5 md:justify-between shrink-0 md:shrink px-3 md:px-5 py-1.5 md:py-2.5 rounded-full md:rounded-none text-left transition-colors border md:border-0 md:border-l-[3px]',
-                isActive
-                  ? 'bg-gray-900 md:bg-gray-100 border-gray-900 md:border-gray-900'
-                  : 'bg-white md:bg-transparent border-gray-200 md:border-transparent',
+                'flex items-center justify-between px-5 py-2.5 text-left transition-colors border-l-[3px]',
+                isActive ? 'bg-gray-100 border-gray-900' : 'bg-transparent border-transparent',
               ].join(' ')}>
-              <span className={['text-[13px] whitespace-nowrap', isActive ? 'text-white md:text-gray-900 font-extrabold' : 'text-gray-500 font-medium'].join(' ')}>
+              <span className={['text-[13px]', isActive ? 'text-gray-900 font-extrabold' : 'text-gray-500 font-medium'].join(' ')}>
                 {cat.label}
               </span>
-              <span className={['font-medium text-[11px]', isActive ? 'text-white/70 md:text-gray-400' : 'text-gray-400'].join(' ')}>{counts[cat.id]}</span>
+              <span className="font-medium text-[11px] text-gray-400">{counts[cat.id]}</span>
             </button>
           );
         })}
       </div>
+
+      {/* Mobile bottom sheet */}
+      {drawerOpen && (
+        <div className="md:hidden fixed inset-0 z-50 flex items-end">
+          <div
+            className="absolute inset-0 bg-slate-900/55 backdrop-blur-[4px]"
+            onClick={() => setDrawerOpen(false)}
+            aria-hidden
+          />
+          <div className="relative w-full rounded-t-3xl bg-white shadow-[0_-10px_40px_rgba(15,23,42,0.15)] pb-[env(safe-area-inset-bottom,16px)] animate-[slide-up_220ms_ease-out]">
+            <div className="flex justify-center pt-2.5 pb-2">
+              <span className="h-1 w-10 rounded-full bg-gray-300" aria-hidden />
+            </div>
+            <p className="px-5 pb-2 font-black uppercase tracking-widest text-[10px] text-gray-400">Категорія</p>
+            <div className="px-2 pb-2">
+              {LIB_CATEGORIES.map(cat => {
+                const isActive = libTab === cat.id;
+                return (
+                  <button
+                    key={cat.id}
+                    onClick={() => { setLibTab(cat.id); setDrawerOpen(false); }}
+                    className={[
+                      'w-full flex items-center justify-between px-3 py-3 rounded-xl transition-colors',
+                      isActive ? 'bg-gray-900 text-white' : 'bg-transparent text-gray-700 active:bg-gray-100',
+                    ].join(' ')}
+                  >
+                    <span className="font-extrabold text-[15px]">{cat.label}</span>
+                    <span className={['font-bold text-[12px]', isActive ? 'text-white/70' : 'text-gray-400'].join(' ')}>{counts[cat.id]}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="flex-1 min-w-0 overflow-y-auto pb-28 bg-white">
         {grouped.map((group, gi) => (

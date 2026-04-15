@@ -172,7 +172,7 @@ function ProductCard({ item, isBought, isLocked, canAfford, onBuyClick }: {
           <img src={item.customImageIdle} alt={item.nameEn}
             className={["w-[70%] h-[70%] object-contain", isLocked && "grayscale"].filter(Boolean).join(" ")} />
         ) : (
-          <span className={["text-[clamp(28px,5vw,44px)] leading-none", isLocked && "grayscale"].filter(Boolean).join(" ")}>
+          <span className={["text-[clamp(44px,10vw,64px)] leading-none", isLocked && "grayscale"].filter(Boolean).join(" ")}>
             {item.emoji}
           </span>
         )}
@@ -195,11 +195,11 @@ function ProductCard({ item, isBought, isLocked, canAfford, onBuyClick }: {
       </div>
 
       <div className="mt-2 flex flex-col gap-0.5">
-        <p className="font-black leading-tight text-[clamp(11px,1.4vw,14px)] text-gray-900 -tracking-[0.01em]">
+        <p className="font-black leading-tight text-[14px] sm:text-[clamp(11px,1.4vw,14px)] text-gray-900 -tracking-[0.01em]">
           {item.nameEn}
         </p>
-        <p className="font-medium italic leading-none text-[clamp(9px,1.1vw,11px)] text-gray-400">{item.phonetic}</p>
-        <p className="font-medium leading-none text-[clamp(9px,1.1vw,11px)] text-gray-500">{item.nameUa}</p>
+        <p className="font-medium italic leading-none text-[11px] sm:text-[clamp(9px,1.1vw,11px)] text-gray-400">{item.phonetic}</p>
+        <p className="font-medium leading-none text-[11px] sm:text-[clamp(9px,1.1vw,11px)] text-gray-500">{item.nameUa}</p>
 
         <div className="flex items-center justify-between mt-1.5">
           <span className={[
@@ -621,6 +621,7 @@ function ShopPageInner() {
   const [openBox, setOpenBox]     = useState<BoxRarity | null>(null);
   const [showAdd, setShowAdd]     = useState(false);
   const [onlyAffordable, setOnlyAffordable] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const allItems: ShopItem[] = [
     ...ITEMS,
@@ -759,33 +760,76 @@ function ShopPageInner() {
               <button onClick={() => setShowAdd(true)}
                 className="w-8 h-8 rounded-xl flex items-center justify-center font-black text-lg bg-gray-100 text-gray-700 active:scale-90 transition-transform">+</button>
             </div>
-            <div className="flex items-center gap-1.5 px-4 pb-3 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              {CATEGORIES.map(cat => {
-                const isActive = activeTab === cat.id;
-                return (
-                  <button key={cat.id}
-                    onClick={() => setActiveTab(cat.id)}
-                    className={[
-                      "flex-shrink-0 flex items-center gap-1.5 rounded-full px-3 py-1.5 transition-all active:scale-95",
-                      isActive ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-500",
-                    ].join(" ")}>
-                    <span className="text-sm">{cat.emoji}</span>
-                    <span className="font-bold text-[11px]">{cat.label}</span>
-                  </button>
-                );
-              })}
-              <div className="w-px h-5 flex-shrink-0 mx-1 bg-gray-200" />
-              <button
-                onClick={() => setActiveTab("character")}
-                className={[
-                  "flex-shrink-0 flex items-center gap-1.5 rounded-full px-3 py-1.5 transition-all active:scale-95 border-[1.5px] border-purple-200",
-                  activeTab === "character" ? "bg-purple-600 text-white" : "bg-purple-50 text-purple-600",
-                ].join(" ")}>
-                <span className="text-sm">🎒</span>
-                <span className="font-bold text-[11px]">Інвентар ({bought.size})</span>
-              </button>
-            </div>
+            <button
+              onClick={() => setDrawerOpen(true)}
+              className="flex items-center justify-between gap-2 w-full px-4 pb-3 text-left"
+            >
+              <span className="flex items-center gap-2 min-w-0">
+                <span className="text-base">
+                  {activeTab === "character" ? "🎒" : (CATEGORIES.find(c => c.id === activeTab)?.emoji ?? "🛍️")}
+                </span>
+                <span className="font-black text-[14px] text-gray-900 truncate">
+                  {activeTab === "character" ? "Інвентар" : (CATEGORIES.find(c => c.id === activeTab)?.label ?? "Все")}
+                </span>
+                <span className="font-bold text-[11px] text-gray-400">
+                  {activeTab === "character" ? bought.size : counts[activeTab]}
+                </span>
+              </span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden className="flex-shrink-0 text-gray-500">
+                <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
           </div>
+
+          {/* Mobile category bottom sheet */}
+          {drawerOpen && (
+            <div className="md:hidden fixed inset-0 z-50 flex items-end">
+              <div
+                className="absolute inset-0 bg-slate-900/55 backdrop-blur-[4px]"
+                onClick={() => setDrawerOpen(false)}
+                aria-hidden
+              />
+              <div className="relative w-full max-h-[80vh] overflow-y-auto rounded-t-3xl bg-white shadow-[0_-10px_40px_rgba(15,23,42,0.15)] pb-[env(safe-area-inset-bottom,16px)] animate-[slide-up_220ms_ease-out]">
+                <div className="sticky top-0 bg-white flex justify-center pt-2.5 pb-2">
+                  <span className="h-1 w-10 rounded-full bg-gray-300" aria-hidden />
+                </div>
+                <p className="px-5 pb-2 font-black uppercase tracking-widest text-[10px] text-gray-400">Category</p>
+                <div className="px-2">
+                  {CATEGORIES.map(cat => {
+                    const isActive = activeTab === cat.id;
+                    return (
+                      <button
+                        key={cat.id}
+                        onClick={() => { setActiveTab(cat.id); setDrawerOpen(false); }}
+                        className={[
+                          "w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-colors",
+                          isActive ? "bg-gray-900 text-white" : "bg-transparent text-gray-700 active:bg-gray-100",
+                        ].join(" ")}
+                      >
+                        <span className="text-lg">{cat.emoji}</span>
+                        <span className="flex-1 text-left font-extrabold text-[15px]">{cat.label}</span>
+                        <span className={["font-bold text-[12px]", isActive ? "text-white/70" : "text-gray-400"].join(" ")}>{counts[cat.id]}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="mx-5 mt-3 pt-3 border-t border-gray-100">
+                  <p className="font-black uppercase tracking-widest mb-2 text-[10px] text-gray-400">Моє</p>
+                  <button
+                    onClick={() => { setActiveTab("character"); setDrawerOpen(false); }}
+                    className={[
+                      "w-full flex items-center gap-3 rounded-xl px-3 py-3 text-left transition-colors border-[1.5px]",
+                      activeTab === "character" ? "bg-purple-600 border-purple-600 text-white" : "bg-purple-50 border-purple-100 text-purple-700 active:bg-purple-100",
+                    ].join(" ")}
+                  >
+                    <span className="text-lg">🎒</span>
+                    <span className="flex-1 font-extrabold text-[15px]">Інвентар</span>
+                    <span className={["font-bold text-[12px]", activeTab === "character" ? "text-white/70" : "text-purple-500"].join(" ")}>{bought.size}</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Results bar */}
           <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-100">
