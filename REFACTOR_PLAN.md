@@ -42,13 +42,37 @@ Rewrite `ARCHITECTURE.md` from scratch to cover:
 - [x] Backend integration checklist (what to swap when API is ready)
 
 ### F2 — Design system audit
-- [ ] Inventory every inline `style={{…}}` across `app/`, `components/`
-- [ ] Justify each (allowed only for: dynamic CSS vars, SVG transforms, computed geometry)
-- [ ] Replace the rest with tokens / utility classes / CSS variables
-- [ ] Inventory every hardcoded color (hex/rgb) outside `globals.css`
-- [ ] Move legitimate color constants into `@theme`, reference via Tailwind token
-- [ ] Confirm typography uses `.type-*` classes everywhere (no ad-hoc `text-xs font-black …`)
-- [ ] Add missing tokens exposed by the audit to `@theme`
+**Baseline inventory (2026-04-15):** 522 inline `style={{…}}` across 30 files, 591 hex literals across 18 files. Target: retain only genuinely dynamic inline styles (per-item colors, SVG/geometry transforms); replace the rest.
+
+Kids pages:
+- [x] `/kids/achievements` — 18→0 inline, 17→0 hex
+- [x] `/kids/coins` — 52→0 inline, 41→0 hex
+- [x] `/kids/library/[id]` — 54→1 inline (dynamic cover), 49→0 hex
+- [ ] `/kids/dashboard` — 15 inline, 6 hex
+- [ ] `/kids/lessons` — 37 inline, 24 hex
+- [ ] `/kids/school` — 65 inline, 38 hex
+- [ ] `/kids/shop` — 131 inline, 111 hex (largest)
+- [ ] `/kids/characters` — 65 inline, 57 hex
+- [ ] `/kids/room` — 30 inline, 17 hex (many legitimate drag/geometry)
+
+Kids components:
+- [ ] `AddCustomModal.tsx` — 3 inline, 7 hex
+- [ ] `LootBox.tsx` — 19 inline, 33 hex
+- [ ] `ItemDisplay.tsx` — 1 inline, 1 hex
+- [ ] `CharacterAvatar.tsx` — 1 inline
+- [ ] `KidsFooter.tsx` — 3 inline
+- [ ] `kids/ui/*` primitives (small counts each; consolidate press-shadow variants)
+- [ ] `CompanionSVG.tsx` — 173 hex (SVG fill art, NOT to refactor)
+
+Other:
+- [ ] `/dashboard/analytics`, `/dashboard/lessons` — small counts
+- [ ] `/home` — 1 inline
+- [ ] `/(onboarding)/*` — 1 inline each
+- [ ] Lesson step components — small
+- [ ] `components/molecules/*` — small
+
+- [ ] Confirm typography uses `.type-*` classes everywhere (still ad-hoc `text-[Npx]` in rewritten files; revisit once all conversions done)
+- [ ] Add missing tokens exposed by the audit to `@theme` (e.g. shadow-press-sm for `[0_3px_0_*]` repeats)
 - [ ] Dedupe overlapping animations (`.animate-*` vs `.tk-animate-*`)
 
 ### F3 — Responsive contract
@@ -92,3 +116,4 @@ For each page: verify layout + interactions at all 6 viewports, portrait + lands
 - **2026-04-15** — Plan created. Beginning F0 cleanup.
 - **2026-04-15** — F0 done (stale md, root PNGs, empty route groups removed; `@source not "../PLAN.md"` stripped).
 - **2026-04-15** — F1 done: `ARCHITECTURE.md` rewritten (13 sections: stack, directory, routing, data, state, design tokens, responsive contract, components, kids subsystem, conventions, backend checklist, per-page + per-token how-tos).
+- **2026-04-15** — F2 batch 1: achievements, coins, library/[id] fully detoxed (124 inline + 107 hex eliminated, only legitimate dynamic values remain).
