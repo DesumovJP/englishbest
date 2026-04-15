@@ -24,8 +24,7 @@ export default function KidsFooter() {
   return (
     <nav
       aria-label="Навігація"
-      className="fixed bottom-0 inset-x-0 z-50 bg-white/75 backdrop-blur-2xl backdrop-saturate-150 border-t border-black/[0.06]"
-      style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
+      className="fixed bottom-0 inset-x-0 z-50 bg-white/75 backdrop-blur-2xl backdrop-saturate-150 border-t border-black/[0.06] pb-[env(safe-area-inset-bottom,0px)]"
     >
       <ul className="flex items-stretch max-w-lg mx-auto px-2 py-1.5">
         {TABS.map(tab => {
@@ -47,8 +46,10 @@ export default function KidsFooter() {
                 >
                   <span
                     aria-hidden
-                    className="leading-none transition-transform"
-                    style={{ fontSize: 22, transform: active ? "scale(1.05)" : "scale(1)", filter: active ? "none" : "grayscale(0.2) opacity(0.55)" }}
+                    className={[
+                      "leading-none transition-transform text-[22px]",
+                      active ? "scale-105" : "[filter:grayscale(0.2)_opacity(0.55)]",
+                    ].join(" ")}
                   >
                     {tab.icon}
                   </span>
@@ -59,7 +60,7 @@ export default function KidsFooter() {
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src="/coin.png" alt="" aria-hidden width={8} height={8} className="object-contain" />
-                      <span className="font-black text-white leading-none" style={{ fontSize: 8.5 }}>
+                      <span className="font-black text-white leading-none text-[8.5px]">
                         {coins > 999 ? "999+" : coins}
                       </span>
                     </span>

@@ -56,11 +56,11 @@ Kids pages:
 - [x] `/kids/room` — 30→1 dynamic (activeRoom.bg), 17 hex are room data gradients
 
 Kids components:
-- [ ] `AddCustomModal.tsx` — 3 inline, 7 hex
-- [ ] `LootBox.tsx` — 19 inline, 33 hex
-- [ ] `ItemDisplay.tsx` — 1 inline, 1 hex
-- [ ] `CharacterAvatar.tsx` — 1 inline
-- [ ] `KidsFooter.tsx` — 3 inline
+- [x] `AddCustomModal.tsx` — 2 redundant `borderWidth:3` removed; RARITIES / TABS hex + custom-room bg upload are genuine user-data (kept)
+- [x] `LootBox.tsx` — 11 static inline → Tailwind (sizes, fixed delays, modal bg, coin imgs); remaining 8 are dynamic (per-rarity glow/filter/bg, per-particle geom, per-star xy)
+- [x] `ItemDisplay.tsx` — 1 inline is dynamic (per-item `color` user data with `#e0f2fe` fallback)
+- [x] `CharacterAvatar.tsx` — 1 inline is dynamic (`size` prop) + OUTFIT_STYLE is a per-slot CSSProperties table (keep; 3 static rows, used by dynamic keys)
+- [x] `KidsFooter.tsx` — 3 inline → Tailwind (safe-area pb, icon size, badge font-size); active transform/filter moved to classes
 - [ ] `kids/ui/*` primitives (small counts each; consolidate press-shadow variants)
 - [ ] `CompanionSVG.tsx` — 173 hex (SVG fill art, NOT to refactor)
 
@@ -121,3 +121,4 @@ For each page: verify layout + interactions at all 6 viewports, portrait + lands
 - **2026-04-15** — F2 batch 3: kids/dashboard, kids/room detoxed. All static styling moved to Tailwind; remaining inline = activeRoom.bg, per-event color, placed-item coords, equipped-item slot offsets. Hex literals that remain are pure data (event colors, gradient room presets).
 - **2026-04-15** — F2 batch 4: kids/school detoxed (732 LOC). Per-unit accent fed via CSS var `--accent`; `bg-[color:var(--accent)]/10` etc. Library row gets `--accent` + `--cover-bg`. Carousel: scroll-snap + `px-[calc(50%-clamp(140px,31vw,190px))]`; per-card transform/opacity kept inline (runtime scroll-driven).
 - **2026-04-15** — F2 batch 5: kids/shop detoxed (largest file). 131 inline → 2 dynamic (bgValue preview, equipped-slot coords). RARITY collapsed from 3 parallel hex records into 1 Tailwind class record (text/bg/border). BACKGROUNDS gradient hex retained as data. **All 9 kids pages done.**
+- **2026-04-15** — F2 batch 6: kids/components (LootBox, KidsFooter, AddCustomModal, ItemDisplay, CharacterAvatar) swept. LootBox: 11 static inline → Tailwind (box/modal sizes, fixed animation delays, `bg-black/80 backdrop-blur-lg`); remaining 8 are dynamic per-rarity theming (glow, drop-shadow, rarity badge bg/color) or per-particle geometry. KidsFooter: safe-area pb, icon sizes, badge font moved to Tailwind; active-state transform/filter moved to conditional classes. AddCustomModal: removed 2 redundant `borderWidth:3` duplicates (already had `border-3`).

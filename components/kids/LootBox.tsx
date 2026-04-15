@@ -190,23 +190,19 @@ function BoxArt({
     <button
       onClick={state === 'idle' ? onTap : undefined}
       className={[
-        'relative select-none focus:outline-none',
+        'relative select-none focus:outline-none w-[180px] h-[210px]',
         state === 'idle' ? 'cursor-pointer active:scale-95' : 'cursor-default',
       ].join(' ')}
-      style={{ width: 180, height: 210 }}
       aria-label="Відкрити бокс"
     >
-      {/* Glow */}
+      {/* Glow — dynamic color from cfg.glow, dynamic opacity based on state */}
       <div
-        className="absolute inset-[-20px] rounded-full blur-2xl pointer-events-none"
-        style={{ background: cfg.glow, opacity: isRevealed ? 0.8 : 0.45, transition: 'opacity 0.4s' }}
+        className="absolute inset-[-20px] rounded-full blur-2xl pointer-events-none transition-opacity duration-[400ms]"
+        style={{ background: cfg.glow, opacity: isRevealed ? 0.8 : 0.45 }}
       />
 
       {/* Ground shadow */}
-      <div
-        className="absolute bottom-0 left-1/2 -translate-x-1/2 blur-md rounded-full pointer-events-none"
-        style={{ width: 120, height: 18, background: 'rgba(0,0,0,0.22)' }}
-      />
+      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 blur-md rounded-full pointer-events-none w-[120px] h-[18px] bg-black/20" />
 
       {/* Mystery box image */}
       <img
@@ -231,7 +227,7 @@ function BoxArt({
 /* ── Idle tap hint ──────────────────────────────────────────────── */
 function TapHint() {
   return (
-    <p className="text-center text-sm font-black text-ink-muted animate-bounce-in" style={{ animationDelay: '0.3s' }}>
+    <p className="text-center text-sm font-black text-ink-muted animate-bounce-in [animation-delay:0.3s]">
       👆 Натисни на бокс!
     </p>
   );
@@ -247,22 +243,21 @@ function RevealCard({ item, onClose, onOpenAnother, canAfford }: {
   const r = RARITY[item.rarity];
 
   return (
-    <div className="flex flex-col items-center gap-5 animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
-      {/* Rarity badge */}
+    <div className="flex flex-col items-center gap-5 animate-fade-in-up [animation-delay:0.3s]">
+      {/* Rarity badge — dynamic per-rarity bg/color/glow */}
       <div
-        className="px-4 py-1.5 rounded-full font-black text-xs uppercase tracking-widest animate-bounce-in"
+        className="px-4 py-1.5 rounded-full font-black text-xs uppercase tracking-widest animate-bounce-in [animation-delay:0.4s]"
         style={{
           background: r.bg,
           color: r.color,
           boxShadow: `0 0 16px 4px ${r.glow}`,
-          animationDelay: '0.4s',
         }}
       >
         {item.isCharacter ? '🎭 Новий персонаж!' : r.label}
       </div>
 
       {/* Item name */}
-      <div className="text-center animate-fade-in-up" style={{ animationDelay: '0.5s' }}>
+      <div className="text-center animate-fade-in-up [animation-delay:0.5s]">
         <p className="text-3xl font-black text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)]">{item.nameUa}</p>
         {item.isCharacter && (
           <p className="text-sm font-bold text-white/75 mt-1">Тепер він у твоїй колекції!</p>
@@ -270,7 +265,7 @@ function RevealCard({ item, onClose, onOpenAnother, canAfford }: {
       </div>
 
       {/* Buttons */}
-      <div className="flex gap-3 w-full max-w-[280px] animate-fade-in-up" style={{ animationDelay: '0.65s' }}>
+      <div className="flex gap-3 w-full max-w-[280px] animate-fade-in-up [animation-delay:0.65s]">
         <button
           onClick={onClose}
           className="flex-1 h-12 rounded-2xl border-2 border-white/30 bg-white/10 backdrop-blur-sm font-black text-sm text-white hover:bg-white/20 hover:border-white/50 transition-colors"
@@ -377,10 +372,7 @@ export function LootBoxModal({ boxType, balance, onClose, onPurchase }: LootBoxM
   const canAfford = balance - cfg.price >= cfg.price;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: 'rgba(0,0,0,0.82)', backdropFilter: 'blur(10px)' }}
-    >
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-lg">
       {/* Close button — only in idle */}
       {state === 'idle' && (
         <button
@@ -402,13 +394,13 @@ export function LootBoxModal({ boxType, balance, onClose, onPurchase }: LootBoxM
             {cfg.name} бокс
           </p>
           <div className="flex items-center justify-center gap-1.5">
-            <img src="/coin.png" alt="coin" style={{ width: 24, height: 24, objectFit: "contain" }} />
+            <img src="/coin.png" alt="coin" width={24} height={24} className="object-contain" />
             <span className="text-2xl font-black text-white">{cfg.price}</span>
           </div>
         </div>
 
         {/* Box + stars + confetti */}
-        <div className="relative flex items-center justify-center" style={{ width: 260, height: 260 }}>
+        <div className="relative flex items-center justify-center w-[260px] h-[260px]">
           {/* Idle stars */}
           {state === 'idle' && stars.map(s => (
             <Star key={s.id} color={s.color} x={s.x} y={s.y} delay={s.delay} size={s.size} />
@@ -424,11 +416,11 @@ export function LootBoxModal({ boxType, balance, onClose, onPurchase }: LootBoxM
 
           {/* Item emerges from box */}
           {state === 'revealed' && item && (
-            <div
-              className="absolute flex items-center justify-center animate-item-emerge pointer-events-none"
-              style={{ top: '10%', left: '50%', transform: 'translateX(-50%)' }}
-            >
-              <span style={{ fontSize: 80, lineHeight: 1, filter: `drop-shadow(0 8px 20px ${RARITY[item.rarity].glow})` }}>
+            <div className="absolute flex items-center justify-center animate-item-emerge pointer-events-none top-[10%] left-1/2 -translate-x-1/2">
+              <span
+                className="text-[80px] leading-none"
+                style={{ filter: `drop-shadow(0 8px 20px ${RARITY[item.rarity].glow})` }}
+              >
                 {item.emoji}
               </span>
             </div>
@@ -441,7 +433,7 @@ export function LootBoxModal({ boxType, balance, onClose, onPurchase }: LootBoxM
           {state === 'idle' && balance < cfg.price && (
             <div className="text-center animate-fade-in-up">
               <p className="text-sm font-black text-white/50">Не вистачає монеток</p>
-              <p className="text-xs text-white/30 mt-1 flex items-center justify-center gap-1">Потрібно ще <img src="/coin.png" alt="coin" style={{ width: 11, height: 11, objectFit: "contain" }} /> {cfg.price - balance}</p>
+              <p className="text-xs text-white/30 mt-1 flex items-center justify-center gap-1">Потрібно ще <img src="/coin.png" alt="coin" width={11} height={11} className="object-contain" /> {cfg.price - balance}</p>
             </div>
           )}
           {state === 'shaking' && (
@@ -543,8 +535,7 @@ export function BoxCard({ type, balance, onOpen }: BoxCardProps) {
           src="/mystery-box.png"
           alt=""
           aria-hidden
-          className="relative w-24 h-24 object-contain animate-float drop-shadow-[0_10px_20px_rgba(0,0,0,0.18)]"
-          style={{ animationDuration: '2.8s' }}
+          className="relative w-24 h-24 object-contain animate-float drop-shadow-[0_10px_20px_rgba(0,0,0,0.18)] [animation-duration:2.8s]"
         />
       </div>
 

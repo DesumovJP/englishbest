@@ -91,8 +91,7 @@ function ImageUpload({
       <button
         type="button"
         onClick={() => inputRef.current?.click()}
-        className="w-16 h-16 rounded-2xl border-3 border-dashed border-[var(--tk-border)] bg-[var(--tk-bg)] flex items-center justify-center overflow-hidden transition-all hover:border-[var(--tk-blue)] active:scale-95"
-        style={{ borderWidth: 3 }}
+        className="w-16 h-16 rounded-2xl border-[3px] border-dashed border-[var(--tk-border)] bg-[var(--tk-bg)] flex items-center justify-center overflow-hidden transition-all hover:border-[var(--tk-blue)] active:scale-95"
       >
         {value ? (
           <img src={value} alt={label} className="w-full h-full object-contain" />
@@ -342,8 +341,7 @@ function AddRoomTab({ onDone }: { onDone: () => void }) {
                 };
                 el.click();
               }}
-              className="w-48 h-28 rounded-2xl border-3 border-dashed border-[var(--tk-border)] flex items-center justify-center overflow-hidden"
-              style={{ borderWidth: 3 }}
+              className="w-48 h-28 rounded-2xl border-[3px] border-dashed border-[var(--tk-border)] flex items-center justify-center overflow-hidden"
             >
               {bgImg ? (
                 <img src={bgImg} alt="bg" className="w-full h-full object-cover" />
