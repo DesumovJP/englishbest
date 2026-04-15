@@ -623,80 +623,89 @@ export default function KidsDashboardPage() {
         <button
           onClick={() => setEditMode((v) => !v)}
           aria-pressed={editMode}
+          aria-label={editMode ? "Готово" : "Пересунути предмети"}
           className={[
-            "absolute z-30 rounded-full px-3 h-8 md:px-3.5 md:h-9 flex items-center gap-1.5 font-black text-[11px] md:text-xs shadow-lg transition-colors",
-            "bottom-[calc(env(safe-area-inset-bottom,0px)+140px)] right-3 md:bottom-[calc(env(safe-area-inset-bottom,0px)+78px)] md:right-[14px]",
-            editMode ? "bg-primary text-white" : "bg-white/90 text-ink border border-black/5",
+            "absolute z-30 rounded-full w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center shadow-lg transition-colors",
+            "bottom-[calc(env(safe-area-inset-bottom,0px)+185px)] right-3 sm:bottom-[calc(env(safe-area-inset-bottom,0px)+78px)] sm:right-[14px]",
+            editMode ? "bg-primary text-white" : "bg-white/95 text-ink border border-black/5",
           ].join(" ")}
         >
-          {editMode ? "Готово ✓" : "Посунути щось ✎"}
+          {editMode ? (
+            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M5 12l5 5L20 7" />
+            </svg>
+          ) : (
+            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M12 2v4M12 18v4M2 12h4M18 12h4M5 5l2.5 2.5M16.5 16.5L19 19M5 19l2.5-2.5M16.5 7.5L19 5" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+          )}
         </button>
       )}
 
-      {/* ── LEFT COLUMN HUD (desktop/tablet) ────────────────────── */}
-      <div className="hidden md:flex absolute z-20 flex-col gap-2.5 top-[env(safe-area-inset-top,14px)] left-3 w-[min(185px,44vw)]">
+      {/* ── LEFT COLUMN HUD (landscape mobile + tablet/desktop) ── */}
+      <div className="hidden sm:flex absolute z-20 flex-col gap-2 md:gap-2.5 top-[env(safe-area-inset-top,10px)] md:top-[env(safe-area-inset-top,14px)] left-2 md:left-3 w-[min(160px,36vw)] md:w-[min(185px,44vw)]">
         <CalendarWidget onOpen={() => setShowCal(true)} />
         <StreakWidget onOpenCal={() => setShowCal(true)} />
         <LootBoxWidget coins={coins} onOpen={() => setOpenBox("common")} />
       </div>
 
-      {/* ── RIGHT COLUMN HUD (desktop/tablet) ───────────────────── */}
-      <div className="hidden md:flex absolute z-20 flex-col gap-2.5 top-[env(safe-area-inset-top,14px)] right-3 w-[min(210px,50vw)]">
+      {/* ── RIGHT COLUMN HUD (landscape mobile + tablet/desktop) ─ */}
+      <div className="hidden sm:flex absolute z-20 flex-col gap-2 md:gap-2.5 top-[env(safe-area-inset-top,10px)] md:top-[env(safe-area-inset-top,14px)] right-2 md:right-3 w-[min(180px,38vw)] md:w-[min(210px,50vw)]">
         <ContinueCard />
         <DailiesCard onOpenBox={() => setOpenBox("common")} />
       </div>
 
-      {/* ── MOBILE TOP HUD BAR ──────────────────────────────────── */}
-      <div className="md:hidden absolute z-20 top-[env(safe-area-inset-top,8px)] left-2 right-2">
-        <div className="flex items-center gap-1 h-12 px-2 rounded-full bg-white/95 backdrop-blur-sm shadow-[0_4px_16px_rgba(0,0,0,0.12)]">
-          <button
-            onClick={() => setShowCal(true)}
-            className="flex items-center gap-1.5 h-9 px-2 rounded-full active:scale-95 transition-transform"
-            aria-label="Розклад"
-          >
-            <div className="relative w-7 h-7 rounded-lg bg-danger flex flex-col items-center justify-center shadow-[0_2px_0_#C2410C]">
-              <span className="font-black text-white leading-none text-[11px]">{new Date().getDate()}</span>
-              <span className="font-bold text-white/85 leading-none text-[6px] mt-px">{MONTHS_UA[new Date().getMonth()].slice(0, 3).toUpperCase()}</span>
-            </div>
-          </button>
-          <div className="h-6 w-px bg-border" />
-          <button
-            onClick={() => setShowCal(true)}
-            className="flex items-center gap-1 h-9 px-1.5 rounded-full active:scale-95 transition-transform"
-            aria-label="Стрік"
-          >
-            <span className="text-[18px] leading-none">🔥</span>
-            <span className="font-black text-[15px] text-accent-dark leading-none">{STREAK_DAYS}</span>
-          </button>
-          <div className="h-6 w-px bg-border" />
-          <button
-            onClick={() => setShowDailies(true)}
-            aria-label="Щоденні завдання"
-            className="relative flex items-center gap-1 h-9 px-1.5 rounded-full active:scale-95 transition-transform"
-          >
-            <span className="text-[17px] leading-none">🎯</span>
-            <span className="font-black text-[12px] text-ink leading-none">{CHALLENGES.filter(c => c.done).length}/{CHALLENGES.length}</span>
-            {CHALLENGES.some(c => !c.done) && (
-              <span className="absolute top-1 right-0.5 w-1.5 h-1.5 rounded-full bg-danger" />
-            )}
-          </button>
-          <div className="flex-1" />
-          <button
-            onClick={() => setOpenBox("common")}
-            className="flex items-center gap-1 h-9 px-2.5 rounded-full bg-purple/10 active:scale-95 transition-transform"
-            aria-label="Mystery Box"
-          >
-            <img src="/mystery-box.png" alt="" aria-hidden width={20} height={20} className={`object-contain ${coins >= 50 ? "" : "grayscale opacity-60"}`} />
-            <img src="/coin.png" alt="" aria-hidden width={11} height={11} className="object-contain" />
-            <span className="font-black text-[12px] text-accent-dark leading-none">50</span>
-          </button>
-        </div>
+      {/* ── MOBILE PORTRAIT TOP PILLS ───────────────────────────── */}
+      <div className="sm:hidden absolute z-20 top-[env(safe-area-inset-top,8px)] left-2 right-2 flex gap-1.5">
+        <button
+          onClick={() => setShowCal(true)}
+          className="flex-1 min-w-0 h-11 rounded-2xl bg-white/95 backdrop-blur-sm shadow-md flex items-center gap-1.5 px-2 active:scale-95 transition-transform"
+          aria-label="Розклад"
+        >
+          <div className="flex flex-col items-center justify-center w-7 h-7 rounded-lg bg-danger shadow-[0_2px_0_#C2410C] flex-shrink-0">
+            <span className="font-black text-white leading-none text-[11px]">{new Date().getDate()}</span>
+            <span className="font-bold text-white/85 leading-none text-[6px] mt-px">{MONTHS_UA[new Date().getMonth()].slice(0, 3).toUpperCase()}</span>
+          </div>
+          <div className="flex-1 min-w-0 text-left leading-tight">
+            <p className="font-black text-[11px] text-ink truncate">Розклад</p>
+            <p className="font-bold text-[9px] text-ink-muted truncate">{WEEKDAYS_SHORT_UA[new Date().getDay()]}, сьогодні</p>
+          </div>
+        </button>
+        <button
+          onClick={() => setShowCal(true)}
+          className="h-11 rounded-2xl bg-white/95 backdrop-blur-sm shadow-md flex items-center gap-1 px-2.5 active:scale-95 transition-transform"
+          aria-label="Стрік"
+        >
+          <span className="text-[16px] leading-none">🔥</span>
+          <span className="font-black text-[14px] text-accent-dark leading-none">{STREAK_DAYS}</span>
+        </button>
+        <button
+          onClick={() => setShowDailies(true)}
+          aria-label="Щоденні завдання"
+          className="relative h-11 rounded-2xl bg-white/95 backdrop-blur-sm shadow-md flex items-center gap-1 px-2.5 active:scale-95 transition-transform"
+        >
+          <span className="text-[16px] leading-none">🎯</span>
+          <span className="font-black text-[12px] text-ink leading-none">{CHALLENGES.filter(c => c.done).length}/{CHALLENGES.length}</span>
+          {CHALLENGES.some(c => !c.done) && (
+            <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-danger" />
+          )}
+        </button>
+        <button
+          onClick={() => setOpenBox("common")}
+          className="h-11 rounded-2xl bg-white/95 backdrop-blur-sm shadow-md flex items-center gap-1 px-2 active:scale-95 transition-transform"
+          aria-label="Mystery Box"
+        >
+          <img src="/mystery-box.png" alt="" aria-hidden width={20} height={20} className={`object-contain ${coins >= 50 ? "" : "grayscale opacity-60"}`} />
+          <img src="/coin.png" alt="" aria-hidden width={11} height={11} className="object-contain" />
+          <span className="font-black text-[12px] text-accent-dark leading-none">50</span>
+        </button>
       </div>
 
-      {/* ── MOBILE BOTTOM CONTINUE BUTTON ───────────────────────── */}
+      {/* ── MOBILE PORTRAIT BOTTOM CTA ──────────────────────────── */}
       <Link
         href={`/courses/english-kids-starter/lessons/${LESSON.slug}`}
-        className="md:hidden absolute z-20 bottom-[calc(69px+env(safe-area-inset-bottom,12px))] left-3 right-3 rounded-2xl bg-primary shadow-press-primary active:translate-y-1 active:shadow-none transition-transform overflow-hidden"
+        className="sm:hidden absolute z-20 bottom-[calc(69px+env(safe-area-inset-bottom,0px)+16px)] left-3 right-3 rounded-2xl bg-primary shadow-press-primary active:translate-y-1 active:shadow-none transition-transform overflow-hidden"
       >
         <div className="flex items-center gap-2.5 px-3 py-2.5">
           <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-white/15 flex-shrink-0">
@@ -715,7 +724,7 @@ export default function KidsDashboardPage() {
 
       {/* Mobile dailies bottom sheet */}
       {showDailies && (
-        <div className="md:hidden fixed inset-0 z-[60] flex items-end">
+        <div className="sm:hidden fixed inset-0 z-[60] flex items-end">
           <div className="absolute inset-0 bg-slate-900/55 backdrop-blur-[4px]" onClick={() => setShowDailies(false)} />
           <div className="relative w-full max-h-[85dvh] flex flex-col rounded-t-3xl bg-white shadow-[0_-10px_40px_rgba(0,0,0,0.25)] animate-[slide-up_220ms_ease-out]">
             <div className="flex-shrink-0 flex justify-center pt-2.5 pb-2">
@@ -739,7 +748,7 @@ export default function KidsDashboardPage() {
                 <SpeechBubble text={bubble.en} subtext={bubble.ua} maxWidth={220} />
               </div>
             )}
-            <div className="active:scale-95 transition-transform relative tk-animate-float w-[300px] h-[300px] scale-[0.8] md:scale-100 origin-center">
+            <div className="active:scale-95 transition-transform relative tk-animate-float w-[300px] h-[300px] scale-[0.8] sm:scale-[0.65] md:scale-[0.85] lg:scale-100 origin-center">
               <CharacterAvatar
                 characterId={kidsState.activeCharacterId || "fox"}
                 emotion={emotion}
