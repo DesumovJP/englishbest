@@ -9,6 +9,7 @@ import AddCustomModal from "@/components/kids/AddCustomModal";
 import { useCustomItems, useKidsState } from "@/lib/use-kids-store";
 import CharacterAvatar from "@/components/kids/CharacterAvatar";
 import { CHARACTERS, type CharacterEmotion } from "@/lib/characters";
+import { InventoryMobile } from "@/components/kids/shop/InventoryMobile";
 
 type TabId = "all" | "furniture" | "decor" | "outfit" | "special" | "boxes" | "backgrounds" | "character";
 
@@ -751,14 +752,32 @@ function ShopPageInner() {
         {/* Main */}
         <div className="flex flex-col flex-1 overflow-hidden">
           {/* Mobile header */}
-          <div className="md:hidden border-b border-gray-100">
-            <div className="flex items-center gap-3 px-4 py-2 pt-[env(safe-area-inset-top,8px)]">
-              <div className="flex items-center gap-1.5 rounded-xl px-2.5 py-1.5 bg-amber-50 border-[1.5px] border-amber-200">
-                <img src="/coin.png" alt="coin" width={16} height={16} className="object-contain" />
-                <span className="font-black text-[13px] text-amber-800">{balance}</span>
+          <div className="md:hidden border-b border-gray-100 bg-white">
+            <div
+              className="flex items-center gap-2.5 px-4 py-2.5"
+              style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 10px)' }}
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-xl" aria-hidden>🛍️</span>
+                <h1 className="font-black text-[17px] text-gray-900 tracking-tight">Магазин</h1>
               </div>
-              <button onClick={() => setShowAdd(true)}
-                className="w-8 h-8 rounded-xl flex items-center justify-center font-black text-lg bg-gray-100 text-gray-700 active:scale-90 transition-transform">+</button>
+
+              <div className="flex-1" />
+
+              <div className="flex items-center gap-2 rounded-xl px-2.5 py-1.5 bg-amber-50 border-[1.5px] border-amber-200">
+                <img src="/coin.png" alt="coin" width={18} height={18} className="object-contain" />
+                <div className="flex flex-col leading-none">
+                  <span className="text-[7.5px] text-amber-600 font-bold uppercase tracking-[0.07em]">Balance</span>
+                  <span className="font-black text-[13px] text-amber-800 mt-0.5">{balance}</span>
+                </div>
+                <button
+                  onClick={() => setShowAdd(true)}
+                  aria-label="Поповнити"
+                  className="w-6 h-6 rounded-lg flex items-center justify-center font-black text-sm bg-amber-200/70 text-amber-800 active:scale-90 transition-transform ml-1"
+                >
+                  +
+                </button>
+              </div>
             </div>
             <button
               onClick={() => setDrawerOpen(true)}
@@ -834,7 +853,7 @@ function ShopPageInner() {
           )}
 
           {/* Results bar */}
-          <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-100">
+          <div className={`${activeTab === "character" ? "hidden md:flex" : "flex"} items-center justify-between px-4 py-2.5 border-b border-gray-100`}>
             <p className="font-medium text-xs text-gray-400">
               {activeTab === "boxes" ? "Mystery Boxes" : activeTab === "backgrounds" ? `${BACKGROUNDS.length} backgrounds` : `${visible.length} items`}
             </p>
@@ -849,13 +868,40 @@ function ShopPageInner() {
           {/* Content */}
           <div className={`flex-1 overflow-hidden ${activeTab === "character" ? "flex flex-col" : "overflow-y-auto px-4 pt-4 pb-28"}`}>
             {activeTab === "character" ? (
-              <CharacterDressRoom
-                allItems={allItems}
-                ownedIds={bought}
-                balance={balance}
-                onBuyItem={item => setBuyItem(item)}
-                onPlaceItem={handlePlaceFromInventory}
-              />
+              <>
+                <div className="md:hidden flex-1 min-h-0">
+                  <InventoryMobile
+                    outfitItems={allItems.filter(i => i.tab === "outfit" || i.tab === "special")}
+                    roomItems={allItems.filter(i => (i.tab === "furniture" || i.tab === "decor" || i.tab === "special") && bought.has(i.id))}
+                    ownedIds={bought}
+                    equippedIds={kidsState.equippedItemIds ?? []}
+                    balance={balance}
+                    userLevel={user.level}
+                    slotOffset={SLOT_OFFSET}
+                    emotionMeta={EMOTION_META}
+                    dressChars={DRESS_CHARS}
+                    rarityMap={RARITY}
+                    canUnlock={(lvl, req) => canUnlock(lvl as Level, req as Level)}
+                    onToggleEquip={(id) => {
+                      const cur = kidsState.equippedItemIds ?? [];
+                      const next = cur.includes(id) ? cur.filter(x => x !== id) : [...cur, id];
+                      patchState({ equippedItemIds: next });
+                    }}
+                    onSelectCharacter={(id) => patchState({ activeCharacterId: id })}
+                    onBuy={(item) => setBuyItem(item as ShopItem)}
+                    onPlaceInRoom={handlePlaceFromInventory}
+                  />
+                </div>
+                <div className="hidden md:flex flex-1 min-h-0 overflow-hidden">
+                  <CharacterDressRoom
+                    allItems={allItems}
+                    ownedIds={bought}
+                    balance={balance}
+                    onBuyItem={item => setBuyItem(item)}
+                    onPlaceItem={handlePlaceFromInventory}
+                  />
+                </div>
+              </>
             ) : activeTab === "backgrounds" ? (
               <div className="flex flex-col gap-5">
                 <div className="inline-flex items-center gap-2.5 rounded-2xl px-4 py-2.5 self-start bg-green-50 border-[1.5px] border-green-200">
