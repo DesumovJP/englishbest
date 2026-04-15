@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, type CSSProperties } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { mockKidsUser } from '@/mocks/user';
 import { useKidsState } from '@/lib/use-kids-store';
@@ -10,7 +10,6 @@ import {
   type LibTabId,
 } from '@/lib/library-data';
 
-/* ── Cover gradients (same as catalog) ──────────────────────────── */
 const COVER_BG: Record<Exclude<LibTabId, 'all'>, string> = {
   books:   'linear-gradient(160deg, #1e3a5f 0%, #1D4ED8 100%)',
   courses: 'linear-gradient(160deg, #064e3b 0%, #059669 100%)',
@@ -45,27 +44,29 @@ export default function LibraryDetailPage() {
 
   if (!itemOrUndef) {
     return (
-      <div className="flex h-[100dvh] items-center justify-center flex-col gap-4 bg-white">
-        <span style={{ fontSize: 48 }}>😕</span>
-        <p className="font-black" style={{ fontSize: 18, color: '#1A1A2E' }}>Не знайдено</p>
+      <div className="flex h-dvh items-center justify-center flex-col gap-4 bg-white">
+        <span className="text-5xl">😕</span>
+        <p className="font-black text-lg text-gray-900">Не знайдено</p>
         <button onClick={() => router.back()}
-          className="rounded-xl px-6 py-3 font-black text-white"
-          style={{ background: '#4F9CF9', boxShadow: '0 3px 0 #1D4ED8' }}>
+          className="rounded-xl px-6 py-3 font-black text-white bg-blue-500 shadow-[0_3px_0_#1D4ED8]">
           ← Назад
         </button>
       </div>
     );
   }
 
-  const item     = itemOrUndef;
-  const accent   = TYPE_ACCENT[item.type];
-  const desc     = LIB_DESCRIPTIONS[item.id] ?? 'Цікавий навчальний матеріал для покращення знань англійської мови.';
+  const item      = itemOrUndef;
+  const accent    = TYPE_ACCENT[item.type];
+  const desc      = LIB_DESCRIPTIONS[item.id] ?? 'Цікавий навчальний матеріал для покращення знань англійської мови.';
   const longParas = LIB_LONG[item.id] ?? [desc, 'Цей матеріал входить до навчальної бібліотеки English Kids і був відібраний з урахуванням вікових особливостей і рівня мови. Тексти адаптовані, ключові слова підсвічуються, а складні моменти супроводжуються підказками.', 'Під час роботи з матеріалом ти заробляєш монети та XP, а прогрес зберігається автоматично — можна повернутися до читання чи перегляду будь-коли.'];
   const preview   = LIB_PREVIEWS[item.id];
-  const isOwned  = owned.has(item.id);
-  const isLocked = !canAccessLevel(mockKidsUser.level, item.level);
-  const balance  = state.coins ?? mockKidsUser.coins;
+  const isOwned   = owned.has(item.id);
+  const isLocked  = !canAccessLevel(mockKidsUser.level, item.level);
+  const balance   = state.coins ?? mockKidsUser.coins;
   const canAfford = balance >= item.price;
+
+  // Dynamic accent color fed to CSS custom properties — kept inline on purpose.
+  const accentVars = { '--accent': accent, '--cover-bg': COVER_BG[item.type] } as CSSProperties;
 
   function handleGet() {
     if (isLocked || isOwned) return;
@@ -75,137 +76,102 @@ export default function LibraryDetailPage() {
   }
 
   return (
-    <div className="flex flex-col h-[100dvh] bg-white">
-
-      {/* ── TOP BAR ─────────────────────────────────────────────── */}
-      <div className="flex items-center gap-3 px-5 flex-shrink-0"
-        style={{
-          paddingTop: 'env(safe-area-inset-top, 14px)', paddingBottom: 14,
-          borderBottom: '1px solid #F3F4F6', background: 'white',
-        }}>
+    <div className="flex flex-col h-dvh bg-white" style={accentVars}>
+      {/* Top bar */}
+      <div className="flex items-center gap-3 px-5 flex-shrink-0 py-3.5 border-b border-gray-100 bg-white pt-[max(14px,env(safe-area-inset-top))]">
         <button onClick={() => router.back()}
-          className="w-9 h-9 rounded-lg flex items-center justify-center font-black text-lg flex-shrink-0 active:scale-90 transition-transform"
-          style={{ background: '#F3F4F6', color: '#374151' }}>←</button>
-        <p className="font-black" style={{ fontSize: 15, color: '#1A1A2E' }}>Бібліотека</p>
-        <span style={{ fontSize: 14, color: '#D1D5DB' }}>›</span>
-        <p className="font-medium truncate" style={{ fontSize: 14, color: '#6B7280' }}>{item.titleEn}</p>
+          className="w-9 h-9 rounded-lg flex items-center justify-center font-black text-lg flex-shrink-0 bg-gray-100 text-gray-700 active:scale-90 transition-transform">
+          ←
+        </button>
+        <p className="font-black text-[15px] text-gray-900">Бібліотека</p>
+        <span className="text-sm text-gray-300">›</span>
+        <p className="font-medium truncate text-sm text-gray-500">{item.titleEn}</p>
       </div>
 
-      {/* ── MAIN (sidebar + content) ─────────────────────────────── */}
+      {/* Main (sidebar + content) */}
       <div className="flex flex-1 overflow-hidden">
-
-        {/* ── Sidebar ─────────────────────────────────────────────── */}
-        <div className="flex flex-col flex-shrink-0 overflow-y-auto bg-white"
-          style={{ width: 196, borderRight: '1px solid #F3F4F6', paddingTop: 20, paddingBottom: 20 }}>
-          <p className="px-5 mb-2 font-black uppercase tracking-widest" style={{ fontSize: 10, color: '#9CA3AF' }}>
-            Категорія
-          </p>
+        {/* Sidebar */}
+        <div className="flex flex-col flex-shrink-0 overflow-y-auto bg-white w-[196px] border-r border-gray-100 py-5">
+          <p className="px-5 mb-2 font-black uppercase tracking-widest text-[10px] text-gray-400">Категорія</p>
           {LIB_CATEGORIES.map(cat => {
-            const isActive = cat.id === 'all'
-              ? false
-              : cat.id === item.type;
+            const isActive = cat.id !== 'all' && cat.id === item.type;
             return (
               <button key={cat.id}
                 onClick={() => router.push('/kids/school')}
-                className="flex items-center justify-between px-5 py-2.5 text-left transition-colors"
-                style={{
-                  background: isActive ? '#F3F4F6' : 'transparent',
-                  borderLeft: isActive ? '3px solid #1A1A2E' : '3px solid transparent',
-                }}>
-                <span className="font-bold"
-                  style={{ fontSize: 13, color: isActive ? '#1A1A2E' : '#6B7280', fontWeight: isActive ? 800 : 500 }}>
+                className={[
+                  "flex items-center justify-between px-5 py-2.5 text-left transition-colors border-l-[3px]",
+                  isActive ? "bg-gray-100 border-gray-900" : "bg-transparent border-transparent",
+                ].join(" ")}>
+                <span className={["text-[13px]", isActive ? "text-gray-900 font-extrabold" : "text-gray-500 font-medium"].join(" ")}>
                   {cat.label}
                 </span>
-                <span className="font-medium" style={{ fontSize: 11, color: '#9CA3AF' }}>{COUNTS[cat.id]}</span>
+                <span className="font-medium text-[11px] text-gray-400">{COUNTS[cat.id]}</span>
               </button>
             );
           })}
         </div>
 
-        {/* ── Detail content ──────────────────────────────────────── */}
+        {/* Detail content */}
         <div className="flex-1 overflow-y-auto">
-
-          {/* Hero section */}
-          <div className="flex gap-8 px-10 py-8" style={{ borderBottom: '1px solid #F3F4F6' }}>
-
-            {/* Large book cover */}
-            <div className="flex-shrink-0 rounded-2xl overflow-hidden flex items-center justify-center"
-              style={{
-                width: 180, height: 240,
-                background: COVER_BG[item.type],
-                boxShadow: '0 8px 32px rgba(0,0,0,0.28)',
-                fontSize: 90,
-                filter: isLocked ? 'grayscale(0.4)' : 'none',
-              }}>
+          {/* Hero */}
+          <div className="flex gap-8 px-10 py-8 border-b border-gray-100">
+            {/* Cover */}
+            <div className={[
+              "flex-shrink-0 rounded-2xl overflow-hidden flex items-center justify-center w-[180px] h-[240px] shadow-[0_8px_32px_rgba(0,0,0,0.28)] text-[90px] bg-[image:var(--cover-bg)]",
+              isLocked && "grayscale-[0.4]",
+            ].filter(Boolean).join(" ")}>
               {item.emoji}
             </div>
 
             {/* Info */}
             <div className="flex flex-col gap-3 flex-1 min-w-0 pt-1">
-              {/* Type + level */}
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="rounded-md px-2.5 py-0.5 font-bold"
-                  style={{ fontSize: 11.5, background: `${accent}15`, color: accent, border: `1px solid ${accent}28` }}>
+                <span className="rounded-md px-2.5 py-0.5 font-bold text-[11.5px] bg-[color:var(--accent)]/10 text-[color:var(--accent)] border border-[color:var(--accent)]/25">
                   {TYPE_ICON[item.type]} {TYPE_LABEL[item.type]}
                 </span>
-                <span className="rounded-md px-2.5 py-0.5 font-bold"
-                  style={{ fontSize: 11.5, background: '#F3F4F6', color: '#374151', border: '1px solid #E5E7EB' }}>
+                <span className="rounded-md px-2.5 py-0.5 font-bold text-[11.5px] bg-gray-100 text-gray-700 border border-gray-200">
                   {item.level}
                 </span>
               </div>
 
-              {/* Title */}
               <div>
-                <h1 className="font-black leading-tight" style={{ fontSize: 26, color: '#1A1A2E', letterSpacing: '-0.03em' }}>
+                <h1 className="font-black leading-tight text-[26px] text-gray-900 tracking-tight">
                   {item.titleEn}
                 </h1>
-                <p className="font-medium mt-1" style={{ fontSize: 15, color: '#9CA3AF' }}>
-                  {item.titleUa}
-                </p>
-                <p className="font-medium mt-0.5" style={{ fontSize: 13, color: '#C4C4C4' }}>
-                  {item.subtitle}
-                </p>
+                <p className="font-medium mt-1 text-[15px] text-gray-400">{item.titleUa}</p>
+                <p className="font-medium mt-0.5 text-[13px] text-gray-300">{item.subtitle}</p>
               </div>
 
-              {/* Short tagline */}
-              <p className="font-medium leading-relaxed" style={{ fontSize: 14.5, color: '#374151', lineHeight: 1.55 }}>
-                {desc}
-              </p>
+              <p className="font-medium leading-relaxed text-[14.5px] text-gray-700">{desc}</p>
 
-              {/* Action */}
               <div className="mt-2">
                 {isLocked ? (
-                  <div className="inline-flex items-center gap-2 rounded-xl px-5 py-3"
-                    style={{ background: '#F3F4F6', border: '2px solid #E5E7EB' }}>
-                    <span style={{ fontSize: 18 }}>🔒</span>
-                    <span className="font-black" style={{ fontSize: 14, color: '#9CA3AF' }}>Потрібен рівень {item.level}</span>
+                  <div className="inline-flex items-center gap-2 rounded-xl px-5 py-3 bg-gray-100 border-2 border-gray-200">
+                    <span className="text-lg">🔒</span>
+                    <span className="font-black text-sm text-gray-400">Потрібен рівень {item.level}</span>
                   </div>
                 ) : isOwned ? (
-                  <button className="rounded-xl font-black text-white px-8 py-3 active:translate-y-0.5 transition-transform"
-                    style={{ fontSize: 15, background: accent, boxShadow: `0 4px 0 ${accent}cc` }}>
+                  <button className="rounded-xl font-black text-white px-8 py-3 text-[15px] bg-[color:var(--accent)] shadow-[0_4px_0_color-mix(in_oklab,var(--accent),black_20%)] active:translate-y-0.5 transition-transform">
                     Відкрити →
                   </button>
                 ) : item.price === 0 ? (
                   <button onClick={handleGet}
-                    className="rounded-xl font-black text-white px-8 py-3 active:translate-y-0.5 transition-transform"
-                    style={{ fontSize: 15, background: '#22C55E', boxShadow: '0 4px 0 #16A34A' }}>
+                    className="rounded-xl font-black text-white px-8 py-3 text-[15px] bg-green-500 shadow-[0_4px_0_#16A34A] active:translate-y-0.5 transition-transform">
                     Отримати безкоштовно ✓
                   </button>
                 ) : canAfford ? (
                   <button onClick={handleGet}
-                    className="rounded-xl font-black text-white px-8 py-3 active:translate-y-0.5 transition-transform flex items-center gap-2"
-                    style={{ fontSize: 15, background: accent, boxShadow: `0 4px 0 ${accent}cc` }}>
-                    <img src="/coin.png" alt="coin" style={{ width: 20, height: 20, objectFit: 'contain' }} />
+                    className="rounded-xl font-black text-white px-8 py-3 text-[15px] bg-[color:var(--accent)] shadow-[0_4px_0_color-mix(in_oklab,var(--accent),black_20%)] active:translate-y-0.5 transition-transform flex items-center gap-2">
+                    <img src="/coin.png" alt="coin" width={20} height={20} className="object-contain" />
                     Купити за {item.price} монет
                   </button>
                 ) : (
                   <div className="inline-flex flex-col gap-0.5">
-                    <div className="inline-flex items-center gap-2 rounded-xl px-5 py-3"
-                      style={{ background: '#FFF7ED', border: '2px solid #FED7AA' }}>
-                      <img src="/coin.png" alt="coin" style={{ width: 18, height: 18, objectFit: 'contain' }} />
-                      <span className="font-black" style={{ fontSize: 14, color: '#D97706' }}>Не вистачає монет</span>
+                    <div className="inline-flex items-center gap-2 rounded-xl px-5 py-3 bg-orange-50 border-2 border-orange-200">
+                      <img src="/coin.png" alt="coin" width={18} height={18} className="object-contain" />
+                      <span className="font-black text-sm text-amber-600">Не вистачає монет</span>
                     </div>
-                    <p className="font-medium px-2" style={{ fontSize: 12, color: '#F59E0B' }}>
+                    <p className="font-medium px-2 text-xs text-amber-500">
                       Є {balance} / потрібно {item.price}
                     </p>
                   </div>
@@ -215,36 +181,25 @@ export default function LibraryDetailPage() {
           </div>
 
           {/* Long description */}
-          <div className="px-10 py-8" style={{ borderBottom: '1px solid #F3F4F6' }}>
-            <p className="font-black mb-4" style={{ fontSize: 11, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.09em' }}>
-              Про матеріал
-            </p>
-            <div className="flex flex-col gap-4" style={{ maxWidth: 680 }}>
+          <div className="px-10 py-8 border-b border-gray-100">
+            <p className="font-black mb-4 text-[11px] text-gray-400 uppercase tracking-[0.09em]">Про матеріал</p>
+            <div className="flex flex-col gap-4 max-w-[680px]">
               {longParas.map((p, i) => (
-                <p key={i} className="font-medium" style={{ fontSize: 15, color: '#374151', lineHeight: 1.7 }}>
-                  {p}
-                </p>
+                <p key={i} className="font-medium text-[15px] text-gray-700 leading-[1.7]">{p}</p>
               ))}
             </div>
           </div>
 
-          {/* Preview excerpt */}
+          {/* Preview */}
           {preview && (
-            <div className="px-10 py-8" style={{ borderBottom: '1px solid #F3F4F6' }}>
-              <p className="font-black mb-4" style={{ fontSize: 11, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.09em' }}>
-                {preview.title}
-              </p>
-              <div className="relative rounded-2xl px-8 py-7"
-                style={{
-                  maxWidth: 680,
-                  background: 'linear-gradient(180deg, #FFFFFF 0%, #FAFAF7 100%)',
-                  border: '1px solid #EAE5D8',
-                  boxShadow: '0 2px 10px rgba(0,0,0,0.04), inset 0 0 0 6px rgba(255,255,255,0.8)',
-                }}>
-                <span className="absolute top-3 left-5 font-black" style={{ fontSize: 42, color: `${accent}38`, lineHeight: 1 }}>“</span>
+            <div className="px-10 py-8 border-b border-gray-100">
+              <p className="font-black mb-4 text-[11px] text-gray-400 uppercase tracking-[0.09em]">{preview.title}</p>
+              <div className="relative rounded-2xl px-8 py-7 max-w-[680px] bg-[linear-gradient(180deg,#FFFFFF_0%,#FAFAF7_100%)] border border-[#EAE5D8] shadow-[0_2px_10px_rgba(0,0,0,0.04),inset_0_0_0_6px_rgba(255,255,255,0.8)]">
+                <span className="absolute top-3 left-5 font-black text-[42px] leading-none text-[color:var(--accent)]/20">“</span>
                 <div className="pl-6">
                   {preview.text.split('\n\n').map((para, i) => (
-                    <p key={i} className="font-medium" style={{ fontSize: 15.5, color: '#1F2937', lineHeight: 1.75, marginTop: i === 0 ? 0 : 14, fontFamily: 'Georgia, serif' }}>
+                    <p key={i}
+                      className={["font-medium text-[15.5px] text-gray-800 leading-[1.75] font-serif", i > 0 && "mt-3.5"].filter(Boolean).join(" ")}>
                       {para}
                     </p>
                   ))}
@@ -253,60 +208,56 @@ export default function LibraryDetailPage() {
             </div>
           )}
 
-          {/* Details section */}
+          {/* Details */}
           <div className="px-10 py-6">
-            <p className="font-black mb-4" style={{ fontSize: 11, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.09em' }}>
-              Деталі
-            </p>
+            <p className="font-black mb-4 text-[11px] text-gray-400 uppercase tracking-[0.09em]">Деталі</p>
             <div className="grid grid-cols-4 gap-4">
               {[
-                { icon: '🏅', label: 'Рівень',   value: item.level },
+                { icon: '🏅', label: 'Рівень', value: item.level },
                 { icon: TYPE_ICON[item.type], label: 'Тип', value: TYPE_LABEL[item.type] },
-                { icon: '📦', label: 'Обсяг',    value: item.subtitle },
-                { icon: '💰', label: 'Доступ',   value: isOwned ? 'Відкрито' : isLocked ? `Від ${item.level}` : item.price === 0 ? 'Безкоштовно' : `${item.price} монет` },
+                { icon: '📦', label: 'Обсяг', value: item.subtitle },
+                { icon: '💰', label: 'Доступ', value: isOwned ? 'Відкрито' : isLocked ? `Від ${item.level}` : item.price === 0 ? 'Безкоштовно' : `${item.price} монет` },
               ].map(row => (
-                <div key={row.label} className="rounded-xl px-4 py-3"
-                  style={{ background: '#F9FAFB', border: '1.5px solid #F3F4F6' }}>
+                <div key={row.label} className="rounded-xl px-4 py-3 bg-gray-50 border-[1.5px] border-gray-100">
                   <div className="flex items-center gap-1.5 mb-1">
-                    <span style={{ fontSize: 15 }}>{row.icon}</span>
-                    <span style={{ fontSize: 9, color: '#9CA3AF', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.07em' }}>
-                      {row.label}
-                    </span>
+                    <span className="text-[15px]">{row.icon}</span>
+                    <span className="text-[9px] text-gray-400 font-extrabold uppercase tracking-[0.07em]">{row.label}</span>
                   </div>
-                  <p className="font-black" style={{ fontSize: 14, color: '#1A1A2E' }}>{row.value}</p>
+                  <p className="font-black text-sm text-gray-900">{row.value}</p>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* More from same category */}
+          {/* Related */}
           <div className="px-10 pb-12">
-            <p className="font-black mb-4" style={{ fontSize: 11, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.09em' }}>
+            <p className="font-black mb-4 text-[11px] text-gray-400 uppercase tracking-[0.09em]">
               {TYPE_SECTION[item.type]} — ще матеріали
             </p>
-            <div className="flex flex-col gap-0" style={{ border: '1.5px solid #F3F4F6', borderRadius: 16, overflow: 'hidden' }}>
+            <div className="flex flex-col border-[1.5px] border-gray-100 rounded-2xl overflow-hidden">
               {LIB_ITEMS.filter(i => i.type === item.type && i.id !== item.id).slice(0, 4).map((rel, idx, arr) => (
                 <button key={rel.id} onClick={() => router.push(`/kids/library/${rel.id}`)}
-                  className="flex items-center gap-4 px-5 py-3.5 text-left transition-colors hover:bg-[#FAFAFA]"
-                  style={{ borderBottom: idx < arr.length - 1 ? '1px solid #F3F4F6' : 'none' }}>
-                  <div className="flex-shrink-0 rounded-lg overflow-hidden flex items-center justify-center"
-                    style={{ width: 44, height: 58, background: COVER_BG[rel.type], fontSize: 26 }}>
+                  className={[
+                    "flex items-center gap-4 px-5 py-3.5 text-left transition-colors hover:bg-gray-50",
+                    idx < arr.length - 1 && "border-b border-gray-100",
+                  ].filter(Boolean).join(" ")}>
+                  <div
+                    className="flex-shrink-0 rounded-lg overflow-hidden flex items-center justify-center w-11 h-[58px] text-[26px]"
+                    style={{ background: COVER_BG[rel.type] }}>
                     {rel.emoji}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-black leading-tight truncate" style={{ fontSize: 14, color: '#1A1A2E' }}>{rel.titleEn}</p>
-                    <p className="font-medium" style={{ fontSize: 12, color: '#9CA3AF' }}>{rel.titleUa}</p>
+                    <p className="font-black leading-tight truncate text-sm text-gray-900">{rel.titleEn}</p>
+                    <p className="font-medium text-xs text-gray-400">{rel.titleUa}</p>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    <span className="rounded-md px-2 py-0.5 font-bold"
-                      style={{ fontSize: 11, background: '#F3F4F6', color: '#374151' }}>{rel.level}</span>
-                    <span style={{ fontSize: 16, color: '#D1D5DB' }}>›</span>
+                    <span className="rounded-md px-2 py-0.5 font-bold text-[11px] bg-gray-100 text-gray-700">{rel.level}</span>
+                    <span className="text-base text-gray-300">›</span>
                   </div>
                 </button>
               ))}
             </div>
           </div>
-
         </div>
       </div>
     </div>
