@@ -57,6 +57,10 @@ const TYPE_GRAD: Record<string, string> = {
 interface LLesson { slug: string; title: string; emoji: string; xp: number; type?: LessonType; }
 interface LSection {
   slug: string; unit: number; title: string; bossEmoji: string;
+  /** Subtitle — what this unit is about in 1–2 lines, for the header panel. */
+  description: string;
+  /** Key skills / topics covered — shown as chips under the description. */
+  skills: string[];
   color: string; ring: string; dot: string; light: string; path: string;
   accent: string;
   lessons: LLesson[];
@@ -65,6 +69,8 @@ interface LSection {
 const SECTIONS: LSection[] = [
   {
     slug: 'basics', unit: 1, title: 'Знайомство', bossEmoji: '👋',
+    description: 'Перші кроки англійською: вітайся, називай імʼя, рахуй до десяти та знайомся з новими друзями.',
+    skills: ['Greetings', 'Numbers', 'Colors', 'Animals'],
     color: 'text-secondary', ring: 'ring-secondary/60', dot: 'bg-secondary',
     light: 'bg-secondary/8 border-secondary/15', path: 'var(--color-secondary)', accent: '#4F9CF9',
     lessons: [
@@ -82,6 +88,8 @@ const SECTIONS: LSection[] = [
   },
   {
     slug: 'daily-life', unit: 2, title: 'Щоденне життя', bossEmoji: '🏠',
+    description: 'Розпорядок дня, їжа, дім та сімʼя — все, щоб упевнено розповісти про себе й свій день.',
+    skills: ['Routines', 'Food', 'Family', 'House'],
     color: 'text-success', ring: 'ring-success/60', dot: 'bg-success',
     light: 'bg-success/8 border-success/15', path: 'var(--color-success)', accent: '#22C55E',
     lessons: [
@@ -100,6 +108,8 @@ const SECTIONS: LSection[] = [
   },
   {
     slug: 'grammar', unit: 3, title: 'Present Simple', bossEmoji: '✏️',
+    description: 'Головна граматика: будуй речення в теперішньому часі, став запитання та говори про свої звички.',
+    skills: ['Statements', 'Questions', 'Negatives', 'Adverbs'],
     color: 'text-purple', ring: 'ring-purple/60', dot: 'bg-purple',
     light: 'bg-purple/8 border-purple/15', path: 'var(--color-purple)', accent: '#A855F7',
     lessons: [
@@ -117,6 +127,8 @@ const SECTIONS: LSection[] = [
   },
   {
     slug: 'adventures', unit: 4, title: 'Пригоди', bossEmoji: '🗺️',
+    description: 'Подорожі, зоопарк, погода й перше минуле — готуйся розказати історію про свою найкращу пригоду.',
+    skills: ['Travel', 'Seasons', 'Body', 'Past Simple'],
     color: 'text-accent', ring: 'ring-accent/60', dot: 'bg-accent',
     light: 'bg-accent/8 border-accent/15', path: 'var(--color-accent)', accent: '#F59E0B',
     lessons: [
@@ -272,6 +284,11 @@ function LessonsCarousel() {
   const totalCount = SECTIONS.flatMap(s => s.lessons).length;
   const pct        = Math.round((totalDone / totalCount) * 100);
   const currentSection = SECTIONS.find(s => s.lessons.some(l => l.slug === ME.currentSlug)) ?? SECTIONS[0];
+  const sectionDone  = currentSection.lessons.filter(l => getLessonStatus(l.slug) === 'done').length;
+  const sectionTotal = currentSection.lessons.length;
+  const sectionPct   = Math.round((sectionDone / sectionTotal) * 100);
+  const xpInUnit     = currentSection.lessons.reduce((sum, l) => sum + l.xp, 0);
+  const currentLesson = currentSection.lessons.find(l => l.slug === ME.currentSlug) ?? currentSection.lessons[0];
 
   /* Recalculate per-card proximity to viewport center */
   function calcScales() {
@@ -329,30 +346,121 @@ function LessonsCarousel() {
   function getOpacity(slug: string) { const t = scales.get(slug) ?? 0; return 0.52 + 0.48 * t; }
 
   return (
-    <div className="flex flex-col flex-1 overflow-hidden">
+    <div
+      className="relative flex flex-col flex-1 overflow-hidden"
+      style={{
+        background: "url('/kids-school-bg.jpg') center / cover no-repeat",
+      }}
+    >
+      {/* Soft wash so the glass panel stays readable on any crop of the bg */}
+      <div aria-hidden className="absolute inset-0 bg-gradient-to-b from-white/70 via-white/55 to-white/85" />
 
-      {/* ── Compact centered course header ───────────────────────── */}
-      <div className="flex-shrink-0 flex justify-center px-4 py-3" style={{ background: '#FAFAFA', borderBottom: '1px solid #F3F4F6' }}>
-        <div className="flex items-center gap-3 w-full" style={{ maxWidth: 640 }}>
-          <div className="flex-shrink-0 rounded-xl flex items-center justify-center"
-            style={{ width: 42, height: 42, background: `${currentSection.accent}18`, border: `1.5px solid ${currentSection.accent}35` }}>
-            <span style={{ fontSize: 22, lineHeight: 1 }}>{currentSection.bossEmoji}</span>
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="font-black leading-tight" style={{ fontSize: 14, color: '#1A1A2E', letterSpacing: '-0.01em' }}>
-              {currentSection.title}
-              <span className="font-medium" style={{ fontSize: 11, color: '#9CA3AF' }}>  ·  UNIT {currentSection.unit}</span>
-            </p>
-            <div className="flex items-center gap-2 mt-1">
-              <div className="flex-1 rounded-full overflow-hidden" style={{ height: 5, background: `${currentSection.accent}18` }}>
-                <div className="h-full rounded-full"
-                  style={{ width: `${pct}%`, background: currentSection.accent, transition: 'width 0.7s ease' }} />
-              </div>
-              <span className="font-black flex-shrink-0" style={{ fontSize: 11, color: currentSection.accent }}>
-                {totalDone}<span style={{ color: '#D1D5DB', fontWeight: 500 }}>/{totalCount}</span>
+      {/* ── Unit description panel ────────────────────────────────── */}
+      <div className="relative z-10 flex-shrink-0 px-4 pt-4 pb-3">
+        <div
+          className="mx-auto w-full rounded-3xl bg-white/85 backdrop-blur-xl border border-white/60 shadow-[0_10px_40px_rgba(15,23,42,0.10)] overflow-hidden"
+          style={{ maxWidth: 880 }}
+        >
+          <div className="flex items-stretch gap-4 p-4 md:p-5">
+            {/* Unit crest */}
+            <div
+              className="flex-shrink-0 rounded-2xl flex flex-col items-center justify-center px-3 py-2.5"
+              style={{
+                minWidth: 76,
+                background: `linear-gradient(160deg, ${currentSection.accent}1c 0%, ${currentSection.accent}0c 100%)`,
+                border: `1.5px solid ${currentSection.accent}40`,
+              }}
+            >
+              <span style={{ fontSize: 34, lineHeight: 1 }} aria-hidden>{currentSection.bossEmoji}</span>
+              <span className="font-black tracking-widest mt-1.5" style={{ fontSize: 9, color: currentSection.accent, letterSpacing: '0.14em' }}>
+                UNIT {currentSection.unit}
               </span>
             </div>
+
+            {/* Meta + copy */}
+            <div className="flex-1 min-w-0 flex flex-col">
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className="font-black text-ink leading-tight" style={{ fontSize: 'clamp(17px, 2.2vw, 22px)', letterSpacing: '-0.02em' }}>
+                  {currentSection.title}
+                </p>
+                <span
+                  className="rounded-full px-2 py-0.5 font-black tracking-wide"
+                  style={{
+                    fontSize: 9.5,
+                    background: `${currentSection.accent}15`,
+                    color: currentSection.accent,
+                    border: `1px solid ${currentSection.accent}30`,
+                    letterSpacing: '0.08em',
+                  }}
+                >
+                  KIDS STARTER · A1
+                </span>
+              </div>
+
+              <p className="text-ink-muted font-medium leading-snug mt-1.5" style={{ fontSize: 13.5 }}>
+                {currentSection.description}
+              </p>
+
+              <div className="flex items-center gap-1.5 flex-wrap mt-2.5">
+                {currentSection.skills.map(skill => (
+                  <span
+                    key={skill}
+                    className="rounded-full px-2.5 py-1 font-bold bg-surface-muted text-ink"
+                    style={{ fontSize: 10.5, letterSpacing: '0.02em' }}
+                  >
+                    {skill}
+                  </span>
+                ))}
+                <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 font-black bg-accent/12 text-accent-dark" style={{ fontSize: 10.5 }}>
+                  <img src="/xp.png" alt="" aria-hidden style={{ width: 11, height: 11, objectFit: 'contain' }} />
+                  +{xpInUnit} XP
+                </span>
+              </div>
+            </div>
+
+            {/* Continue CTA — mobile hides, folds below */}
+            <div className="hidden md:flex flex-col items-stretch justify-center gap-2 flex-shrink-0" style={{ minWidth: 180 }}>
+              <Link
+                href={`/courses/english-kids-starter/lessons/${currentLesson.slug}`}
+                className="flex items-center justify-center gap-1.5 rounded-2xl h-11 font-black text-white text-sm shadow-press-primary active:translate-y-1 active:shadow-none transition-transform"
+                style={{ background: currentSection.accent, boxShadow: `0 4px 0 ${currentSection.accent}b0` }}
+              >
+                Продовжити →
+              </Link>
+              <p className="text-[11px] font-bold text-ink-muted text-center leading-tight truncate">
+                {currentLesson.emoji} {currentLesson.title}
+              </p>
+            </div>
           </div>
+
+          {/* Progress strip */}
+          <div className="flex items-center gap-3 px-4 md:px-5 py-3 border-t border-black/5 bg-white/40">
+            <div className="flex-1 rounded-full overflow-hidden" style={{ height: 7, background: `${currentSection.accent}22` }}>
+              <div
+                className="h-full rounded-full transition-all duration-700"
+                style={{ width: `${sectionPct}%`, background: `linear-gradient(90deg, ${currentSection.accent} 0%, ${currentSection.accent}cc 100%)` }}
+              />
+            </div>
+            <span className="font-black flex-shrink-0" style={{ fontSize: 12, color: currentSection.accent }}>
+              {sectionDone}<span className="text-ink-faint font-medium">/{sectionTotal}</span>
+              <span className="text-ink-muted font-semibold ml-1.5" style={{ fontSize: 10 }}>
+                уроків
+              </span>
+            </span>
+            <span className="text-ink-faint" aria-hidden>·</span>
+            <span className="font-bold text-ink-muted" style={{ fontSize: 11 }}>
+              Курс · {totalDone}/{totalCount}
+            </span>
+          </div>
+
+          {/* Mobile CTA */}
+          <Link
+            href={`/courses/english-kids-starter/lessons/${currentLesson.slug}`}
+            className="md:hidden flex items-center justify-center gap-1.5 rounded-b-3xl h-11 font-black text-white text-sm text-center transition-transform active:scale-[0.98]"
+            style={{ background: currentSection.accent }}
+          >
+            Продовжити: {currentLesson.title} →
+          </Link>
         </div>
       </div>
 
@@ -371,11 +479,11 @@ function LessonsCarousel() {
           msOverflowStyle: 'none',
           scrollSnapType: 'x mandatory',
           WebkitOverflowScrolling: 'touch',
-          paddingLeft:  'calc(50% - clamp(170px, 40vw, 230px))',
-          paddingRight: 'calc(50% - clamp(170px, 40vw, 230px))',
+          paddingLeft:  'calc(50% - clamp(140px, 31vw, 190px))',
+          paddingRight: 'calc(50% - clamp(140px, 31vw, 190px))',
         }}
       >
-        <div className="flex items-center gap-5" style={{ paddingTop: 22, paddingBottom: 22 }}>
+        <div className="flex items-center gap-4" style={{ paddingTop: 16, paddingBottom: 16 }}>
 
           {SECTIONS.flatMap(sec =>
             sec.lessons.map((lesson, i) => {
@@ -395,7 +503,7 @@ function LessonsCarousel() {
                   }}
                   className="flex-shrink-0"
                   style={{
-                    width:          'clamp(340px, 80vw, 460px)',
+                    width:          'clamp(280px, 62vw, 380px)',
                     aspectRatio:    '3/4',
                     scrollSnapAlign:'center',
                     transform:      `scale(${getScale(lesson.slug)})`,
@@ -416,7 +524,7 @@ function LessonsCarousel() {
           {/* Coming soon */}
           <div
             className="flex-shrink-0 flex flex-col items-center justify-center gap-3 rounded-[28px]"
-            style={{ width: 'clamp(340px, 80vw, 460px)', aspectRatio: '3/4', background: '#F9FAFB', border: '2.5px dashed #E5E7EB',
+            style={{ width: 'clamp(280px, 62vw, 380px)', aspectRatio: '3/4', background: '#F9FAFB', border: '2.5px dashed #E5E7EB',
                      scrollSnapAlign: 'center', opacity: 0.6 }}>
             <span style={{ fontSize: 64 }}>🌟</span>
             <div className="text-center">
