@@ -2,7 +2,6 @@
 @source not "../storybook-static";
 @source not "../node_modules";
 @source not "../docs";
-@source not "../PLAN.md";
 
 @theme {
   /* ── Brand colors ───────────────────────────────────────────── */
