@@ -525,34 +525,36 @@ function LibraryCatalog() {
 
       {/* Mobile bottom sheet */}
       {drawerOpen && (
-        <div className="md:hidden fixed inset-0 z-50 flex items-end">
+        <div className="md:hidden fixed inset-0 z-[60] flex items-end">
           <div
             className="absolute inset-0 bg-slate-900/55 backdrop-blur-[4px]"
             onClick={() => setDrawerOpen(false)}
             aria-hidden
           />
-          <div className="relative w-full rounded-t-3xl bg-white shadow-[0_-10px_40px_rgba(15,23,42,0.15)] pb-[env(safe-area-inset-bottom,16px)] animate-[slide-up_220ms_ease-out]">
-            <div className="flex justify-center pt-2.5 pb-2">
+          <div className="relative w-full max-h-[85dvh] flex flex-col rounded-t-3xl bg-white shadow-[0_-10px_40px_rgba(15,23,42,0.15)] animate-[slide-up_220ms_ease-out]">
+            <div className="flex-shrink-0 flex justify-center pt-2.5 pb-2">
               <span className="h-1 w-10 rounded-full bg-gray-300" aria-hidden />
             </div>
-            <p className="px-5 pb-2 font-black uppercase tracking-widest text-[10px] text-gray-400">Категорія</p>
-            <div className="px-2 pb-2">
-              {LIB_CATEGORIES.map(cat => {
-                const isActive = libTab === cat.id;
-                return (
-                  <button
-                    key={cat.id}
-                    onClick={() => { setLibTab(cat.id); setDrawerOpen(false); }}
-                    className={[
-                      'w-full flex items-center justify-between px-3 py-3 rounded-xl transition-colors',
-                      isActive ? 'bg-gray-900 text-white' : 'bg-transparent text-gray-700 active:bg-gray-100',
-                    ].join(' ')}
-                  >
-                    <span className="font-extrabold text-[15px]">{cat.label}</span>
-                    <span className={['font-bold text-[12px]', isActive ? 'text-white/70' : 'text-gray-400'].join(' ')}>{counts[cat.id]}</span>
-                  </button>
-                );
-              })}
+            <div className="flex-1 overflow-y-auto overscroll-contain pb-[env(safe-area-inset-bottom,16px)]">
+              <p className="px-5 pb-2 font-black uppercase tracking-widest text-[10px] text-gray-400">Категорія</p>
+              <div className="px-2 pb-2">
+                {LIB_CATEGORIES.map(cat => {
+                  const isActive = libTab === cat.id;
+                  return (
+                    <button
+                      key={cat.id}
+                      onClick={() => { setLibTab(cat.id); setDrawerOpen(false); }}
+                      className={[
+                        'w-full flex items-center justify-between px-3 py-3 rounded-xl transition-colors',
+                        isActive ? 'bg-gray-900 text-white' : 'bg-transparent text-gray-700 active:bg-gray-100',
+                      ].join(' ')}
+                    >
+                      <span className="font-extrabold text-[15px]">{cat.label}</span>
+                      <span className={['font-bold text-[12px]', isActive ? 'text-white/70' : 'text-gray-400'].join(' ')}>{counts[cat.id]}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </div>
