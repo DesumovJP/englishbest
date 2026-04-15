@@ -21,11 +21,11 @@ export function OptionButton({ label, state, onClick, leading, disabled }: Optio
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`w-full text-left px-5 py-4 rounded-2xl border-2 font-semibold text-base transition-all disabled:cursor-default ${STATE_CLASSES[state]}`}
+      className={`w-full text-left px-4 sm:px-5 py-3 sm:py-4 rounded-xl sm:rounded-2xl border-2 font-semibold text-sm sm:text-base transition-all disabled:cursor-default ${STATE_CLASSES[state]}`}
     >
-      <span className="inline-flex items-center gap-3">
+      <span className="inline-flex items-center gap-2.5 sm:gap-3">
         {leading && (
-          <span className="w-7 h-7 rounded-full border-2 border-current flex items-center justify-center text-xs font-black flex-shrink-0">
+          <span className="w-6 h-6 sm:w-7 sm:h-7 rounded-full border-2 border-current flex items-center justify-center text-[10px] sm:text-xs font-black flex-shrink-0">
             {leading}
           </span>
         )}

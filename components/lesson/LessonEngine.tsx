@@ -100,7 +100,7 @@ export function LessonEngine({ lesson, nextLessonSlug, backUrl = '/kids/school',
   }
 
   return (
-    <div className="flex flex-col min-h-dvh relative overflow-hidden bg-lesson-engine">
+    <div className="flex flex-col h-dvh relative overflow-hidden bg-lesson-engine">
 
       {/* Ігрові декорації фону */}
       <div className="pointer-events-none select-none absolute inset-0 overflow-hidden" aria-hidden>
@@ -127,7 +127,7 @@ export function LessonEngine({ lesson, nextLessonSlug, backUrl = '/kids/school',
       <LessonCharacter emotion={charEmotion} />
 
       {/* Контент кроку */}
-      <div className="flex-1 flex flex-col items-center justify-center px-4 py-8 relative">
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain flex flex-col items-center px-3 sm:px-4 py-3 sm:py-8 lg:justify-center relative">
         {step.type === 'theory' && (
           <StepTheory step={step} onContinue={next} />
         )}

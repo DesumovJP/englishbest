@@ -95,7 +95,7 @@ export function LessonCharacter({ emotion }: { emotion: CharEmotion }) {
   /* ── Mobile: inline, centered ───────────────────────────────────── */
   return (
     <>
-      <div className="lg:hidden flex flex-col items-center gap-0 pt-1 pb-1 select-none">
+      <div className="hidden sm:flex lg:hidden [@media(max-height:500px)]:hidden flex-col items-center gap-0 pt-1 pb-1 select-none">
         {/* Bubble + character wrapped together — both animate on bounce */}
         <div
           key={bounceKey}

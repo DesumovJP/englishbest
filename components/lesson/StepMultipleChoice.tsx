@@ -55,7 +55,7 @@ export function StepMultipleChoice({ step, onCorrect, onWrong }: Props) {
 
   return (
     <StepFrame title={step.question}>
-      <ul className="flex flex-col gap-3">
+      <ul className="flex flex-col gap-2 sm:gap-3">
         {step.options.map((opt, i) => {
           const optState = resolveState(i, selected, state, step.correctIndex);
           const letter   = String.fromCharCode(65 + i);
