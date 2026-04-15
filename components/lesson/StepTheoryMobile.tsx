@@ -36,7 +36,7 @@ export function StepTheoryMobile({ step, onContinue }: Props) {
       </div>
 
       <div
-        className="flex-shrink-0 px-4 pt-2 pb-3"
+        className="relative z-10 flex-shrink-0 px-4 pt-2 pb-3"
         style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 12px)' }}
       >
         <button
