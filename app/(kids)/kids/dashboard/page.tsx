@@ -94,7 +94,7 @@ function CalendarModal({ onClose }: { onClose: () => void }) {
         <div className="flex flex-1 min-h-0 flex-col md:flex-row">
 
           {/* Calendar column */}
-          <section className="flex flex-col flex-1 min-w-0 p-6 md:p-8">
+          <section className="flex flex-col flex-none md:flex-1 min-w-0 p-4 md:p-8">
             <div className="flex items-center justify-between mb-5">
               <button
                 onClick={prevMonth}
@@ -163,7 +163,7 @@ function CalendarModal({ onClose }: { onClose: () => void }) {
           </section>
 
           {/* Events column */}
-          <aside className="flex flex-col flex-shrink-0 md:w-[360px] md:border-l border-t md:border-t-0 border-border bg-surface-muted/40 min-h-0">
+          <aside className="flex flex-col flex-1 md:flex-none md:w-[360px] md:border-l border-t md:border-t-0 border-border bg-surface-muted/40 min-h-0">
             <div className="px-6 py-4 border-b border-border flex-shrink-0">
               <p className="type-label text-ink-muted">{eventsLabel}</p>
             </div>
