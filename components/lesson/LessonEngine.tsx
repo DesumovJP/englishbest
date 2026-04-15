@@ -7,6 +7,7 @@ import { LessonSuccess }      from './LessonSuccess';
 import { LessonCharacter }    from './LessonCharacter';
 import type { CharEmotion }   from './LessonCharacter';
 import { StepTheory }         from './StepTheory';
+import { StepTheoryMobile }   from './StepTheoryMobile';
 import { StepMultipleChoice } from './StepMultipleChoice';
 import { StepFillBlank }      from './StepFillBlank';
 import { StepWordOrder }      from './StepWordOrder';
@@ -126,8 +127,15 @@ export function LessonEngine({ lesson, nextLessonSlug, backUrl = '/kids/school',
       />
       <LessonCharacter emotion={charEmotion} />
 
-      {/* Контент кроку */}
-      <div className="flex-1 min-h-0 overflow-hidden sm:overflow-y-auto overscroll-contain flex flex-col items-stretch sm:items-center px-3 sm:px-4 py-3 sm:py-8 lg:justify-center relative">
+      {/* Mobile: full-screen compact theory (separate layout) */}
+      {step.type === 'theory' && (
+        <div className="sm:hidden flex-1 min-h-0 relative">
+          <StepTheoryMobile step={step} onContinue={next} />
+        </div>
+      )}
+
+      {/* Desktop / tablet content */}
+      <div className={`${step.type === 'theory' ? 'hidden sm:flex' : 'flex'} flex-1 min-h-0 overflow-y-auto overscroll-contain flex-col items-stretch sm:items-center px-3 sm:px-4 py-3 sm:py-8 lg:justify-center relative`}>
         {step.type === 'theory' && (
           <StepTheory step={step} onContinue={next} />
         )}
@@ -156,6 +164,7 @@ export function LessonEngine({ lesson, nextLessonSlug, backUrl = '/kids/school',
           <StepReading key={step.id} step={step} onCorrect={next} onWrong={onWrong} />
         )}
       </div>
+
     </div>
   );
 }
