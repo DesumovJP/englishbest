@@ -92,6 +92,13 @@ All routes live under `app/`. Groups in parentheses (`(kids)`, `(onboarding)`) c
 | `/dashboard/profile`              | `app/dashboard/profile/page.tsx`               |
 | `/dashboard/settings`             | `app/dashboard/settings/page.tsx`              |
 | `/dashboard/course-builder`       | `app/dashboard/course-builder/page.tsx`        |
+| `/dashboard/teacher-library`      | `app/dashboard/teacher-library/page.tsx`       |
+| `/dashboard/teacher-library/:id/edit` | `app/dashboard/teacher-library/[id]/edit/page.tsx` |
+| `/dashboard/groups`               | `app/dashboard/groups/page.tsx`                |
+| `/dashboard/homework`             | `app/dashboard/homework/page.tsx`              |
+| `/dashboard/homework/:id/review`  | `app/dashboard/homework/[id]/review/page.tsx`  |
+| `/dashboard/mini-tasks`           | `app/dashboard/mini-tasks/page.tsx`            |
+| `/dashboard/attendance`           | `app/dashboard/attendance/page.tsx`            |
 | `/courses/:slug`                  | `app/courses/[courseSlug]/page.tsx`            |
 | `/courses/:slug/lessons/:slug`    | `app/courses/[courseSlug]/lessons/[lessonSlug]/page.tsx` |
 | `/library`                        | `app/library/page.tsx`                         |
@@ -325,18 +332,28 @@ components/
 │   Step{FillBlank|Frame|Image|MatchPairs|MultipleChoice|Reading|
 │        Theory|Translate|Video|WordOrder}
 │
-└── kids/             Kids zone components
-    AddCustomModal · CharacterAvatar · CharacterDisplay
-    CompanionSVG · ItemDisplay · KidsFooter · LootBox
-    └── ui/           Kids design system primitives (barrel export: @/components/kids/ui)
-        KidsButton · KidsCard · KidsChallengeItem · KidsCoinBadge
-        KidsNavCard · KidsPageHeader · KidsProgressBar · KidsStatBar
-        KidsTabBar · KidsToast
+├── kids/             Kids zone components
+│   AddCustomModal · CharacterAvatar · CharacterDisplay
+│   CompanionSVG · ItemDisplay · KidsFooter · LootBox
+│   └── ui/           Kids design system primitives (barrel: @/components/kids/ui)
+│       KidsButton · KidsCard · KidsChallengeItem · KidsCoinBadge
+│       KidsNavCard · KidsPageHeader · KidsProgressBar · KidsStatBar
+│       KidsTabBar · KidsToast
+│
+└── teacher/          Teacher portal components
+    AssignLessonModal · BlockPicker · CreateHomeworkModal
+    CreateLessonModal · LessonActionSheet · LessonBlockEditor
+    LessonBlockPreview · MassMessageModal · MiniTaskBuilder
+    TeacherAnalytics
+    └── ui/           Teacher design system primitives (barrel: @/components/teacher/ui)
+        CoinTag · EmptyState · FilterChips · LevelBadge · PageHeader
+        SearchInput · SegmentedControl · StatTile · StatusPill
 ```
 
 ### Rules
 
 - Kids pages import ONLY from `@/components/kids/ui` (barrel) for UI primitives.
+- Teacher pages import shared primitives from `@/components/teacher/ui` (barrel); domain types/mocks from `@/lib/teacher-mocks`.
 - Do not promote a component between tiers without updating this section.
 - Stories (`*.stories.tsx`) live beside components; not shipped to prod.
 

@@ -109,6 +109,29 @@ For each page: verify layout + interactions at all 6 viewports, portrait + lands
 - [x] Added `lib/config.ts` exporting `API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? '/api/mock'`; all helpers route through it.
 - [x] Added `.env.example` with `NEXT_PUBLIC_API_BASE_URL=/api/mock`.
 
+### F7 — Teacher module
+
+Goal: production-ready frontend for the teacher portal (PDF spec `Викладачі.pdf`, sections 1–9). Backend = placeholders only.
+
+**Principles:**
+- All teacher state + fixtures in `lib/teacher-mocks.ts` (single source of truth).
+- Shared primitives in `components/teacher/ui/` (barrel: `@/components/teacher/ui`).
+- Domain components in `components/teacher/`.
+- Zero inline styles beyond runtime-dynamic values.
+- Live progress tracker in `docs/teacher-module-plan.md`.
+
+**Done:**
+- [x] Phase A — `lib/teacher-mocks.ts` (9 entity types, 8 fixtures, style maps, helpers) + 9 UI primitives + sidebar teacher nav expansion.
+- [x] Phase B — `app/dashboard/teacher/page.tsx` dashboard (today schedule · pending HW with threshold toning · at-risk students).
+- [x] Phase C — `app/dashboard/teacher-library/` list + `[id]/edit/` editor (12 block kinds, per-kind editor + interactive preview, version drawer, autosave mock).
+- [x] Phase D — `app/dashboard/teacher-calendar/` day/week/month views + `CreateLessonModal` + `LessonActionSheet` + `app/dashboard/attendance/` journal.
+- [x] Phase E — `app/dashboard/students/` teacher filters + quick actions; `StudentDetail` ДЗ + Нотатки tabs; `app/dashboard/groups/` with group detail SlideOver.
+- [x] Phase F — `app/dashboard/homework/page.tsx` (5-tab list) + `[id]/review/page.tsx` (grading with dual modes, coin rules card) + `CreateHomeworkModal`.
+- [x] Phase G — `app/dashboard/mini-tasks/page.tsx` (filter + card grid) + `MiniTaskBuilder` 5-step wizard.
+- [x] Phase H — `app/dashboard/chat/page.tsx` rewritten (tabs, thread list, reply-quoting, pinned, emoji, search-in-thread, mobile stacked nav) + `MassMessageModal`.
+- [x] Phase I — `components/teacher/TeacherAnalytics.tsx` (KPI + 6-month bar chart + level distribution + honor-roll top-3), role-detected in `analytics/page.tsx`.
+- [x] Phase J — `tsc --noEmit` clean; `jest` 23/23 green; `next build` succeeds (50 routes prerendered). `ARCHITECTURE.md` §3 + §8 updated for new teacher routes + component tree.
+
 ### F6 — Verification
 - [x] `tsc --noEmit` clean — 0 errors
 - [x] `jest` green — 23/23 tests passing
@@ -141,4 +164,5 @@ For each page: verify layout + interactions at all 6 viewports, portrait + lands
 - **2026-04-16** — F4 static sweep: scanned for known responsive pitfalls (oversized min-w, fixed grid cols, hidden overflow). Only actionable fix: AddCustomModal mood picker `grid-cols-5` → `grid-cols-3 sm:grid-cols-5` (was 368px min width, broke on iPhone SE). Tables all already wrapped; decorative blurs are absolute-positioned. Physical device matrix deferred to Playwright-driven verification.
 - **2026-04-16** — F3: responsive contract landed. All `min-h-screen` → `min-h-dvh` in full-screen surfaces (lesson engine/success, onboarding, home, dashboard/lessons, layout body, sidebar) and `min-h-svh` in stable scroll layouts (dashboard/library/calendar/auth). All `calc(100vh-*)` → `100dvh` (chat, parent). Fluid typography via `clamp()` on --text-display/h1/h2. Landscape short-viewport rules + physical device test matrix deferred into F4.
 - **2026-04-16** — F4 mobile fixes (user-reported): **/home** overflowed 31px on 375px viewport; root cause was `flex flex-col lg:flex-row items-start` with inner `flex-1 flex-col` columns — `items-start` blocked stretch so `flex-1` fell back to content width. Scoped `items-start` to `lg:` and set inner cols to `w-full lg:flex-1 min-w-0` (app/home/page.tsx:219,222,254). **/kids/school Бібліотека**: 196px category sidebar consumed >50% of 375px viewport. Collapsed to horizontal scrollable chip bar on mobile; sidebar restored at `md:` (`flex-col md:flex-row`, pills `rounded-full md:rounded-none`, active `bg-gray-900 md:bg-gray-100`). Content pane got `min-w-0`. Уроки tab verified clean at 375/667 — no changes needed. docWidth === viewport on all three at both orientations.
+- **2026-04-19** — F7 Teacher module complete. 9 phases (A–I) + verification J. All routes live under `/dashboard/{teacher,teacher-calendar,teacher-library,students,groups,homework,mini-tasks,chat,analytics,attendance}`. Shared teacher primitives barrel at `@/components/teacher/ui`. Mocks + types consolidated in `lib/teacher-mocks.ts`. `tsc --noEmit` clean, `jest` 23/23 green, `next build` succeeds with 50 routes (up from 34). No `git push` — local commits only per user rule.
 - **2026-04-16** — F2 batch 7: kids/ui primitives + components/molecules swept. KidsStatBar/KidsCoinBadge/KidsChallengeItem: coin+xp imgs switched to width/height attrs; label conditional styling → `text-ink-faint line-through` classes. KidsTabBar: active `color:"#fff"` + `rgba(255,255,255,0.3)` + `rgba(0,0,0,0.08)` → `text-white` + `bg-white/30` + `bg-black/[0.08]`. PopupTimer overlay → `bg-slate-900/55 backdrop-blur-[6px]`. Remaining inline across app is now exclusively dynamic: per-item/per-rarity color data, per-particle geometry, progress-pct widths, scroll-driven transforms.

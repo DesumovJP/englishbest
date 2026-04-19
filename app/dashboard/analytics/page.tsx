@@ -1,5 +1,6 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { TeacherAnalytics } from '@/components/teacher/TeacherAnalytics';
 
 /* ─── Мок-дані ───────────────────────────────── */
 const MONTHLY_REVENUE = [
@@ -41,6 +42,15 @@ const maxRevenue = Math.max(...MONTHLY_REVENUE.map(m => m.revenue));
 /* ─── Компонент ──────────────────────────────── */
 export default function AnalyticsPage() {
   const [revenueView, setRevenueView] = useState<'revenue' | 'lessons' | 'students'>('revenue');
+  const [isTeacher, setIsTeacher] = useState(false);
+
+  useEffect(() => {
+    const demo = localStorage.getItem('demo_role');
+    const sidebar = localStorage.getItem('sidebar_role');
+    setIsTeacher(demo === 'teacher' || sidebar === 'teacher');
+  }, []);
+
+  if (isTeacher) return <TeacherAnalytics />;
 
   const current  = MONTHLY_REVENUE[MONTHLY_REVENUE.length - 1];
   const previous = MONTHLY_REVENUE[MONTHLY_REVENUE.length - 2];

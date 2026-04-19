@@ -1,9 +1,16 @@
 'use client';
 import { useState } from 'react';
+import { HOMEWORK_KIND_ICONS, HOMEWORK_STATUS_STYLES, MOCK_HOMEWORK } from '@/lib/teacher-mocks';
 
 /* ─── Типи ───────────────────────────────────── */
 type AdminTab   = 'balance' | 'video' | 'progress';
-type TeacherTab = 'video'   | 'history' | 'progress';
+type TeacherTab = 'video'   | 'history' | 'progress' | 'homework' | 'notes';
+
+interface TeacherNoteLocal {
+  id: string;
+  authoredAt: string;
+  body: string;
+}
 
 interface StudentDetailLesson {
   id: string;
@@ -171,10 +178,25 @@ export function StudentDetail({
 }) {
   const [adminTab,   setAdminTab]   = useState<AdminTab>('balance');
   const [teacherTab, setTeacherTab] = useState<TeacherTab>('video');
+  const [notes, setNotes] = useState<TeacherNoteLocal[]>([
+    { id: 'n1', authoredAt: '12 квіт 2026', body: 'Гарно прогресує у вимові. Потрібно більше writing.' },
+    { id: 'n2', authoredAt: '5 квіт 2026',  body: 'Пропустила урок — хвороба, домовились перенести.' },
+  ]);
+  const [draftNote, setDraftNote] = useState('');
+
+  const studentHomework = MOCK_HOMEWORK.slice(0, 4);
 
   const totalDone = MOCK_PROGRESS.flatMap(s => s.lessons).filter(l => l.status === 'done').length;
   const totalAll  = MOCK_PROGRESS.flatMap(s => s.lessons).length;
   const lowBalance = student.lessonsBalance <= 2;
+
+  function addNote() {
+    const body = draftNote.trim();
+    if (!body) return;
+    const today = new Date().toLocaleDateString('uk-UA', { day: 'numeric', month: 'short', year: 'numeric' });
+    setNotes(prev => [{ id: `n${Date.now()}`, authoredAt: today, body }, ...prev]);
+    setDraftNote('');
+  }
 
   return (
     <div className="flex flex-col h-full">
@@ -272,9 +294,11 @@ export function StudentDetail({
           ))
         ) : (
           ([
-            ['video',    `Відеоуроки (${MOCK_UPCOMING.length})`],
+            ['video',    `Уроки (${MOCK_UPCOMING.length})`],
             ['history',  `Історія (${MOCK_HISTORY.length})`],
+            ['homework', `ДЗ (${studentHomework.length})`],
             ['progress', `Прогрес (${totalDone}/${totalAll})`],
+            ['notes',    `Нотатки (${notes.length})`],
           ] as [TeacherTab, string][]).map(([key, label]) => (
             <button
               key={key}
@@ -335,6 +359,72 @@ export function StudentDetail({
           <ul className="divide-y divide-border">
             {MOCK_HISTORY.map(l => <VideoRow key={l.id} lesson={l} />)}
           </ul>
+        )}
+
+        {/* ДЗ (вчитель) */}
+        {!isAdmin && teacherTab === 'homework' && (
+          <ul className="divide-y divide-border">
+            {studentHomework.length === 0 && (
+              <li className="py-12 text-center text-ink-muted">
+                <p className="text-3xl mb-2">✍️</p>
+                <p className="text-sm font-semibold">Немає ДЗ</p>
+              </li>
+            )}
+            {studentHomework.map(hw => {
+              const cfg = HOMEWORK_STATUS_STYLES[hw.status];
+              return (
+                <li key={hw.id} className="flex items-center gap-3 px-6 py-3.5 hover:bg-surface-muted/50 transition-colors">
+                  <span className="w-8 h-8 rounded-lg bg-surface-muted flex items-center justify-center text-base flex-shrink-0">
+                    {HOMEWORK_KIND_ICONS[hw.kind]}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-bold text-ink truncate">{hw.title}</p>
+                    <p className="text-[11px] text-ink-muted truncate">До {hw.deadline} · 🪙 {hw.coins}</p>
+                  </div>
+                  <span className={`text-[11px] font-bold px-2 py-0.5 rounded-md whitespace-nowrap ${cfg.cls}`}>
+                    {cfg.label}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+
+        {/* Нотатки (вчитель) */}
+        {!isAdmin && teacherTab === 'notes' && (
+          <div className="px-6 py-4 flex flex-col gap-3">
+            <div>
+              <textarea
+                value={draftNote}
+                onChange={e => setDraftNote(e.target.value)}
+                placeholder="Нова нотатка про учня — бачиш лише ти…"
+                className="w-full min-h-20 px-3 py-2 rounded-xl border border-border bg-white text-sm text-ink resize-y focus:outline-none focus:border-primary"
+              />
+              <div className="flex justify-end mt-2">
+                <button
+                  type="button"
+                  onClick={addNote}
+                  disabled={!draftNote.trim()}
+                  className="px-3 py-1.5 rounded-xl bg-primary text-white text-xs font-black hover:opacity-90 disabled:opacity-40 transition-opacity"
+                >
+                  Зберегти нотатку
+                </button>
+              </div>
+            </div>
+
+            {notes.length === 0 ? (
+              <p className="py-8 text-center text-ink-muted text-sm">Поки що немає нотаток</p>
+            ) : (
+              <ul className="flex flex-col gap-2">
+                {notes.map(n => (
+                  <li key={n.id} className="px-3 py-2.5 rounded-xl bg-surface-muted">
+                    <p className="text-[11px] font-black text-ink-muted uppercase tracking-wide mb-1">{n.authoredAt}</p>
+                    <p className="text-sm text-ink whitespace-pre-wrap">{n.body}</p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         )}
 
         {/* Прогрес */}

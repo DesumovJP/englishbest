@@ -30,7 +30,7 @@ interface NavSection {
 }
 
 /* ── Навігація по ролях ───────────────────────── */
-const NAV_FLAT: Record<'student' | 'teacher' | 'parent', NavItem[]> = {
+const NAV_FLAT: Record<'student' | 'parent', NavItem[]> = {
   student: [
     { label: 'Дашборд',         href: '/dashboard/student',  emoji: '🏠' },
     { label: 'Мої уроки',       href: '/kids/school',        emoji: '📅' },
@@ -38,12 +38,41 @@ const NAV_FLAT: Record<'student' | 'teacher' | 'parent', NavItem[]> = {
     { label: 'Календар',        href: '/calendar',            emoji: '📆' },
     { label: 'Дитячий модуль',  href: '/kids/dashboard',     emoji: '🧒' },
   ],
-  teacher: [
-    { label: 'Дашборд', href: '/dashboard/teacher',  emoji: '🏠' },
-    { label: 'Учні',    href: '/dashboard/students', emoji: '👥' },
-  ],
   parent: [],
 };
+
+const TEACHER_NAV: NavSection[] = [
+  {
+    group: 'Огляд',
+    items: [
+      { label: 'Дашборд',    href: '/dashboard/teacher',          emoji: '🏠' },
+      { label: 'Розклад',    href: '/dashboard/teacher-calendar', emoji: '📅' },
+      { label: 'Аналітика',  href: '/dashboard/analytics',        emoji: '📈' },
+    ],
+  },
+  {
+    group: 'Учні',
+    items: [
+      { label: 'Учні',         href: '/dashboard/students',   emoji: '👥' },
+      { label: 'Групи',        href: '/dashboard/groups',     emoji: '🧩' },
+      { label: 'Відвідуваність', href: '/dashboard/attendance', emoji: '📋' },
+    ],
+  },
+  {
+    group: 'Навчання',
+    items: [
+      { label: 'Бібліотека',     href: '/dashboard/teacher-library', emoji: '📚' },
+      { label: 'Домашні завдання', href: '/dashboard/homework',       emoji: '✍️' },
+      { label: 'Міні-завдання',  href: '/dashboard/mini-tasks',      emoji: '⚡' },
+    ],
+  },
+  {
+    group: 'Комунікація',
+    items: [
+      { label: 'Чат', href: '/dashboard/chat', emoji: '💬' },
+    ],
+  },
+];
 
 const ADMIN_NAV: NavSection[] = [
   {
@@ -166,10 +195,10 @@ export function Sidebar() {
 
         {/* Навігація */}
         <nav className="flex-1 px-3 py-2 overflow-y-auto" aria-label="Навігація кабінету">
-          {role === 'admin' ? (
-            /* Згрупована навігація для адміна */
+          {role === 'admin' || role === 'teacher' ? (
+            /* Згрупована навігація для адміна і вчителя */
             <div className="flex flex-col gap-4">
-              {ADMIN_NAV.map(section => (
+              {(role === 'admin' ? ADMIN_NAV : TEACHER_NAV).map(section => (
                 <div key={section.group}>
                   <p className="type-label text-ink-muted px-3 mb-1">
                     {section.group}
@@ -183,7 +212,7 @@ export function Sidebar() {
               ))}
             </div>
           ) : (
-            /* Пласка навігація для учня / вчителя */
+            /* Пласка навігація для учня / батька */
             <ul className="flex flex-col gap-0.5">
               {NAV_FLAT[role].map(item => (
                 <NavLink key={item.href} item={item} pathname={pathname} onClick={close} />

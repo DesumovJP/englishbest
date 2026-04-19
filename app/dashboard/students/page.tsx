@@ -1,8 +1,10 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { SlideOver } from '@/components/atoms/SlideOver';
 import { StudentDetail, type StudentDetailData } from '@/components/molecules/StudentDetail';
 import { InfoPopover } from '@/components/atoms/InfoPopover';
+import { FilterChips, type FilterChipOption } from '@/components/teacher/ui';
+import type { Level } from '@/lib/teacher-mocks';
 
 /* ─── Типи ───────────────────────────────────── */
 type StudentStatus = 'active' | 'paused' | 'trial' | 'expired';
@@ -54,6 +56,24 @@ const SORT_OPTIONS: { key: SortKey; label: string }[] = [
   { key: 'lastLesson', label: 'Останній урок' },
 ];
 
+const LEVEL_FILTER_OPTIONS: ReadonlyArray<FilterChipOption<Level | 'all'>> = [
+  { value: 'all', label: 'Всі рівні' },
+  { value: 'A0',  label: 'A0' },
+  { value: 'A1',  label: 'A1' },
+  { value: 'A2',  label: 'A2' },
+  { value: 'B1',  label: 'B1' },
+  { value: 'B2',  label: 'B2' },
+];
+
+const STATUS_FILTER_OPTIONS: ReadonlyArray<FilterChipOption<StudentStatus | 'all' | 'low-balance'>> = [
+  { value: 'all',         label: 'Усі'        },
+  { value: 'active',      label: 'Активні'    },
+  { value: 'trial',       label: 'Пробні'     },
+  { value: 'paused',      label: 'Пауза'      },
+  { value: 'expired',     label: 'Закінчився' },
+  { value: 'low-balance', label: '≤ 2 уроків' },
+];
+
 /* ─── Статистика ─────────────────────────────── */
 function Stat({ label, value, danger }: { label: string; value: string; danger?: boolean }) {
   return (
@@ -66,6 +86,28 @@ function Stat({ label, value, danger }: { label: string; value: string; danger?:
 }
 function Sep() {
   return <span className="text-border select-none" aria-hidden>·</span>;
+}
+
+function QuickAction({
+  label,
+  icon,
+  onClick,
+}: {
+  label: string;
+  icon: string;
+  onClick: (e: React.MouseEvent) => void;
+}) {
+  return (
+    <button
+      type="button"
+      title={label}
+      aria-label={label}
+      onClick={onClick}
+      className="w-8 h-8 rounded-lg border border-border text-sm hover:border-primary/40 hover:bg-primary/5 transition-colors flex items-center justify-center flex-shrink-0"
+    >
+      {icon}
+    </button>
+  );
 }
 
 function BalanceCell({ lessons, money }: { lessons: number; money: number }) {
@@ -84,6 +126,8 @@ function BalanceCell({ lessons, money }: { lessons: number; money: number }) {
 export default function StudentsPage() {
   const [query, setQuery]               = useState('');
   const [sortKey, setSortKey]           = useState<SortKey>('nextLesson');
+  const [levelFilter, setLevelFilter]   = useState<Level | 'all'>('all');
+  const [statusFilter, setStatusFilter] = useState<StudentStatus | 'all' | 'low-balance'>('all');
   const [selectedStudent, setSelectedStudent] = useState<StudentDetailData | null>(null);
   const [isTeacher] = useState(() =>
     typeof window !== 'undefined' && localStorage.getItem('sidebar_role') === 'teacher'
@@ -91,6 +135,12 @@ export default function StudentsPage() {
 
   const filtered = STUDENTS
     .filter(s => query === '' || s.name.toLowerCase().includes(query.toLowerCase()))
+    .filter(s => levelFilter === 'all' || s.level === levelFilter)
+    .filter(s => {
+      if (statusFilter === 'all') return true;
+      if (statusFilter === 'low-balance') return s.lessonsBalance <= 2;
+      return s.status === statusFilter;
+    })
     .sort((a, b) => {
       if (sortKey === 'name')       return a.name.localeCompare(b.name, 'uk');
       if (sortKey === 'level')      return a.levelOrder - b.levelOrder;
@@ -132,6 +182,14 @@ export default function StudentsPage() {
           + Додати учня
         </button>
       </div>
+
+      {/* Фільтри (тільки вчитель) */}
+      {isTeacher && (
+        <div className="flex flex-col gap-2">
+          <FilterChips value={levelFilter}  onChange={setLevelFilter}  options={LEVEL_FILTER_OPTIONS}  />
+          <FilterChips value={statusFilter} onChange={setStatusFilter} options={STATUS_FILTER_OPTIONS} />
+        </div>
+      )}
 
       {/* Пошук + сортування */}
       <div className="flex items-center gap-3">
@@ -175,6 +233,7 @@ export default function StudentsPage() {
                 {!isTeacher && <th className="text-left px-4 py-3 type-label text-ink-muted">Вчитель</th>}
                 {!isTeacher && <th className="text-left px-4 py-3 type-label text-ink-muted">Баланс</th>}
                 {isTeacher  && <th className="text-left px-4 py-3 type-label text-ink-muted">Наступний урок</th>}
+                {isTeacher  && <th className="text-left px-4 py-3 type-label text-ink-muted">Дії</th>}
                 <th className="px-4 py-3" />
               </tr>
             </thead>
@@ -241,6 +300,28 @@ export default function StudentsPage() {
                       <span className={`text-sm ${s.nextLessonDate ? 'text-ink font-semibold' : 'text-ink-muted'}`}>
                         {s.nextLesson}
                       </span>
+                    </td>
+                  )}
+                  {/* Швидкі дії (вчитель) */}
+                  {isTeacher && (
+                    <td className="px-4 py-3.5">
+                      <div className="inline-flex items-center gap-1">
+                        <QuickAction
+                          label="Написати в чат"
+                          icon="💬"
+                          onClick={e => { e.stopPropagation(); window.alert(`Відкриваю чат з ${s.name}`); }}
+                        />
+                        <QuickAction
+                          label="Уроки"
+                          icon="📅"
+                          onClick={e => { e.stopPropagation(); window.alert(`Уроки ${s.name}`); }}
+                        />
+                        <QuickAction
+                          label="Призначити ДЗ"
+                          icon="✍️"
+                          onClick={e => { e.stopPropagation(); window.alert(`Нове ДЗ для ${s.name}`); }}
+                        />
+                      </div>
                     </td>
                   )}
                   {/* Шеврон */}
