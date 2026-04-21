@@ -11,6 +11,24 @@
 
 export type Role = 'kids' | 'adult' | 'teacher' | 'parent' | 'admin';
 export type Level = 'A0' | 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2';
+export type CompanionAnimal =
+  | 'fox'
+  | 'cat'
+  | 'dragon'
+  | 'rabbit'
+  | 'raccoon'
+  | 'frog';
+export type CompanionMood =
+  | 'idle'
+  | 'happy'
+  | 'sad'
+  | 'celebrate'
+  | 'excited'
+  | 'sleepy'
+  | 'surprised'
+  | 'love'
+  | 'angry'
+  | 'cool';
 export type Audience = 'kids' | 'teens' | 'adults' | 'any';
 export type Currency = 'UAH' | 'USD' | 'EUR';
 export type CourseStatus = 'available' | 'soldOut' | 'comingSoon' | 'archived';

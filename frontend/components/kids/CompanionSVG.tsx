@@ -1,10 +1,7 @@
 "use client";
 
-import type { CompanionAnimal } from "@/mocks/user";
-
-export type CompanionMood =
-  | "idle" | "happy" | "sad" | "celebrate"
-  | "excited" | "sleepy" | "surprised" | "love" | "angry" | "cool";
+import type { CompanionAnimal, CompanionMood } from "@/lib/types";
+export type { CompanionMood };
 
 /* ── Eye helpers ──────────────────────────────────────────────────────────── */
 function EyesIdle({ lx, ly, rx, ry, r = 10 }: { lx: number; ly: number; rx: number; ry: number; r?: number }) {

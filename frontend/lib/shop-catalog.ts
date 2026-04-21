@@ -4,7 +4,7 @@
  * and the dashboard (to render placed items by id).
  */
 
-import type { Level } from "@/mocks/user";
+import type { Level } from "@/lib/types";
 
 export type ShopItemCategory = "furniture" | "decor" | "outfit" | "special";
 

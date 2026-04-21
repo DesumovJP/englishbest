@@ -1,4 +1,4 @@
-import type { Level } from '@/mocks/user';
+import type { Level } from '@/lib/types';
 
 export type LibTabId = 'all' | 'books' | 'courses' | 'videos' | 'games';
 
