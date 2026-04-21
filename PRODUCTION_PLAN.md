@@ -75,13 +75,16 @@ Deliverable: all content types the frontend currently reads from mocks exist in 
 
 ## Phase 3 — Seed & content import
 
-- [ ] Write `backend/scripts/import-mocks.ts` — reads `frontend/mocks/*.json`, creates Strapi entries
-- [ ] Run on staging Railway environment
+- [x] Write `backend/scripts/import-mocks.ts` — reads `frontend/mocks/*.json`, creates teachers (user + user-profile + teacher-profile), courses, lessons, sessions. Idempotent. `npm run import-mocks` at repo root.
+- [x] `tsx` wired as backend dev dep for running TS scripts without a build step.
+- [ ] Run on staging Railway environment (needs staging creds)
 - [ ] Verify counts + spot-check sample entries in Strapi admin
 - [ ] Add `backend/scripts/export-content.ts` for snapshot/restore
 - [ ] Document the import in `backend/README.md`
 
 **Acceptance:** Strapi admin shows every course/lesson/teacher/session currently in mocks.
+
+**Phase 3 status: script written + build-verified. Remaining items require a live staging env to exercise.**
 
 ---
 
@@ -243,4 +246,4 @@ Deliverable: all content types the frontend currently reads from mocks exist in 
 
 ## Immediate next action
 
-**Start Phase 3** — write `backend/scripts/import-mocks.ts` to seed real content from `frontend/mocks/*` into Strapi, so Phase 5 (frontend data migration) has something to read.
+**Start Phase 4** — auth flow: register endpoint that creates user + user-profile + role-profile in one transaction; Next route handlers for login/logout/me with httpOnly cookies; middleware for protected routes.

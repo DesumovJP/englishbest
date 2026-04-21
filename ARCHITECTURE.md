@@ -264,8 +264,11 @@ backend/
 │   │   ├── 00-roles.ts
 │   │   ├── 01-organizations.ts
 │   │   ├── 02-admins.ts
+│   │   ├── 03-permissions.ts
 │   │   └── index.ts
 │   └── index.ts           ← register(): env-var check; bootstrap(): runSeeds
+├── scripts/
+│   └── import-mocks.ts    ← one-shot mock → Strapi importer (`npm run import-mocks`)
 ├── types/                 ← generated Strapi types
 ├── favicon.png
 └── package.json
