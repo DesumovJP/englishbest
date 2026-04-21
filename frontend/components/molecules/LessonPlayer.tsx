@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/atoms/Button';
 import { Badge } from '@/components/atoms/Badge';
-import { postProgress } from '@/lib/api';
+import { createProgress } from '@/lib/api';
 
 type LessonStatus = 'notStarted' | 'inProgress' | 'completed';
 
@@ -17,6 +17,8 @@ interface Exercise {
 interface LessonPlayerProps {
   courseSlug: string;
   lessonSlug: string;
+  lessonDocumentId: string;
+  courseDocumentId?: string;
   title: string;
   videoUrl?: string;
   transcript?: string;
@@ -27,6 +29,8 @@ interface LessonPlayerProps {
 export function LessonPlayer({
   courseSlug,
   lessonSlug,
+  lessonDocumentId,
+  courseDocumentId,
   title,
   transcript,
   exercises = [],
@@ -45,9 +49,13 @@ export function LessonPlayer({
     setStatus(newStatus);
     localStorage.setItem(storageKey, newStatus);
     try {
-      await postProgress('alex-k', { lessonSlug, status: newStatus });
+      await createProgress({
+        lessonDocumentId,
+        courseDocumentId,
+        status: newStatus,
+      });
     } catch {
-      // silently fail — local state is source of truth
+      // silently fail — local state is source of truth, progress syncs on reload
     }
   };
 
