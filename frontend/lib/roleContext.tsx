@@ -1,53 +1,72 @@
-"use client";
+/**
+ * Role context — thin derivation layer over `useSession()`.
+ *
+ * Production source of truth is the authenticated session
+ * (`profile.role` from `/api/auth/me`). Anonymous visitors resolve to
+ * `'adult'` so marketing pages render a sensible default.
+ *
+ * Demo-mode override (`setRole`) only activates when
+ * `NEXT_PUBLIC_ROLE_SWITCHER=1`. Otherwise `setRole` is a no-op — the
+ * session is authoritative and cannot be bypassed in prod builds.
+ *
+ * `<RoleProvider>` is optional: `useRole()` works without it. Wrap only
+ * the subtree that needs the demo override (usually where
+ * `<RoleSwitcher/>` is rendered).
+ */
+'use client';
 
-import { createContext, useContext, useState, ReactNode } from "react";
-import type { Role, AnyUser } from "@/mocks/user";
 import {
-  mockKidsUser,
-  mockAdultUser,
-  mockTeacherUser,
-  mockParentUser,
-  mockAdminUser,
-} from "@/mocks/user";
+  createContext,
+  useContext,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react';
+import type { Role } from '@/lib/types';
+import { useSession } from '@/lib/session-context';
 
-interface RoleContextValue {
-  role: Role;
-  user: AnyUser;
-  setRole: (role: Role) => void;
-}
+const DEMO_ENABLED = process.env.NEXT_PUBLIC_ROLE_SWITCHER === '1';
 
-const userByRole: Record<Role, AnyUser> = {
-  kids: mockKidsUser,
-  adult: mockAdultUser,
-  teacher: mockTeacherUser,
-  parent: mockParentUser,
-  admin: mockAdminUser,
+type OverrideValue = {
+  override: Role | null;
+  setOverride: (r: Role | null) => void;
 };
 
-const RoleContext = createContext<RoleContextValue | null>(null);
+const RoleOverrideContext = createContext<OverrideValue | null>(null);
 
-export function RoleProvider({
-  children,
-  defaultRole = "kids",
-}: {
-  children: ReactNode;
-  defaultRole?: Role;
-}) {
-  const [role, setRoleState] = useState<Role>(defaultRole);
-
-  function setRole(next: Role) {
-    setRoleState(next);
-  }
-
+export function RoleProvider({ children }: { children: ReactNode }) {
+  const [override, setOverride] = useState<Role | null>(null);
+  const value = useMemo(() => ({ override, setOverride }), [override]);
   return (
-    <RoleContext.Provider value={{ role, user: userByRole[role], setRole }}>
+    <RoleOverrideContext.Provider value={value}>
       {children}
-    </RoleContext.Provider>
+    </RoleOverrideContext.Provider>
   );
 }
 
-export function useRole() {
-  const ctx = useContext(RoleContext);
-  if (!ctx) throw new Error("useRole must be used inside <RoleProvider>");
-  return ctx;
+type UseRoleValue = {
+  role: Role;
+  setRole: (r: Role) => void;
+  isDemo: boolean;
+  isAuthenticated: boolean;
+};
+
+export function useRole(): UseRoleValue {
+  const override = useContext(RoleOverrideContext);
+  const { session, status } = useSession();
+  const sessionRole: Role = session?.profile?.role ?? 'adult';
+  const resolvedRole: Role =
+    DEMO_ENABLED && override?.override ? override.override : sessionRole;
+
+  const setRole = (next: Role) => {
+    if (!DEMO_ENABLED) return;
+    override?.setOverride(next);
+  };
+
+  return {
+    role: resolvedRole,
+    setRole,
+    isDemo: DEMO_ENABLED,
+    isAuthenticated: status === 'authenticated',
+  };
 }
