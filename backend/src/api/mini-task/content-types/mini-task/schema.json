@@ -1,0 +1,49 @@
+{
+  "kind": "collectionType",
+  "collectionName": "mini_tasks",
+  "info": {
+    "singularName": "mini-task",
+    "pluralName": "mini-tasks",
+    "displayName": "Mini Task",
+    "description": "Teacher-authored short exercise (1-3 minutes)."
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "attributes": {
+    "slug": {
+      "type": "uid",
+      "targetField": "title",
+      "required": true
+    },
+    "title": {
+      "type": "string",
+      "required": true
+    },
+    "author": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::teacher-profile.teacher-profile"
+    },
+    "level": {
+      "type": "enumeration",
+      "enum": ["A0", "A1", "A2", "B1", "B2", "C1", "C2"]
+    },
+    "topic": {
+      "type": "string"
+    },
+    "exercise": {
+      "type": "component",
+      "repeatable": false,
+      "component": "lesson.exercise"
+    },
+    "coinReward": {
+      "type": "integer",
+      "default": 5
+    },
+    "isPublic": {
+      "type": "boolean",
+      "default": false
+    }
+  }
+}

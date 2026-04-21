@@ -430,6 +430,50 @@ export interface AdminUser extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiAchievementAchievement extends Struct.CollectionTypeSchema {
+  collectionName: 'achievements';
+  info: {
+    description: 'Catalog of unlockable achievements.';
+    displayName: 'Achievement';
+    pluralName: 'achievements';
+    singularName: 'achievement';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    category: Schema.Attribute.Enumeration<
+      ['streak', 'lessons', 'coins', 'social', 'kids', 'mastery', 'special']
+    > &
+      Schema.Attribute.DefaultTo<'lessons'>;
+    coinReward: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    criteria: Schema.Attribute.JSON;
+    description: Schema.Attribute.Text;
+    hidden: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
+    icon: Schema.Attribute.Media<'images'>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::achievement.achievement'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    slug: Schema.Attribute.UID<'title'> & Schema.Attribute.Required;
+    tier: Schema.Attribute.Enumeration<
+      ['bronze', 'silver', 'gold', 'platinum']
+    > &
+      Schema.Attribute.DefaultTo<'bronze'>;
+    title: Schema.Attribute.String & Schema.Attribute.Required;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    xpReward: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
+  };
+}
+
 export interface ApiAdminProfileAdminProfile
   extends Struct.CollectionTypeSchema {
   collectionName: 'admin_profiles';
@@ -610,6 +654,112 @@ export interface ApiConsentLogConsentLog extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiCourseCourse extends Struct.CollectionTypeSchema {
+  collectionName: 'courses';
+  info: {
+    description: 'Top-level learning program (a curriculum).';
+    displayName: 'Course';
+    pluralName: 'courses';
+    singularName: 'course';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    audience: Schema.Attribute.Enumeration<['kids', 'teens', 'adults', 'any']> &
+      Schema.Attribute.DefaultTo<'any'>;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    currency: Schema.Attribute.Enumeration<['UAH', 'USD', 'EUR']> &
+      Schema.Attribute.DefaultTo<'UAH'>;
+    description: Schema.Attribute.Text;
+    durationWeeks: Schema.Attribute.Integer;
+    lessons: Schema.Attribute.Relation<'oneToMany', 'api::lesson.lesson'>;
+    level: Schema.Attribute.Enumeration<
+      ['A0', 'A1', 'A2', 'B1', 'B2', 'C1', 'C2']
+    > &
+      Schema.Attribute.Required;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::course.course'
+    > &
+      Schema.Attribute.Private;
+    maxStudents: Schema.Attribute.Integer;
+    organization: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::organization.organization'
+    >;
+    price: Schema.Attribute.Decimal & Schema.Attribute.DefaultTo<0>;
+    publishedAt: Schema.Attribute.DateTime;
+    ratingAvg: Schema.Attribute.Decimal & Schema.Attribute.DefaultTo<0>;
+    reviewCount: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
+    sections: Schema.Attribute.Component<'course.section', true>;
+    slug: Schema.Attribute.UID<'title'> & Schema.Attribute.Required;
+    status: Schema.Attribute.Enumeration<
+      ['available', 'soldOut', 'comingSoon', 'archived']
+    > &
+      Schema.Attribute.DefaultTo<'available'>;
+    tags: Schema.Attribute.JSON;
+    teacher: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::teacher-profile.teacher-profile'
+    >;
+    thumbnail: Schema.Attribute.Media<'images'>;
+    title: Schema.Attribute.String & Schema.Attribute.Required;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiHomeworkHomework extends Struct.CollectionTypeSchema {
+  collectionName: 'homeworks';
+  info: {
+    description: 'Teacher-assigned homework.';
+    displayName: 'Homework';
+    pluralName: 'homeworks';
+    singularName: 'homework';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    assignees: Schema.Attribute.Relation<
+      'manyToMany',
+      'api::user-profile.user-profile'
+    >;
+    course: Schema.Attribute.Relation<'manyToOne', 'api::course.course'>;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    description: Schema.Attribute.Text;
+    dueAt: Schema.Attribute.DateTime;
+    exercises: Schema.Attribute.Component<'lesson.exercise', true>;
+    lesson: Schema.Attribute.Relation<'manyToOne', 'api::lesson.lesson'>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::homework.homework'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    status: Schema.Attribute.Enumeration<
+      ['draft', 'published', 'closed', 'archived']
+    > &
+      Schema.Attribute.DefaultTo<'draft'>;
+    teacher: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::teacher-profile.teacher-profile'
+    >;
+    title: Schema.Attribute.String & Schema.Attribute.Required;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiKidsProfileKidsProfile extends Struct.CollectionTypeSchema {
   collectionName: 'kids_profiles';
   info: {
@@ -628,19 +778,19 @@ export interface ApiKidsProfileKidsProfile extends Struct.CollectionTypeSchema {
     characterMood: Schema.Attribute.Enumeration<
       [
         'happy',
-        'sleepy',
         'excited',
-        'curious',
-        'proud',
-        'tired',
-        'playful',
-        'focused',
-        'celebrating',
+        'neutral',
         'thinking',
+        'surprised',
+        'sleepy',
+        'proud',
+        'sad',
+        'confused',
+        'celebrating',
       ]
     >;
     companionAnimal: Schema.Attribute.Enumeration<
-      ['fox', 'raccoon', 'owl', 'bunny', 'bear', 'dragon']
+      ['fox', 'cat', 'dragon', 'rabbit', 'raccoon', 'frog']
     > &
       Schema.Attribute.Required;
     companionName: Schema.Attribute.String &
@@ -670,6 +820,92 @@ export interface ApiKidsProfileKidsProfile extends Struct.CollectionTypeSchema {
       'api::user-profile.user-profile'
     > &
       Schema.Attribute.Required;
+  };
+}
+
+export interface ApiLessonLesson extends Struct.CollectionTypeSchema {
+  collectionName: 'lessons';
+  info: {
+    description: 'Atomic learning unit inside a course.';
+    displayName: 'Lesson';
+    pluralName: 'lessons';
+    singularName: 'lesson';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    course: Schema.Attribute.Relation<'manyToOne', 'api::course.course'>;
+    cover: Schema.Attribute.Media<'images'>;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    durationMin: Schema.Attribute.Integer;
+    exercises: Schema.Attribute.Component<'lesson.exercise', true>;
+    isFree: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::lesson.lesson'
+    > &
+      Schema.Attribute.Private;
+    orderIndex: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
+    publishedAt: Schema.Attribute.DateTime;
+    sectionSlug: Schema.Attribute.String;
+    slug: Schema.Attribute.UID<'title'> & Schema.Attribute.Required;
+    title: Schema.Attribute.String & Schema.Attribute.Required;
+    transcript: Schema.Attribute.Text;
+    type: Schema.Attribute.Enumeration<
+      ['video', 'quiz', 'reading', 'interactive']
+    > &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'video'>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    video: Schema.Attribute.Media<'videos'>;
+    videoUrl: Schema.Attribute.String;
+  };
+}
+
+export interface ApiMiniTaskMiniTask extends Struct.CollectionTypeSchema {
+  collectionName: 'mini_tasks';
+  info: {
+    description: 'Teacher-authored short exercise (1-3 minutes).';
+    displayName: 'Mini Task';
+    pluralName: 'mini-tasks';
+    singularName: 'mini-task';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    author: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::teacher-profile.teacher-profile'
+    >;
+    coinReward: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<5>;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    exercise: Schema.Attribute.Component<'lesson.exercise', false>;
+    isPublic: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
+    level: Schema.Attribute.Enumeration<
+      ['A0', 'A1', 'A2', 'B1', 'B2', 'C1', 'C2']
+    >;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::mini-task.mini-task'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    slug: Schema.Attribute.UID<'title'> & Schema.Attribute.Required;
+    title: Schema.Attribute.String & Schema.Attribute.Required;
+    topic: Schema.Attribute.String;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
   };
 }
 
@@ -843,6 +1079,171 @@ export interface ApiRefreshTokenRefreshToken
   };
 }
 
+export interface ApiReviewReview extends Struct.CollectionTypeSchema {
+  collectionName: 'reviews';
+  info: {
+    description: 'Student review on a course.';
+    displayName: 'Review';
+    pluralName: 'reviews';
+    singularName: 'review';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    author: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::user-profile.user-profile'
+    >;
+    body: Schema.Attribute.Text;
+    course: Schema.Attribute.Relation<'manyToOne', 'api::course.course'>;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::review.review'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    rating: Schema.Attribute.Integer &
+      Schema.Attribute.Required &
+      Schema.Attribute.SetMinMax<
+        {
+          max: 5;
+          min: 1;
+        },
+        number
+      >;
+    title: Schema.Attribute.String;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    verified: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
+  };
+}
+
+export interface ApiSessionSession extends Struct.CollectionTypeSchema {
+  collectionName: 'sessions';
+  info: {
+    description: 'Scheduled live calendar event (group lesson, 1:1, trial, consultation).';
+    displayName: 'Session';
+    pluralName: 'sessions';
+    singularName: 'session';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    attendees: Schema.Attribute.Relation<
+      'manyToMany',
+      'api::user-profile.user-profile'
+    >;
+    course: Schema.Attribute.Relation<'manyToOne', 'api::course.course'>;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    durationMin: Schema.Attribute.Integer &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<60>;
+    grade: Schema.Attribute.Integer &
+      Schema.Attribute.SetMinMax<
+        {
+          max: 100;
+          min: 0;
+        },
+        number
+      >;
+    joinUrl: Schema.Attribute.String;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::session.session'
+    > &
+      Schema.Attribute.Private;
+    maxAttendees: Schema.Attribute.Integer;
+    notes: Schema.Attribute.Text;
+    organization: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::organization.organization'
+    >;
+    publishedAt: Schema.Attribute.DateTime;
+    recordingUrl: Schema.Attribute.String;
+    startAt: Schema.Attribute.DateTime & Schema.Attribute.Required;
+    status: Schema.Attribute.Enumeration<
+      ['scheduled', 'live', 'completed', 'cancelled', 'no-show']
+    > &
+      Schema.Attribute.DefaultTo<'scheduled'>;
+    teacher: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::teacher-profile.teacher-profile'
+    >;
+    title: Schema.Attribute.String & Schema.Attribute.Required;
+    type: Schema.Attribute.Enumeration<
+      ['group', 'one-to-one', 'trial', 'consultation']
+    > &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'group'>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiShopItemShopItem extends Struct.CollectionTypeSchema {
+  collectionName: 'shop_items';
+  info: {
+    description: 'Kids-zone shop inventory item.';
+    displayName: 'Shop Item';
+    pluralName: 'shop-items';
+    singularName: 'shop-item';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    category: Schema.Attribute.Enumeration<
+      ['furniture', 'decor', 'outfit', 'special']
+    > &
+      Schema.Attribute.Required;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    emoji: Schema.Attribute.String;
+    imageActive: Schema.Attribute.Media<'images'>;
+    imageHover: Schema.Attribute.Media<'images'>;
+    imageIdle: Schema.Attribute.Media<'images'>;
+    isNew: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
+    levelRequired: Schema.Attribute.Enumeration<
+      ['A0', 'A1', 'A2', 'B1', 'B2', 'C1', 'C2']
+    > &
+      Schema.Attribute.DefaultTo<'A1'>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::shop-item.shop-item'
+    > &
+      Schema.Attribute.Private;
+    nameEn: Schema.Attribute.String & Schema.Attribute.Required;
+    nameUa: Schema.Attribute.String;
+    phonetic: Schema.Attribute.String;
+    price: Schema.Attribute.Integer &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<0>;
+    publishedAt: Schema.Attribute.DateTime;
+    rarity: Schema.Attribute.Enumeration<
+      ['common', 'uncommon', 'rare', 'legendary']
+    > &
+      Schema.Attribute.DefaultTo<'common'>;
+    slotOffset: Schema.Attribute.JSON;
+    slug: Schema.Attribute.UID<'nameEn'> & Schema.Attribute.Required;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiTeacherProfileTeacherProfile
   extends Struct.CollectionTypeSchema {
   collectionName: 'teacher_profiles';
@@ -887,6 +1288,53 @@ export interface ApiTeacherProfileTeacherProfile
     verified: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
     videoMeetUrl: Schema.Attribute.String;
     yearsExperience: Schema.Attribute.Integer;
+  };
+}
+
+export interface ApiUserAchievementUserAchievement
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'user_achievements';
+  info: {
+    description: 'Records an achievement earned by a user.';
+    displayName: 'User Achievement';
+    pluralName: 'user-achievements';
+    singularName: 'user-achievement';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    achievement: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::achievement.achievement'
+    >;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    earnedAt: Schema.Attribute.DateTime & Schema.Attribute.Required;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::user-achievement.user-achievement'
+    > &
+      Schema.Attribute.Private;
+    progress: Schema.Attribute.Integer &
+      Schema.Attribute.SetMinMax<
+        {
+          max: 100;
+          min: 0;
+        },
+        number
+      > &
+      Schema.Attribute.DefaultTo<100>;
+    publishedAt: Schema.Attribute.DateTime;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    user: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::user-profile.user-profile'
+    >;
   };
 }
 
@@ -975,6 +1423,58 @@ export interface ApiUserProfileUserProfile extends Struct.CollectionTypeSchema {
       'plugin::users-permissions.user'
     > &
       Schema.Attribute.Required;
+  };
+}
+
+export interface ApiUserProgressUserProgress
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'user_progresses';
+  info: {
+    description: "Tracks a user's progress on a single lesson.";
+    displayName: 'User Progress';
+    pluralName: 'user-progresses';
+    singularName: 'user-progress';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    attempts: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
+    completedAt: Schema.Attribute.DateTime;
+    course: Schema.Attribute.Relation<'manyToOne', 'api::course.course'>;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    lastAttemptAt: Schema.Attribute.DateTime;
+    lesson: Schema.Attribute.Relation<'manyToOne', 'api::lesson.lesson'>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::user-progress.user-progress'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    score: Schema.Attribute.Integer &
+      Schema.Attribute.SetMinMax<
+        {
+          max: 100;
+          min: 0;
+        },
+        number
+      >;
+    status: Schema.Attribute.Enumeration<
+      ['notStarted', 'inProgress', 'completed', 'skipped']
+    > &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'notStarted'>;
+    timeSpentSec: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    user: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::user-profile.user-profile'
+    >;
   };
 }
 
@@ -1493,17 +1993,27 @@ declare module '@strapi/strapi' {
       'admin::transfer-token': AdminTransferToken;
       'admin::transfer-token-permission': AdminTransferTokenPermission;
       'admin::user': AdminUser;
+      'api::achievement.achievement': ApiAchievementAchievement;
       'api::admin-profile.admin-profile': ApiAdminProfileAdminProfile;
       'api::adult-profile.adult-profile': ApiAdultProfileAdultProfile;
       'api::audit-log.audit-log': ApiAuditLogAuditLog;
       'api::consent-log.consent-log': ApiConsentLogConsentLog;
+      'api::course.course': ApiCourseCourse;
+      'api::homework.homework': ApiHomeworkHomework;
       'api::kids-profile.kids-profile': ApiKidsProfileKidsProfile;
+      'api::lesson.lesson': ApiLessonLesson;
+      'api::mini-task.mini-task': ApiMiniTaskMiniTask;
       'api::organization.organization': ApiOrganizationOrganization;
       'api::parent-link.parent-link': ApiParentLinkParentLink;
       'api::parent-profile.parent-profile': ApiParentProfileParentProfile;
       'api::refresh-token.refresh-token': ApiRefreshTokenRefreshToken;
+      'api::review.review': ApiReviewReview;
+      'api::session.session': ApiSessionSession;
+      'api::shop-item.shop-item': ApiShopItemShopItem;
       'api::teacher-profile.teacher-profile': ApiTeacherProfileTeacherProfile;
+      'api::user-achievement.user-achievement': ApiUserAchievementUserAchievement;
       'api::user-profile.user-profile': ApiUserProfileUserProfile;
+      'api::user-progress.user-progress': ApiUserProgressUserProgress;
       'plugin::content-releases.release': PluginContentReleasesRelease;
       'plugin::content-releases.release-action': PluginContentReleasesReleaseAction;
       'plugin::i18n.locale': PluginI18NLocale;

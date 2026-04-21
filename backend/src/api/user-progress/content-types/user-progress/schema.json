@@ -1,0 +1,55 @@
+{
+  "kind": "collectionType",
+  "collectionName": "user_progresses",
+  "info": {
+    "singularName": "user-progress",
+    "pluralName": "user-progresses",
+    "displayName": "User Progress",
+    "description": "Tracks a user's progress on a single lesson."
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "user": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::user-profile.user-profile"
+    },
+    "lesson": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::lesson.lesson"
+    },
+    "course": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::course.course"
+    },
+    "status": {
+      "type": "enumeration",
+      "enum": ["notStarted", "inProgress", "completed", "skipped"],
+      "default": "notStarted",
+      "required": true
+    },
+    "score": {
+      "type": "integer",
+      "min": 0,
+      "max": 100
+    },
+    "attempts": {
+      "type": "integer",
+      "default": 0
+    },
+    "completedAt": {
+      "type": "datetime"
+    },
+    "lastAttemptAt": {
+      "type": "datetime"
+    },
+    "timeSpentSec": {
+      "type": "integer",
+      "default": 0
+    }
+  }
+}

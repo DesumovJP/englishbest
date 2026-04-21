@@ -1,0 +1,35 @@
+{
+  "kind": "collectionType",
+  "collectionName": "user_achievements",
+  "info": {
+    "singularName": "user-achievement",
+    "pluralName": "user-achievements",
+    "displayName": "User Achievement",
+    "description": "Records an achievement earned by a user."
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "user": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::user-profile.user-profile"
+    },
+    "achievement": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::achievement.achievement"
+    },
+    "earnedAt": {
+      "type": "datetime",
+      "required": true
+    },
+    "progress": {
+      "type": "integer",
+      "default": 100,
+      "min": 0,
+      "max": 100
+    }
+  }
+}

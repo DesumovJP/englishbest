@@ -1,0 +1,75 @@
+{
+  "kind": "collectionType",
+  "collectionName": "shop_items",
+  "info": {
+    "singularName": "shop-item",
+    "pluralName": "shop-items",
+    "displayName": "Shop Item",
+    "description": "Kids-zone shop inventory item."
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "attributes": {
+    "slug": {
+      "type": "uid",
+      "targetField": "nameEn",
+      "required": true
+    },
+    "nameEn": {
+      "type": "string",
+      "required": true
+    },
+    "nameUa": {
+      "type": "string"
+    },
+    "phonetic": {
+      "type": "string"
+    },
+    "emoji": {
+      "type": "string"
+    },
+    "category": {
+      "type": "enumeration",
+      "enum": ["furniture", "decor", "outfit", "special"],
+      "required": true
+    },
+    "rarity": {
+      "type": "enumeration",
+      "enum": ["common", "uncommon", "rare", "legendary"],
+      "default": "common"
+    },
+    "price": {
+      "type": "integer",
+      "required": true,
+      "default": 0
+    },
+    "levelRequired": {
+      "type": "enumeration",
+      "enum": ["A0", "A1", "A2", "B1", "B2", "C1", "C2"],
+      "default": "A1"
+    },
+    "imageIdle": {
+      "type": "media",
+      "multiple": false,
+      "allowedTypes": ["images"]
+    },
+    "imageHover": {
+      "type": "media",
+      "multiple": false,
+      "allowedTypes": ["images"]
+    },
+    "imageActive": {
+      "type": "media",
+      "multiple": false,
+      "allowedTypes": ["images"]
+    },
+    "isNew": {
+      "type": "boolean",
+      "default": false
+    },
+    "slotOffset": {
+      "type": "json"
+    }
+  }
+}

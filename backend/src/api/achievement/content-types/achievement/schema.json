@@ -1,0 +1,57 @@
+{
+  "kind": "collectionType",
+  "collectionName": "achievements",
+  "info": {
+    "singularName": "achievement",
+    "pluralName": "achievements",
+    "displayName": "Achievement",
+    "description": "Catalog of unlockable achievements."
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "attributes": {
+    "slug": {
+      "type": "uid",
+      "targetField": "title",
+      "required": true
+    },
+    "title": {
+      "type": "string",
+      "required": true
+    },
+    "description": {
+      "type": "text"
+    },
+    "icon": {
+      "type": "media",
+      "multiple": false,
+      "allowedTypes": ["images"]
+    },
+    "category": {
+      "type": "enumeration",
+      "enum": ["streak", "lessons", "coins", "social", "kids", "mastery", "special"],
+      "default": "lessons"
+    },
+    "tier": {
+      "type": "enumeration",
+      "enum": ["bronze", "silver", "gold", "platinum"],
+      "default": "bronze"
+    },
+    "coinReward": {
+      "type": "integer",
+      "default": 0
+    },
+    "xpReward": {
+      "type": "integer",
+      "default": 0
+    },
+    "criteria": {
+      "type": "json"
+    },
+    "hidden": {
+      "type": "boolean",
+      "default": false
+    }
+  }
+}

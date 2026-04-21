@@ -1,0 +1,26 @@
+{
+  "collectionName": "components_course_sections",
+  "info": {
+    "displayName": "Section",
+    "icon": "list",
+    "description": "Logical grouping of lessons inside a course."
+  },
+  "options": {},
+  "attributes": {
+    "slug": {
+      "type": "string",
+      "required": true
+    },
+    "title": {
+      "type": "string",
+      "required": true
+    },
+    "order": {
+      "type": "integer",
+      "default": 0
+    },
+    "lessonSlugs": {
+      "type": "json"
+    }
+  }
+}

@@ -20,7 +20,7 @@
     },
     "companionAnimal": {
       "type": "enumeration",
-      "enum": ["fox", "raccoon", "owl", "bunny", "bear", "dragon"],
+      "enum": ["fox", "cat", "dragon", "rabbit", "raccoon", "frog"],
       "required": true
     },
     "companionName": {
@@ -29,7 +29,7 @@
     },
     "characterMood": {
       "type": "enumeration",
-      "enum": ["happy", "sleepy", "excited", "curious", "proud", "tired", "playful", "focused", "celebrating", "thinking"]
+      "enum": ["happy", "excited", "neutral", "thinking", "surprised", "sleepy", "proud", "sad", "confused", "celebrating"]
     },
     "streakDays": {
       "type": "integer",

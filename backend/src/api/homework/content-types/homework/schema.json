@@ -1,0 +1,55 @@
+{
+  "kind": "collectionType",
+  "collectionName": "homeworks",
+  "info": {
+    "singularName": "homework",
+    "pluralName": "homeworks",
+    "displayName": "Homework",
+    "description": "Teacher-assigned homework."
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "title": {
+      "type": "string",
+      "required": true
+    },
+    "teacher": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::teacher-profile.teacher-profile"
+    },
+    "assignees": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "api::user-profile.user-profile"
+    },
+    "lesson": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::lesson.lesson"
+    },
+    "course": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::course.course"
+    },
+    "description": {
+      "type": "text"
+    },
+    "exercises": {
+      "type": "component",
+      "repeatable": true,
+      "component": "lesson.exercise"
+    },
+    "dueAt": {
+      "type": "datetime"
+    },
+    "status": {
+      "type": "enumeration",
+      "enum": ["draft", "published", "closed", "archived"],
+      "default": "draft"
+    }
+  }
+}

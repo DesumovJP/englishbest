@@ -1,0 +1,94 @@
+{
+  "kind": "collectionType",
+  "collectionName": "courses",
+  "info": {
+    "singularName": "course",
+    "pluralName": "courses",
+    "displayName": "Course",
+    "description": "Top-level learning program (a curriculum)."
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "attributes": {
+    "slug": {
+      "type": "uid",
+      "targetField": "title",
+      "required": true
+    },
+    "title": {
+      "type": "string",
+      "required": true
+    },
+    "description": {
+      "type": "text"
+    },
+    "level": {
+      "type": "enumeration",
+      "enum": ["A0", "A1", "A2", "B1", "B2", "C1", "C2"],
+      "required": true
+    },
+    "price": {
+      "type": "decimal",
+      "default": 0
+    },
+    "currency": {
+      "type": "enumeration",
+      "enum": ["UAH", "USD", "EUR"],
+      "default": "UAH"
+    },
+    "thumbnail": {
+      "type": "media",
+      "multiple": false,
+      "allowedTypes": ["images"]
+    },
+    "teacher": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::teacher-profile.teacher-profile"
+    },
+    "organization": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::organization.organization"
+    },
+    "sections": {
+      "type": "component",
+      "repeatable": true,
+      "component": "course.section"
+    },
+    "lessons": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::lesson.lesson",
+      "mappedBy": "course"
+    },
+    "tags": {
+      "type": "json"
+    },
+    "ratingAvg": {
+      "type": "decimal",
+      "default": 0
+    },
+    "reviewCount": {
+      "type": "integer",
+      "default": 0
+    },
+    "status": {
+      "type": "enumeration",
+      "enum": ["available", "soldOut", "comingSoon", "archived"],
+      "default": "available"
+    },
+    "audience": {
+      "type": "enumeration",
+      "enum": ["kids", "teens", "adults", "any"],
+      "default": "any"
+    },
+    "durationWeeks": {
+      "type": "integer"
+    },
+    "maxStudents": {
+      "type": "integer"
+    }
+  }
+}

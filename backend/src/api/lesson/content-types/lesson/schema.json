@@ -1,0 +1,71 @@
+{
+  "kind": "collectionType",
+  "collectionName": "lessons",
+  "info": {
+    "singularName": "lesson",
+    "pluralName": "lessons",
+    "displayName": "Lesson",
+    "description": "Atomic learning unit inside a course."
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "attributes": {
+    "slug": {
+      "type": "uid",
+      "targetField": "title",
+      "required": true
+    },
+    "title": {
+      "type": "string",
+      "required": true
+    },
+    "course": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::course.course",
+      "inversedBy": "lessons"
+    },
+    "sectionSlug": {
+      "type": "string"
+    },
+    "orderIndex": {
+      "type": "integer",
+      "default": 0
+    },
+    "type": {
+      "type": "enumeration",
+      "enum": ["video", "quiz", "reading", "interactive"],
+      "default": "video",
+      "required": true
+    },
+    "durationMin": {
+      "type": "integer"
+    },
+    "video": {
+      "type": "media",
+      "multiple": false,
+      "allowedTypes": ["videos"]
+    },
+    "videoUrl": {
+      "type": "string"
+    },
+    "transcript": {
+      "type": "text"
+    },
+    "cover": {
+      "type": "media",
+      "multiple": false,
+      "allowedTypes": ["images"]
+    },
+    "exercises": {
+      "type": "component",
+      "repeatable": true,
+      "component": "lesson.exercise"
+    },
+    "isFree": {
+      "type": "boolean",
+      "default": false
+    }
+  }
+}

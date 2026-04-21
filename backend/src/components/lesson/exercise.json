@@ -1,0 +1,49 @@
+{
+  "collectionName": "components_lesson_exercises",
+  "info": {
+    "displayName": "Exercise",
+    "icon": "puzzle-piece",
+    "description": "Exercise block inside a lesson."
+  },
+  "options": {},
+  "attributes": {
+    "slug": {
+      "type": "string"
+    },
+    "type": {
+      "type": "enumeration",
+      "enum": [
+        "mcq",
+        "fill-blank",
+        "match-pairs",
+        "translate",
+        "word-order",
+        "reading",
+        "theory",
+        "frame",
+        "image",
+        "video"
+      ],
+      "required": true
+    },
+    "question": {
+      "type": "text"
+    },
+    "options": {
+      "type": "json"
+    },
+    "answer": {
+      "type": "json"
+    },
+    "explanation": {
+      "type": "text"
+    },
+    "meta": {
+      "type": "json"
+    },
+    "points": {
+      "type": "integer",
+      "default": 10
+    }
+  }
+}

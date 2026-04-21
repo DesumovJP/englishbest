@@ -1,0 +1,76 @@
+{
+  "kind": "collectionType",
+  "collectionName": "sessions",
+  "info": {
+    "singularName": "session",
+    "pluralName": "sessions",
+    "displayName": "Session",
+    "description": "Scheduled live calendar event (group lesson, 1:1, trial, consultation)."
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "title": {
+      "type": "string",
+      "required": true
+    },
+    "course": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::course.course"
+    },
+    "teacher": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::teacher-profile.teacher-profile"
+    },
+    "attendees": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "api::user-profile.user-profile"
+    },
+    "organization": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::organization.organization"
+    },
+    "startAt": {
+      "type": "datetime",
+      "required": true
+    },
+    "durationMin": {
+      "type": "integer",
+      "default": 60,
+      "required": true
+    },
+    "type": {
+      "type": "enumeration",
+      "enum": ["group", "one-to-one", "trial", "consultation"],
+      "default": "group",
+      "required": true
+    },
+    "status": {
+      "type": "enumeration",
+      "enum": ["scheduled", "live", "completed", "cancelled", "no-show"],
+      "default": "scheduled"
+    },
+    "joinUrl": {
+      "type": "string"
+    },
+    "recordingUrl": {
+      "type": "string"
+    },
+    "notes": {
+      "type": "text"
+    },
+    "grade": {
+      "type": "integer",
+      "min": 0,
+      "max": 100
+    },
+    "maxAttendees": {
+      "type": "integer"
+    }
+  }
+}
