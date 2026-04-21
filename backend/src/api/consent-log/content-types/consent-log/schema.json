@@ -1,0 +1,42 @@
+{
+  "kind": "collectionType",
+  "collectionName": "consent_logs",
+  "info": {
+    "singularName": "consent-log",
+    "pluralName": "consent-logs",
+    "displayName": "Consent Log",
+    "description": "Append-only log of user consents (terms, privacy, marketing, cookies, parental). GDPR audit trail."
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "user": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::user-profile.user-profile",
+      "required": true
+    },
+    "type": {
+      "type": "enumeration",
+      "enum": ["terms", "privacy", "marketing", "cookiesAnalytics", "cookiesMarketing", "parental"],
+      "required": true
+    },
+    "version": {
+      "type": "string",
+      "required": true
+    },
+    "acceptedAt": {
+      "type": "datetime"
+    },
+    "revokedAt": {
+      "type": "datetime"
+    },
+    "ip": {
+      "type": "string"
+    },
+    "userAgent": {
+      "type": "string"
+    }
+  }
+}

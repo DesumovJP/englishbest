@@ -1,0 +1,68 @@
+{
+  "kind": "collectionType",
+  "collectionName": "teacher_profiles",
+  "info": {
+    "singularName": "teacher-profile",
+    "pluralName": "teacher-profiles",
+    "displayName": "Teacher Profile",
+    "description": "Role-specific data for users with role=teacher. 1:1 to user-profile."
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "user": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::user-profile.user-profile",
+      "inversedBy": "teacherProfile",
+      "required": true
+    },
+    "bio": {
+      "type": "text"
+    },
+    "specializations": {
+      "type": "json"
+    },
+    "languagesSpoken": {
+      "type": "json"
+    },
+    "yearsExperience": {
+      "type": "integer"
+    },
+    "hourlyRate": {
+      "type": "biginteger"
+    },
+    "verified": {
+      "type": "boolean",
+      "default": false
+    },
+    "verificationDoc": {
+      "type": "media",
+      "multiple": false,
+      "allowedTypes": ["files", "images"]
+    },
+    "maxStudents": {
+      "type": "integer",
+      "default": 30
+    },
+    "acceptsTrial": {
+      "type": "boolean",
+      "default": true
+    },
+    "videoMeetUrl": {
+      "type": "string"
+    },
+    "publicSlug": {
+      "type": "string",
+      "unique": true
+    },
+    "rating": {
+      "type": "decimal"
+    },
+    "ratingCount": {
+      "type": "integer",
+      "default": 0
+    }
+  }
+}

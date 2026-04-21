@@ -1,0 +1,53 @@
+{
+  "kind": "collectionType",
+  "collectionName": "audit_logs",
+  "info": {
+    "singularName": "audit-log",
+    "pluralName": "audit-logs",
+    "displayName": "Audit Log",
+    "description": "Append-only audit trail for security-relevant mutations. Written by the global audit-log middleware; rows are never updated or deleted."
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "actor": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::user-profile.user-profile"
+    },
+    "actorIp": {
+      "type": "string"
+    },
+    "actorUserAgent": {
+      "type": "string"
+    },
+    "action": {
+      "type": "string",
+      "required": true
+    },
+    "entityType": {
+      "type": "string",
+      "required": true
+    },
+    "entityId": {
+      "type": "string",
+      "required": true
+    },
+    "before": {
+      "type": "json"
+    },
+    "after": {
+      "type": "json"
+    },
+    "requestId": {
+      "type": "string"
+    },
+    "statusCode": {
+      "type": "integer"
+    },
+    "metadata": {
+      "type": "json"
+    }
+  }
+}

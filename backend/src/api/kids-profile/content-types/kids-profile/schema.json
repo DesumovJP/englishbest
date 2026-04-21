@@ -1,0 +1,66 @@
+{
+  "kind": "collectionType",
+  "collectionName": "kids_profiles",
+  "info": {
+    "singularName": "kids-profile",
+    "pluralName": "kids-profiles",
+    "displayName": "Kids Profile",
+    "description": "Role-specific data for users with role=kids. 1:1 to user-profile."
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "user": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::user-profile.user-profile",
+      "inversedBy": "kidsProfile",
+      "required": true
+    },
+    "companionAnimal": {
+      "type": "enumeration",
+      "enum": ["fox", "raccoon", "owl", "bunny", "bear", "dragon"],
+      "required": true
+    },
+    "companionName": {
+      "type": "string",
+      "default": "Friend"
+    },
+    "characterMood": {
+      "type": "enumeration",
+      "enum": ["happy", "sleepy", "excited", "curious", "proud", "tired", "playful", "focused", "celebrating", "thinking"]
+    },
+    "streakDays": {
+      "type": "integer",
+      "default": 0
+    },
+    "streakLastAt": {
+      "type": "datetime"
+    },
+    "totalCoins": {
+      "type": "biginteger",
+      "default": "0"
+    },
+    "totalXp": {
+      "type": "biginteger",
+      "default": "0"
+    },
+    "hardCurrency": {
+      "type": "integer",
+      "default": 0
+    },
+    "ageGroup": {
+      "type": "enumeration",
+      "enum": ["age2to4", "age4to7", "age7to11", "age11plus"]
+    },
+    "pinHash": {
+      "type": "string",
+      "private": true
+    },
+    "showRealName": {
+      "type": "boolean",
+      "default": false
+    }
+  }
+}

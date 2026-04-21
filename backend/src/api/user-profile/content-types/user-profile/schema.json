@@ -1,0 +1,125 @@
+{
+  "kind": "collectionType",
+  "collectionName": "user_profiles",
+  "info": {
+    "singularName": "user-profile",
+    "pluralName": "user-profiles",
+    "displayName": "User Profile",
+    "description": "1:1 profile attached to Strapi users-permissions User. Carries role, org link, i18n/tz, and 1:1 references to role-specific profile."
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "user": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "plugin::users-permissions.user",
+      "inversedBy": "profile",
+      "required": true
+    },
+    "organization": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::organization.organization"
+    },
+    "role": {
+      "type": "enumeration",
+      "enum": ["kids", "adult", "teacher", "parent", "admin"],
+      "required": true
+    },
+    "firstName": {
+      "type": "string",
+      "required": true
+    },
+    "lastName": {
+      "type": "string"
+    },
+    "displayName": {
+      "type": "string"
+    },
+    "avatar": {
+      "type": "media",
+      "multiple": false,
+      "allowedTypes": ["images"]
+    },
+    "locale": {
+      "type": "enumeration",
+      "enum": ["uk", "en", "ru"],
+      "default": "uk"
+    },
+    "timezone": {
+      "type": "string",
+      "default": "Europe/Kyiv"
+    },
+    "phone": {
+      "type": "string",
+      "regex": "^\\+?[0-9]{9,15}$"
+    },
+    "dateOfBirth": {
+      "type": "date"
+    },
+    "level": {
+      "type": "enumeration",
+      "enum": ["A0", "A1", "A2", "B1", "B2", "C1", "C2"]
+    },
+    "kidsProfile": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::kids-profile.kids-profile",
+      "mappedBy": "user"
+    },
+    "adultProfile": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::adult-profile.adult-profile",
+      "mappedBy": "user"
+    },
+    "teacherProfile": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::teacher-profile.teacher-profile",
+      "mappedBy": "user"
+    },
+    "parentProfile": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::parent-profile.parent-profile",
+      "mappedBy": "user"
+    },
+    "adminProfile": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::admin-profile.admin-profile",
+      "mappedBy": "user"
+    },
+    "consentTermsAt": {
+      "type": "datetime"
+    },
+    "consentPrivacyAt": {
+      "type": "datetime"
+    },
+    "parentalConsentBy": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::user-profile.user-profile"
+    },
+    "marketingOptIn": {
+      "type": "boolean",
+      "default": false
+    },
+    "status": {
+      "type": "enumeration",
+      "enum": ["active", "paused", "archived", "deleted"],
+      "default": "active"
+    },
+    "tokenVersion": {
+      "type": "integer",
+      "default": 0,
+      "private": true
+    },
+    "deletedAt": {
+      "type": "datetime"
+    }
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "kind": "collectionType",
+  "collectionName": "parent_profiles",
+  "info": {
+    "singularName": "parent-profile",
+    "pluralName": "parent-profiles",
+    "displayName": "Parent Profile",
+    "description": "Role-specific data for users with role=parent. 1:1 to user-profile."
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "user": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::user-profile.user-profile",
+      "inversedBy": "parentProfile",
+      "required": true
+    },
+    "displayName": {
+      "type": "string"
+    },
+    "preferredContact": {
+      "type": "enumeration",
+      "enum": ["email", "phone", "both"],
+      "default": "email"
+    },
+    "emergencyPhone": {
+      "type": "string"
+    },
+    "billingAddress": {
+      "type": "json"
+    }
+  }
+}

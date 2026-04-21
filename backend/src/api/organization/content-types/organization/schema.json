@@ -1,0 +1,53 @@
+{
+  "kind": "collectionType",
+  "collectionName": "organizations",
+  "info": {
+    "singularName": "organization",
+    "pluralName": "organizations",
+    "displayName": "Organization",
+    "description": "Multi-tenant anchor. Every tenant-scoped content-type links here."
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "slug": {
+      "type": "uid",
+      "targetField": "name",
+      "required": true
+    },
+    "logo": {
+      "type": "media",
+      "multiple": false,
+      "allowedTypes": ["images"]
+    },
+    "primaryColor": {
+      "type": "string",
+      "regex": "^#[0-9a-fA-F]{6}$"
+    },
+    "locale": {
+      "type": "enumeration",
+      "enum": ["uk", "en", "ru"],
+      "default": "uk"
+    },
+    "timezone": {
+      "type": "string",
+      "default": "Europe/Kyiv"
+    },
+    "billingEmail": {
+      "type": "email"
+    },
+    "status": {
+      "type": "enumeration",
+      "enum": ["active", "suspended", "trial"],
+      "default": "active"
+    },
+    "trialEndsAt": {
+      "type": "datetime"
+    }
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "kind": "collectionType",
+  "collectionName": "refresh_tokens",
+  "info": {
+    "singularName": "refresh-token",
+    "pluralName": "refresh-tokens",
+    "displayName": "Refresh Token",
+    "description": "Rotating refresh tokens. Stored as argon2id hash, never plaintext."
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "user": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::user-profile.user-profile",
+      "required": true
+    },
+    "tokenHash": {
+      "type": "string",
+      "required": true,
+      "unique": true,
+      "private": true
+    },
+    "expiresAt": {
+      "type": "datetime",
+      "required": true
+    },
+    "revokedAt": {
+      "type": "datetime"
+    },
+    "deviceId": {
+      "type": "string"
+    },
+    "userAgent": {
+      "type": "string"
+    },
+    "ip": {
+      "type": "string"
+    },
+    "lastUsedAt": {
+      "type": "datetime"
+    }
+  }
+}

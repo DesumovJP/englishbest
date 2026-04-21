@@ -1,0 +1,60 @@
+{
+  "kind": "collectionType",
+  "collectionName": "adult_profiles",
+  "info": {
+    "singularName": "adult-profile",
+    "pluralName": "adult-profiles",
+    "displayName": "Adult Profile",
+    "description": "Role-specific data for users with role=adult. 1:1 to user-profile."
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "user": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::user-profile.user-profile",
+      "inversedBy": "adultProfile",
+      "required": true
+    },
+    "goal": {
+      "type": "enumeration",
+      "enum": ["exam", "travel", "career", "hobby", "school", "other"]
+    },
+    "currentLevel": {
+      "type": "enumeration",
+      "enum": ["A0", "A1", "A2", "B1", "B2", "C1", "C2"]
+    },
+    "targetLevel": {
+      "type": "enumeration",
+      "enum": ["A0", "A1", "A2", "B1", "B2", "C1", "C2"]
+    },
+    "weeklyGoalMin": {
+      "type": "integer",
+      "default": 90
+    },
+    "preferredTimes": {
+      "type": "json"
+    },
+    "selfStudyEnabled": {
+      "type": "boolean",
+      "default": true
+    },
+    "totalCoins": {
+      "type": "biginteger",
+      "default": "0"
+    },
+    "totalXp": {
+      "type": "biginteger",
+      "default": "0"
+    },
+    "streakDays": {
+      "type": "integer",
+      "default": 0
+    },
+    "streakLastAt": {
+      "type": "datetime"
+    }
+  }
+}

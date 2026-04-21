@@ -1,0 +1,32 @@
+{
+  "kind": "collectionType",
+  "collectionName": "admin_profiles",
+  "info": {
+    "singularName": "admin-profile",
+    "pluralName": "admin-profiles",
+    "displayName": "Admin Profile",
+    "description": "Role-specific data for users with role=admin. 1:1 to user-profile."
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "user": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::user-profile.user-profile",
+      "inversedBy": "adminProfile",
+      "required": true
+    },
+    "permissions": {
+      "type": "json"
+    },
+    "twoFactorEnabled": {
+      "type": "boolean",
+      "default": true
+    },
+    "ipAllowlist": {
+      "type": "json"
+    }
+  }
+}

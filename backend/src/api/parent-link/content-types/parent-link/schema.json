@@ -1,0 +1,51 @@
+{
+  "kind": "collectionType",
+  "collectionName": "parent_links",
+  "info": {
+    "singularName": "parent-link",
+    "pluralName": "parent-links",
+    "displayName": "Parent Link",
+    "description": "Consent edge between parent and kid user-profiles. Supports multiple parents per child and multiple children per parent."
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "parent": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::user-profile.user-profile",
+      "required": true
+    },
+    "child": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::user-profile.user-profile",
+      "required": true
+    },
+    "relationship": {
+      "type": "enumeration",
+      "enum": ["mother", "father", "guardian", "other"],
+      "default": "guardian"
+    },
+    "canPay": {
+      "type": "boolean",
+      "default": true
+    },
+    "canViewChat": {
+      "type": "boolean",
+      "default": true
+    },
+    "canMessageTeacher": {
+      "type": "boolean",
+      "default": true
+    },
+    "consentSignedAt": {
+      "type": "datetime",
+      "required": true
+    },
+    "revokedAt": {
+      "type": "datetime"
+    }
+  }
+}
