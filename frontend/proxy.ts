@@ -21,7 +21,6 @@ const AUTH_PREFIXES = [
   '/login',
   '/register',
   '/welcome',
-  '/auth/login',
   '/auth/register',
 ];
 
@@ -40,7 +39,7 @@ export function proxy(req: NextRequest) {
 
   if (matchesAny(pathname, PROTECTED_PREFIXES) && !hasSession(req)) {
     const url = req.nextUrl.clone();
-    url.pathname = '/auth/login';
+    url.pathname = '/login';
     url.searchParams.set('next', pathname);
     return NextResponse.redirect(url);
   }
