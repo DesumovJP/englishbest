@@ -90,17 +90,20 @@ Deliverable: all content types the frontend currently reads from mocks exist in 
 
 ## Phase 4 — Auth flow (end-to-end)
 
-- [ ] `POST /api/auth/local/register` — creates `user` + `user-profile` + role-specific profile in one transaction
-- [ ] `POST /api/auth/local` login — returns JWT
-- [ ] Next route handler `app/api/auth/login/route.ts` — stores JWT in httpOnly secure SameSite=Lax cookie
-- [ ] Next route handler `app/api/auth/logout/route.ts` — clears cookie + Strapi token revoke
-- [ ] `app/api/auth/me/route.ts` — returns current session (reads cookie, hits Strapi `/users/me?populate=*`)
-- [ ] Refresh-token rotation (uses existing `refresh-token` content type)
-- [ ] `middleware.ts` at `frontend/` root — redirects unauthenticated users off protected routes
-- [ ] Replace `lib/roleContext.tsx` with session-backed context
+- [x] `POST /api/auth/register` — creates `user` + `user-profile` + role-specific profile with compensating-cleanup-on-failure (substitute for true transaction across plugin + Documents API)
+- [x] `POST /api/auth/login` — credentials → access JWT + refresh token
+- [x] `GET  /api/auth/me` — session payload (user + profile + role-profile)
+- [x] `POST /api/auth/refresh` / `logout` / `logout-all` (existing, kept)
+- [x] Short-lived access JWT: `JWT_EXPIRES_IN=15m` via plugins.ts config
+- [x] Next route handlers `app/api/auth/{login,register,logout,me,refresh}/route.ts` — store tokens in httpOnly secure SameSite=Lax cookies (`eb_access`, `eb_refresh`)
+- [x] `frontend/proxy.ts` (Next 16 renamed middleware) — redirects unauthenticated users off protected prefixes, authenticated users off auth prefixes
+- [x] `lib/session-context.tsx` — `useSession()` with login/register/logout/refresh; hydrates from server on first render
+- [ ] Replace `lib/roleContext.tsx` with session-backed context (Phase 5, alongside mock-removal)
 - [ ] Forgot-password + email confirmation (needs Phase 6 email)
 
-**Acceptance:** login at `/login`, see authenticated `/dashboard`, logout clears session, protected routes redirect.
+**Acceptance:** login at `/auth/login`, see authenticated `/dashboard`, logout clears session, protected routes redirect.
+
+**Phase 4 status: core flow wired end-to-end; proper runtime test requires a live Strapi backend (needs `STRAPI_API_URL` env). Role-context swap + forgot-password deferred per plan.**
 
 ---
 
@@ -246,4 +249,4 @@ Deliverable: all content types the frontend currently reads from mocks exist in 
 
 ## Immediate next action
 
-**Start Phase 4** — auth flow: register endpoint that creates user + user-profile + role-profile in one transaction; Next route handlers for login/logout/me with httpOnly cookies; middleware for protected routes.
+**Start Phase 5** — frontend data migration: rewrite `lib/api.ts` to hit real Strapi endpoints, add `lib/normalize.ts` for v5 `{ data, meta }` → flat shapes, move shared types to `lib/types.ts`, drop `app/api/mock/**`, swap `roleContext` for `useSession`.

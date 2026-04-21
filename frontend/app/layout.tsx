@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Nunito } from "next/font/google";
 import "./globals.css";
+import { SessionProvider } from "@/lib/session-context";
+import { getSession } from "@/lib/auth-server";
 
 const nunito = Nunito({
   subsets: ["latin", "latin-ext"],
@@ -14,10 +16,13 @@ export const metadata: Metadata = {
   description: "Fun, effective English learning for kids, teens, and adults.",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const initialSession = await getSession();
   return (
     <html lang="uk" className={nunito.variable}>
-      <body className="min-h-dvh">{children}</body>
+      <body className="min-h-dvh">
+        <SessionProvider initialSession={initialSession}>{children}</SessionProvider>
+      </body>
     </html>
   );
 }

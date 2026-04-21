@@ -109,6 +109,25 @@ components/pages ──► lib/api.ts ──► fetch(`${API_BASE_URL}${path}`)
 
 Mock routes under `app/api/mock/**` serve the same shapes as target Strapi endpoints so the swap stays small. See §6 for the migration checklist.
 
+**Auth data plane** (separate from the mock data plane above):
+
+```
+login/register form ──► POST /api/auth/{login,register}  (Next route handler)
+                                │
+                                ▼
+                     POST  ${BACKEND_URL}/api/auth/{login,register}  (Strapi)
+                                │
+           httpOnly cookies ────┘   (eb_access — 15m · eb_refresh — 30d)
+                                │
+server tree (RSC) ──► getSession() in lib/auth-server.ts ──► GET /api/auth/me
+client tree ─────────► useSession() in lib/session-context.tsx ──► /api/auth/me
+```
+
+- **`lib/auth-config.ts`** — cookie names, options, `BACKEND_URL` (server-only).
+- **`lib/auth-server.ts`** — `getSession()`, `getAccessToken()`; used in server components and layouts.
+- **`lib/session-context.tsx`** — `<SessionProvider>` + `useSession()` for the client tree; first render is hydrated from `getSession()` in the root layout so there's no authenticated-to-anonymous flicker.
+- **`proxy.ts`** (formerly `middleware.ts` — Next 16 rename) — redirects unauthenticated users off `/dashboard|/library|/calendar|/kids|/auth/profile`, authenticated users off `/login|/register|/welcome|/auth/{login,register}`.
+
 ### 3.4 State & persistence
 
 | Scope                 | Mechanism                              | Location                                            |
@@ -346,6 +365,19 @@ All under `src/api/<name>/content-types/<name>/schema.json`.
 **Controller-level enforcement** (single source of truth for self-scoping):
 - `api/user-progress/controllers/user-progress.ts` overrides `find`/`findOne`/`create`/`update`. Non-staff callers (not `teacher`/`admin`) are filtered to their own `user-profile.documentId`; `create` forces the `user` relation server-side; `update` blocks ownership reassignment. Staff bypass via explicit `filters[user][...]` query params.
 
+**Auth endpoints** (in `api/auth/controllers/auth.ts`): the frontend's single entry point for the session lifecycle — no direct hits to `/auth/local/*`.
+
+| Route                       | Purpose                                                                 |
+|-----------------------------|-------------------------------------------------------------------------|
+| `POST /api/auth/register`   | Create user + user-profile + role-profile + issue access + refresh      |
+| `POST /api/auth/login`      | Validate credentials, issue access JWT + refresh token                  |
+| `GET  /api/auth/me`         | Current session (user + profile + role-profile, all populated)          |
+| `POST /api/auth/refresh`    | Rotate refresh token → new access + refresh                             |
+| `POST /api/auth/logout`     | Revoke a single refresh token                                           |
+| `POST /api/auth/logout-all` | Revoke all refresh tokens + bump `user-profile.tokenVersion`            |
+
+Access JWT lifetime is configurable via `JWT_EXPIRES_IN` (default `15m`, set in `config/plugins.ts`). Refresh tokens are argon2id-hashed in the `refresh-token` collection; rotation uses the raw format `<userProfileDocumentId>.<secret>` with reuse detection (a previously-used token triggers `revokeAllForUser`).
+
 **Lifecycle hooks**:
 - `api/review/content-types/review/lifecycles.ts` — after create/update/delete, re-aggregates `course.ratingAvg` (rounded 2 dp) + `reviewCount`. `beforeDelete` stashes the course id on `event.state` so `afterDelete` can still resolve it once the row is gone. Uses the global `strapi` reference (lifecycle Events don't carry one).
 
@@ -374,6 +406,7 @@ DATABASE_URL           postgres connection string
 DATABASE_SSL=true
 DATABASE_SSL_REJECT_UNAUTHORIZED=true
 ADMIN_EMAIL, ADMIN_PASSWORD     ← consumed by 02-admins seed
+JWT_EXPIRES_IN=15m              ← access-token lifetime (refresh handles longer sessions)
 ```
 
 Local dev also honors `DATABASE_HOST/PORT/NAME/USERNAME/PASSWORD` (defaults match `docker-compose.yml`).
