@@ -2,9 +2,12 @@ import path from 'path';
 import type { Core } from '@strapi/strapi';
 
 const config = ({ env }: Core.Config.Shared.ConfigParams): Core.Config.Database => {
-  // Default to postgres: production (Railway) uses postgres, local dev should
-  // opt into sqlite explicitly via DATABASE_CLIENT=sqlite if desired.
-  const client = env('DATABASE_CLIENT', 'postgres');
+  // In production we hard-force postgres. sqlite cannot work on Railway
+  // (better-sqlite3 native binary isn't installed) and is a common
+  // misconfiguration footgun. Local dev can still opt into sqlite by
+  // running with NODE_ENV!=production and DATABASE_CLIENT=sqlite.
+  const isProduction = env('NODE_ENV') === 'production';
+  const client = isProduction ? 'postgres' : env('DATABASE_CLIENT', 'postgres');
 
   const connections = {
     mysql: {
