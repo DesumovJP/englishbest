@@ -2,7 +2,7 @@
 import { useState, useRef, useEffect, type CSSProperties } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { mockKidsUser } from '@/mocks/user';
+import { useKidsIdentity } from '@/lib/use-kids-identity';
 import { useKidsState } from '@/lib/use-kids-store';
 import {
   LIB_ITEMS, LIB_DESCRIPTIONS, LIB_CATEGORIES,
@@ -463,7 +463,7 @@ function LibListItem({ item, isLocked, onNavigate }: {
 
 function LibraryCatalog() {
   const router = useRouter();
-  const user   = mockKidsUser;
+  const { level: kidsLevel } = useKidsIdentity();
   const [libTab, setLibTab] = useState<LibTabId>('all');
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -574,7 +574,7 @@ function LibraryCatalog() {
               <LibListItem
                 key={item.id}
                 item={item}
-                isLocked={!canAccessLevel(user.level, item.level)}
+                isLocked={!canAccessLevel(kidsLevel, item.level)}
                 onNavigate={() => router.push(`/kids/library/${item.id}`)}
               />
             ))}

@@ -2,7 +2,6 @@
 
 import { useState, useCallback, useRef } from "react";
 import Link from "next/link";
-import { mockKidsUser } from "@/mocks/user";
 import { LootBoxModal } from "@/components/kids/LootBox";
 import type { BoxRarity, LootItem } from "@/components/kids/LootBox";
 import CharacterAvatar from "@/components/kids/CharacterAvatar";
@@ -566,7 +565,6 @@ function PlacedItemsLayer({
 
 /* ── Page ────────────────────────────────────────────────────────── */
 export default function KidsDashboardPage() {
-  const user = mockKidsUser;
   const { state: kidsState, patch: patchState, movePlacement, removePlacement } = useKidsState();
 
   const [emotionIdx, setEmotionIdx] = useState(0);
@@ -577,7 +575,7 @@ export default function KidsDashboardPage() {
   const [showDailies, setShowDailies] = useState(false);
   const [editMode, setEditMode]     = useState(false);
 
-  const coins   = kidsState.coins ?? user.coins;
+  const coins   = kidsState.coins ?? 0;
   const emotion = EMOTION_CYCLE[emotionIdx];
 
   const handleTap = useCallback(() => {

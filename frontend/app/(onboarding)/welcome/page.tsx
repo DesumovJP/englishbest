@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { mockKidsUser } from "@/mocks/user";
+import { useKidsIdentity } from "@/lib/use-kids-identity";
 
 export default function WelcomePage() {
+  const { name } = useKidsIdentity();
   return (
     <div className="min-h-dvh bg-gradient-to-b from-surface via-surface to-primary/5 flex flex-col items-center justify-center px-5 py-16">
       <div className="w-full max-w-md flex flex-col items-center text-center gap-6">
@@ -28,7 +29,7 @@ export default function WelcomePage() {
           <p className="text-ink-muted type-label mb-1">Привіт!</p>
           <h1 className="type-h1 text-ink">Я — Лисеня</h1>
           <p className="text-sm text-ink-muted mt-2 leading-relaxed">
-            Радий бачити тебе, <span className="font-black text-ink">{mockKidsUser.name}</span>! Зараз навчимося англійської разом — через ігри та живі уроки.
+            Радий бачити тебе, <span className="font-black text-ink">{name}</span>! Зараз навчимося англійської разом — через ігри та живі уроки.
           </p>
         </div>
 

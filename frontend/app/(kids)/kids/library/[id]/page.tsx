@@ -1,7 +1,7 @@
 'use client';
 import { useState, type CSSProperties } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { mockKidsUser } from '@/mocks/user';
+import { useKidsIdentity } from '@/lib/use-kids-identity';
 import { useKidsState } from '@/lib/use-kids-store';
 import {
   LIB_ITEMS, LIB_DESCRIPTIONS, LIB_LONG, LIB_PREVIEWS, LIB_CATEGORIES,
@@ -38,6 +38,7 @@ export default function LibraryDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router  = useRouter();
   const { state, patch } = useKidsState();
+  const { level: kidsLevel } = useKidsIdentity();
 
   const itemOrUndef = LIB_ITEMS.find(i => i.id === id);
   const [owned, setOwned] = useState(OWNED_DEFAULT);
@@ -61,8 +62,8 @@ export default function LibraryDetailPage() {
   const longParas = LIB_LONG[item.id] ?? [desc, 'Цей матеріал входить до навчальної бібліотеки English Kids і був відібраний з урахуванням вікових особливостей і рівня мови. Тексти адаптовані, ключові слова підсвічуються, а складні моменти супроводжуються підказками.', 'Під час роботи з матеріалом ти заробляєш монети та XP, а прогрес зберігається автоматично — можна повернутися до читання чи перегляду будь-коли.'];
   const preview   = LIB_PREVIEWS[item.id];
   const isOwned   = owned.has(item.id);
-  const isLocked  = !canAccessLevel(mockKidsUser.level, item.level);
-  const balance   = state.coins ?? mockKidsUser.coins;
+  const isLocked  = !canAccessLevel(kidsLevel, item.level);
+  const balance   = state.coins ?? 0;
   const canAfford = balance >= item.price;
 
   // Dynamic accent color fed to CSS custom properties — kept inline on purpose.

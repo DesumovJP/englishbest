@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { mockKidsUser } from "@/mocks/user";
+import { useKidsIdentity } from "@/lib/use-kids-identity";
 import CharacterAvatar from "@/components/kids/CharacterAvatar";
 import AddCustomModal from "@/components/kids/AddCustomModal";
 import { useCustomCharacters, useKidsState } from "@/lib/use-kids-store";
@@ -37,6 +37,7 @@ const RARITY: Record<Rarity, { text: string; bg: string; border: string; borderS
 export default function CharactersPage() {
   const { state, patch } = useKidsState();
   const { characters: customChars } = useCustomCharacters();
+  const { level: kidsLevel } = useKidsIdentity();
   const [showAdd, setShowAdd] = useState(false);
   const [activeSlotKey, setActiveSlotKey] = useState<SlotKey | null>(null);
   const [showCharPicker, setShowCharPicker] = useState(false);
@@ -84,7 +85,7 @@ export default function CharactersPage() {
   const activeSlot = SLOTS.find(s => s.key === activeSlotKey) ?? null;
 
   const STATS = [
-    { label: "Рівень",  value: mockKidsUser.level, icon: "🏅" as const },
+    { label: "Рівень",  value: kidsLevel, icon: "🏅" as const },
     { label: "XP",      value: String(state.xp ?? 0), icon: null,   useXp:   true },
     { label: "Серія",   value: `${state.streak ?? 0}`, icon: "🔥" as const },
     { label: "Монети",  value: String(state.coins ?? 0), icon: null, useCoin: true },

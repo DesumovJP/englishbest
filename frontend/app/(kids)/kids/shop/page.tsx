@@ -2,7 +2,8 @@
 
 import { useState, useRef, Suspense, type CSSProperties } from "react";
 import { useSearchParams } from "next/navigation";
-import { mockKidsUser, type Level } from "@/mocks/user";
+import type { Level } from "@/lib/types";
+import { useKidsIdentity } from "@/lib/use-kids-identity";
 import { LootBoxModal, BoxCard } from "@/components/kids/LootBox";
 import type { BoxRarity, LootItem } from "@/components/kids/LootBox";
 import AddCustomModal from "@/components/kids/AddCustomModal";
@@ -331,6 +332,7 @@ function CharacterDressRoom({ allItems, ownedIds, balance, onBuyItem, onPlaceIte
   onPlaceItem: (itemId: string) => void;
 }) {
   const { state, patch } = useKidsState();
+  const { level: kidsLevel } = useKidsIdentity();
   const characterId = state.activeCharacterId ?? 'fox';
   const equippedIds = state.equippedItemIds ?? [];
   const [previewEmotion, setPreviewEmotion] = useState<CharacterEmotion>('idle');
@@ -365,7 +367,7 @@ function CharacterDressRoom({ allItems, ownedIds, balance, onBuyItem, onPlaceIte
         <div className="text-center">
           <p className="font-black text-[17px] -tracking-[0.02em] text-gray-900">My Character</p>
           <p className="font-bold uppercase tracking-widest text-[9.5px] text-gray-400 mt-0.5">
-            {characterId} · Level {mockKidsUser.level}
+            {characterId} · Level {kidsLevel}
           </p>
         </div>
 
@@ -550,7 +552,7 @@ function CharacterDressRoom({ allItems, ownedIds, balance, onBuyItem, onPlaceIte
               {outfitItems.map(item => {
                 const isOwned    = ownedIds.has(item.id);
                 const isEquipped = equippedIds.includes(item.id);
-                const isLocked   = !canUnlock(mockKidsUser.level, item.levelRequired);
+                const isLocked   = !canUnlock(kidsLevel, item.levelRequired);
                 const canAfford  = balance >= item.price;
 
                 return (
@@ -603,7 +605,6 @@ function CharacterDressRoom({ allItems, ownedIds, balance, onBuyItem, onPlaceIte
 }
 
 function ShopPageInner() {
-  const user = mockKidsUser;
   const {
     state: kidsState,
     patch: patchState,
@@ -611,9 +612,10 @@ function ShopPageInner() {
     placeItem,
   } = useKidsState();
   const { items: customItems } = useCustomItems();
+  const { level: kidsLevel } = useKidsIdentity();
   const searchParams = useSearchParams();
 
-  const balance = kidsState.coins ?? user.coins;
+  const balance = kidsState.coins ?? 0;
   const bought  = new Set(kidsState.ownedItemIds);
   const initTab = (searchParams.get("tab") as TabId | null) ?? "all";
   const [activeTab, setActiveTab] = useState<TabId>(initTab);
@@ -876,7 +878,7 @@ function ShopPageInner() {
                     ownedIds={bought}
                     equippedIds={kidsState.equippedItemIds ?? []}
                     balance={balance}
-                    userLevel={user.level}
+                    userLevel={kidsLevel}
                     slotOffset={SLOT_OFFSET}
                     emotionMeta={EMOTION_META}
                     dressChars={DRESS_CHARS}
@@ -949,7 +951,7 @@ function ShopPageInner() {
                     key={item.id}
                     item={item}
                     isBought={bought.has(item.id)}
-                    isLocked={!canUnlock(user.level, item.levelRequired)}
+                    isLocked={!canUnlock(kidsLevel, item.levelRequired)}
                     canAfford={balance >= item.price}
                     onBuyClick={() => setBuyItem(item)}
                   />
