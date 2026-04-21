@@ -9,11 +9,13 @@
 import * as roles from './00-roles';
 import * as organizations from './01-organizations';
 import * as admins from './02-admins';
+import * as permissions from './03-permissions';
 
 const SEEDS: { name: string; up: (strapi: any) => Promise<void> }[] = [
   { name: '00-roles', up: roles.up },
   { name: '01-organizations', up: organizations.up },
   { name: '02-admins', up: admins.up },
+  { name: '03-permissions', up: permissions.up },
 ];
 
 export async function runSeeds(strapi: any) {
