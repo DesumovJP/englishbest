@@ -2,7 +2,9 @@ import path from 'path';
 import type { Core } from '@strapi/strapi';
 
 const config = ({ env }: Core.Config.Shared.ConfigParams): Core.Config.Database => {
-  const client = env('DATABASE_CLIENT', 'sqlite');
+  // Default to postgres: production (Railway) uses postgres, local dev should
+  // opt into sqlite explicitly via DATABASE_CLIENT=sqlite if desired.
+  const client = env('DATABASE_CLIENT', 'postgres');
 
   const connections = {
     mysql: {
