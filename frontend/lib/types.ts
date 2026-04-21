@@ -71,6 +71,9 @@ export type CourseSection = {
   title: string;
   order?: number;
   lessonSlugs: string[];
+
+  // Legacy alias — older code reads `section.lessons` instead of `lessonSlugs`.
+  lessons?: string[];
 };
 
 export type Exercise = {

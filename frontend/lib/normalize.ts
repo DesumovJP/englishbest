@@ -129,12 +129,17 @@ export function normalizeCourse(raw: any): Course {
   const teacher = normalizeTeacherSummary(raw?.teacher);
   const thumbnailUrl = mediaFrom(raw?.thumbnail);
   const sections = Array.isArray(raw?.sections)
-    ? raw.sections.map((s: any) => ({
-        slug: s?.slug ?? '',
-        title: s?.title ?? '',
-        order: typeof s?.order === 'number' ? s.order : undefined,
-        lessonSlugs: Array.isArray(s?.lessonSlugs) ? s.lessonSlugs : [],
-      }))
+    ? raw.sections.map((s: any) => {
+        const lessonSlugs = Array.isArray(s?.lessonSlugs) ? s.lessonSlugs : [];
+        return {
+          slug: s?.slug ?? '',
+          title: s?.title ?? '',
+          order: typeof s?.order === 'number' ? s.order : undefined,
+          lessonSlugs,
+          // Legacy alias for older consumers.
+          lessons: lessonSlugs,
+        };
+      })
     : [];
 
   const ratingAvg =

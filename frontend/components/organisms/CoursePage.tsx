@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
-import type { Course } from '@/lib/mockClient';
+import type { Course } from '@/lib/types';
 
 const LEVEL_COLOR: Record<string, string> = {
   A1: 'bg-accent/10 text-accent-dark',
@@ -34,7 +34,14 @@ interface CoursePageProps {
 export function CoursePage({ course }: CoursePageProps) {
   const [openSection, setOpenSection] = useState<string | null>(course.sections[0]?.slug ?? null);
 
-  const levelCls = LEVEL_COLOR[course.level] ?? 'bg-surface-muted text-ink-muted';
+  const levelCls =
+    (course.level && LEVEL_COLOR[course.level]) ??
+    'bg-surface-muted text-ink-muted';
+  const tags = course.tags ?? [];
+  const teacherName = course.teacherName ?? 'Вчитель';
+  const teacherSlug = course.teacherSlug ?? '';
+  const teacherInitials =
+    teacherName.split(' ').map((n) => n[0]).filter(Boolean).join('') || '?';
 
   return (
     <div className="max-w-4xl mx-auto flex flex-col gap-6">
@@ -54,7 +61,7 @@ export function CoursePage({ course }: CoursePageProps) {
               <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${levelCls}`}>
                 {course.level}
               </span>
-              {course.tags.map(tag => (
+              {tags.map(tag => (
                 <span key={tag} className="px-2.5 py-1 rounded-full bg-white/15 text-xs font-semibold text-white/90">
                   {TAG_LABEL[tag] ?? tag}
                 </span>
@@ -68,7 +75,7 @@ export function CoursePage({ course }: CoursePageProps) {
                 <span className="font-bold text-white">{course.rating}</span>
                 <span>({course.reviewCount} відгуків)</span>
               </span>
-              <span>👩‍🏫 {course.teacherName}</span>
+              <span>👩‍🏫 {teacherName}</span>
             </div>
           </div>
           <div className="flex flex-col items-end gap-3 flex-shrink-0">
@@ -111,7 +118,7 @@ export function CoursePage({ course }: CoursePageProps) {
                       <span className="text-sm font-semibold text-ink">{section.title}</span>
                     </div>
                     <div className="flex items-center gap-3 flex-shrink-0">
-                      <span className="text-xs text-ink-muted">{section.lessons.length} уроків</span>
+                      <span className="text-xs text-ink-muted">{(section.lessons?.length ?? 0)} уроків</span>
                       <svg
                         className={`w-4 h-4 text-ink-muted transition-transform ${openSection === section.slug ? 'rotate-180' : ''}`}
                         viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" aria-hidden
@@ -122,7 +129,7 @@ export function CoursePage({ course }: CoursePageProps) {
                   </button>
                   {openSection === section.slug && (
                     <ul className="px-6 pb-3 flex flex-col gap-1">
-                      {section.lessons.map((lessonSlug, j) => (
+                      {(section.lessons ?? []).map((lessonSlug, j) => (
                         <li key={lessonSlug}>
                           <Link
                             href={`/courses/${course.slug}/lessons/${lessonSlug}`}
@@ -171,10 +178,10 @@ export function CoursePage({ course }: CoursePageProps) {
             <h2 id="teacher-heading" className="text-xs font-black text-ink-muted uppercase tracking-wide mb-3">Вчитель курсу</h2>
             <div className="flex items-center gap-3 mb-3">
               <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-primary-dark flex items-center justify-center text-white font-black text-lg flex-shrink-0">
-                {course.teacherName.split(' ').map(n => n[0]).join('')}
+                {teacherInitials}
               </div>
               <div>
-                <p className="font-black text-ink">{course.teacherName}</p>
+                <p className="font-black text-ink">{teacherName}</p>
                 <div className="flex items-center gap-1 mt-0.5">
                   <span className="text-accent text-sm">★</span>
                   <span className="text-sm font-bold text-ink">{course.rating}</span>
@@ -183,7 +190,7 @@ export function CoursePage({ course }: CoursePageProps) {
               </div>
             </div>
             <p className="text-xs text-ink-muted leading-relaxed">
-              {TEACHER_BIO[course.teacherSlug] ?? 'Сертифікований вчитель з досвідом роботи з дітьми та підлітками.'}
+              {(teacherSlug && TEACHER_BIO[teacherSlug]) ?? 'Сертифікований вчитель з досвідом роботи з дітьми та підлітками.'}
             </p>
           </section>
 
@@ -194,7 +201,7 @@ export function CoursePage({ course }: CoursePageProps) {
               {[
                 { label: 'Рівень', value: course.level },
                 { label: 'Рейтинг', value: `★ ${course.rating} (${course.reviewCount})` },
-                { label: 'Уроків', value: `${course.sections.reduce((n, s) => n + s.lessons.length, 0)}` },
+                { label: 'Уроків', value: `${course.sections.reduce((n, s) => n + (s.lessons?.length ?? 0), 0)}` },
                 { label: 'Формат', value: 'Один на один' },
               ].map(item => (
                 <li key={item.label} className="flex items-center justify-between text-sm">

@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Badge } from '@/components/atoms/Badge';
 import { Button } from '@/components/atoms/Button';
 import { Modal } from '@/components/atoms/Modal';
-import type { CalendarSession } from '@/lib/mockClient';
+import type { CalendarSession } from '@/lib/types';
 
 interface CalendarViewProps {
   userSlug: string;
@@ -14,7 +14,7 @@ export function CalendarView({ sessions }: CalendarViewProps) {
   const [view, setView] = useState<'month' | 'week'>('month');
   const [joinModal, setJoinModal] = useState<CalendarSession | null>(null);
 
-  const upcoming = sessions.filter(s => s.status === 'upcoming');
+  const upcoming = sessions.filter(s => s.status === 'scheduled' || s.status === 'live');
   const past = sessions.filter(s => s.status === 'completed');
 
   return (
