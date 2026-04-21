@@ -4,6 +4,11 @@
  * Creates a users-permissions User with role=Admin, its User-profile (role=admin),
  * and an Admin-profile. Skipped if `SEED_BOOTSTRAP_ADMIN_EMAIL` / `_PASSWORD`
  * are not provided. Idempotent by email lookup.
+ *
+ * Uses `strapi.db.query()` rather than `strapi.documents()` because the target
+ * content-types are non-D&P / non-localized and the Documents API tries to
+ * round-trip lookups by documentId+locale after create, which fails on
+ * freshly-inserted rows with locale columns set to user-defined values.
  */
 const USER_UID = 'plugin::users-permissions.user';
 const ROLE_UID = 'plugin::users-permissions.role';
@@ -22,13 +27,13 @@ export async function up(strapi: any) {
     return;
   }
 
-  const existingUser = await strapi.query(USER_UID).findOne({ where: { email } });
+  const existingUser = await strapi.db.query(USER_UID).findOne({ where: { email } });
   if (existingUser) {
     strapi.log.info(`[seed] bootstrap admin already exists: ${email}`);
     return;
   }
 
-  const adminRole = await strapi
+  const adminRole = await strapi.db
     .query(ROLE_UID)
     .findOne({ where: { type: 'admin' } });
   if (!adminRole) {
@@ -38,7 +43,7 @@ export async function up(strapi: any) {
     return;
   }
 
-  const [org] = await strapi.documents(ORG_UID).findMany({ limit: 1 });
+  const [org] = await strapi.db.query(ORG_UID).findMany({ limit: 1 });
   if (!org) {
     strapi.log.error(
       '[seed] cannot bootstrap admin — no organization found (run 01-organizations first)'
@@ -59,10 +64,10 @@ export async function up(strapi: any) {
       provider: 'local',
     });
 
-  const profile = await strapi.documents(PROFILE_UID).create({
+  const profile = await strapi.db.query(PROFILE_UID).create({
     data: {
       user: user.id,
-      organization: org.documentId,
+      organization: org.id,
       role: 'admin',
       firstName: process.env.SEED_BOOTSTRAP_ADMIN_FIRST_NAME || 'Admin',
       lastName: process.env.SEED_BOOTSTRAP_ADMIN_LAST_NAME || 'User',
@@ -72,9 +77,9 @@ export async function up(strapi: any) {
     },
   });
 
-  await strapi.documents(ADMIN_PROFILE_UID).create({
+  await strapi.db.query(ADMIN_PROFILE_UID).create({
     data: {
-      user: profile.documentId,
+      user: profile.id,
       permissions: { 'admin.god': true },
       twoFactorEnabled: false,
     },
