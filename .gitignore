@@ -28,7 +28,8 @@ frontend/.next/
 backend/.tmp/
 backend/build/
 backend/dist/
-backend/public/uploads/
+backend/public/uploads/*
+!backend/public/uploads/.gitkeep
 backend/database/migrations/*.sql
 backend/exports/
 backend/.strapi-updater.json
