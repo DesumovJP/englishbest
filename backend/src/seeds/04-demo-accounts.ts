@@ -84,10 +84,7 @@ const DEMO_ACCOUNTS: DemoAccount[] = [
 ];
 
 export async function up(strapi: any) {
-  if (process.env.SEED_DEMO_ACCOUNTS !== '1') {
-    strapi.log.info('[seed] demo accounts skipped (SEED_DEMO_ACCOUNTS !== "1")');
-    return;
-  }
+  const createEnabled = process.env.SEED_DEMO_ACCOUNTS === '1';
 
   const [org] = await strapi.db.query(ORG_UID).findMany({ limit: 1 });
   if (!org) {
@@ -137,6 +134,11 @@ export async function up(strapi: any) {
       }
 
       strapi.log.info(`[seed] demo account exists: ${acc.email}`);
+      continue;
+    }
+
+    if (!createEnabled) {
+      strapi.log.info(`[seed] demo account ${acc.email} not present; creation skipped (SEED_DEMO_ACCOUNTS !== "1")`);
       continue;
     }
 
