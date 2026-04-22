@@ -2,7 +2,7 @@ import type { LessonData } from './types';
 
 const lesson: LessonData = {
   slug: 'reading-animals',
-  courseSlug: 'elementary-kids',
+  courseSlug: 'english-kids-starter',
   title: 'Reading: Animals in the Forest',
   xp: 25,
   steps: [

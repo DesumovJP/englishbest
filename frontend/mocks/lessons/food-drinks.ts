@@ -2,7 +2,7 @@ import type { LessonData } from './types';
 
 const lesson: LessonData = {
   slug: 'food-drinks',
-  courseSlug: 'elementary-kids',
+  courseSlug: 'english-kids-starter',
   title: 'Food & Drinks',
   xp: 20,
   steps: [
