@@ -112,6 +112,8 @@ const GRANTS: Grant[] = [
   // User-inventory /me (custom scoped endpoints — auto-create on first read)
   { action: 'api::user-inventory.user-inventory.findMe', roles: AUTH_ALL },
   { action: 'api::user-inventory.user-inventory.updateMe', roles: AUTH_ALL },
+  { action: 'api::user-inventory.user-inventory.purchaseCharacter', roles: AUTH_ALL },
+  { action: 'api::user-inventory.user-inventory.unlockRoom', roles: AUTH_ALL },
 
   // Organization (auth read, admin write)
   { action: 'api::organization.organization.findOne', roles: AUTH_ALL },

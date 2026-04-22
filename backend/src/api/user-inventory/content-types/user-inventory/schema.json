@@ -36,6 +36,26 @@
     "seedVersion": {
       "type": "integer",
       "default": 0
+    },
+    "ownedCharacters": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "api::character.character"
+    },
+    "activeCharacter": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::character.character"
+    },
+    "unlockedRooms": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "api::room.room"
+    },
+    "activeRoom": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::room.room"
     }
   }
 }

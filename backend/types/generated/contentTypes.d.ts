@@ -1437,6 +1437,11 @@ export interface ApiUserInventoryUserInventory
     draftAndPublish: false;
   };
   attributes: {
+    activeCharacter: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::character.character'
+    >;
+    activeRoom: Schema.Attribute.Relation<'manyToOne', 'api::room.room'>;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -1451,6 +1456,10 @@ export interface ApiUserInventoryUserInventory
     > &
       Schema.Attribute.Private;
     outfit: Schema.Attribute.JSON;
+    ownedCharacters: Schema.Attribute.Relation<
+      'manyToMany',
+      'api::character.character'
+    >;
     ownedShopItems: Schema.Attribute.Relation<
       'manyToMany',
       'api::shop-item.shop-item'
@@ -1458,6 +1467,7 @@ export interface ApiUserInventoryUserInventory
     placedItems: Schema.Attribute.JSON;
     publishedAt: Schema.Attribute.DateTime;
     seedVersion: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
+    unlockedRooms: Schema.Attribute.Relation<'manyToMany', 'api::room.room'>;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;

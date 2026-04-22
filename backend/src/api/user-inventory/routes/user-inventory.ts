@@ -18,5 +18,17 @@ export default {
       handler: 'api::user-inventory.user-inventory.updateMe',
       config: { policies: ['global::is-authenticated'] },
     },
+    {
+      method: 'POST',
+      path: '/user-inventory/me/purchase-character',
+      handler: 'api::user-inventory.user-inventory.purchaseCharacter',
+      config: { policies: ['global::is-authenticated'] },
+    },
+    {
+      method: 'POST',
+      path: '/user-inventory/me/unlock-room',
+      handler: 'api::user-inventory.user-inventory.unlockRoom',
+      config: { policies: ['global::is-authenticated'] },
+    },
   ],
 };

@@ -93,6 +93,8 @@ export interface KidsState {
   activeCharacterId: string;
   activeRoomId?: string;
   unlockedRoomIds: string[];
+  /** Characters the user owns (slug list). */
+  ownedCharacterIds: string[];
   /** CSS background value or image URL for the dashboard room */
   roomBackground?: string;
   /** outfit slots for the active character */
@@ -248,6 +250,7 @@ export const DEFAULT_STATE: KidsState = {
   level: 1,
   activeCharacterId: "fox",
   unlockedRoomIds: [],
+  ownedCharacterIds: [],
   outfit: {},
   ownedItemIds: [],
   placedItems: [],
@@ -262,6 +265,10 @@ type InventoryDto = {
   seedVersion?: number | null;
   ownedShopItems?: Array<{ slug: string }>;
   equippedItems?: Array<{ slug: string }>;
+  ownedCharacters?: Array<{ slug: string }>;
+  activeCharacter?: { slug: string } | null;
+  unlockedRooms?: Array<{ slug: string }>;
+  activeRoom?: { slug: string } | null;
 };
 
 type KidsProfileDto = {
@@ -299,6 +306,10 @@ async function fetchState(): Promise<KidsState> {
     streak: p ? toNum(p.streakDays) : 0,
     ownedItemIds: (i?.ownedShopItems ?? []).map((x) => x.slug),
     equippedItemIds: (i?.equippedItems ?? []).map((x) => x.slug),
+    ownedCharacterIds: (i?.ownedCharacters ?? []).map((x) => x.slug),
+    activeCharacterId: i?.activeCharacter?.slug ?? DEFAULT_STATE.activeCharacterId,
+    unlockedRoomIds: (i?.unlockedRooms ?? []).map((x) => x.slug),
+    activeRoomId: i?.activeRoom?.slug ?? undefined,
     outfit: (i?.outfit as KidsState["outfit"]) ?? {},
     placedItems: Array.isArray(i?.placedItems) ? (i!.placedItems as PlacedItem[]) : [],
     seedVersion: toNum(i?.seedVersion),
@@ -349,6 +360,8 @@ export const kidsStateStore = {
     if (partial.ownedItemIds !== undefined) inventoryBody.ownedShopItems = partial.ownedItemIds;
     if (partial.equippedItemIds !== undefined) inventoryBody.equippedItems = partial.equippedItemIds;
     if (partial.seedVersion !== undefined) inventoryBody.seedVersion = partial.seedVersion;
+    if (partial.activeCharacterId !== undefined) inventoryBody.activeCharacter = partial.activeCharacterId;
+    if (partial.activeRoomId !== undefined) inventoryBody.activeRoom = partial.activeRoomId;
 
     const calls: Promise<Response>[] = [];
     if (Object.keys(profileBody).length > 0) {
@@ -373,9 +386,8 @@ export const kidsStateStore = {
     }
 
     if (calls.length === 0) {
-      // Non-persisted fields (activeCharacterId/level/unlockedRoomIds/
-      // roomBackground) — Phase C territory. Update cache only so the UI
-      // reflects the change for the current session.
+      // Non-persisted fields (level/roomBackground — derived UI state).
+      // Update cache only so the UI reflects the change for the session.
       const merged = { ...current, ...partial };
       _cache = merged;
       return merged;
@@ -384,22 +396,55 @@ export const kidsStateStore = {
     const results = await Promise.all(calls);
     const firstBad = results.find((r) => !r.ok);
     if (firstBad) {
-      // Invalidate cache so the next read pulls fresh truth.
       _cache = null;
       throw new Error(`kidsStateStore.patch failed (${firstBad.status})`);
     }
 
     const fresh = await fetchState();
-    // Preserve fields that aren't persisted server-side yet.
     _cache = {
       ...fresh,
-      activeCharacterId: partial.activeCharacterId ?? current.activeCharacterId,
-      activeRoomId: partial.activeRoomId ?? current.activeRoomId,
-      unlockedRoomIds: partial.unlockedRoomIds ?? current.unlockedRoomIds,
       roomBackground: partial.roomBackground ?? current.roomBackground,
       level: partial.level ?? current.level,
     };
     return _cache;
+  },
+
+  /** Purchase a character. Server debits coins and appends to ownedCharacters. */
+  purchaseCharacter: async (slug: string): Promise<KidsState> => {
+    const res = await fetch("/api/user-inventory/me/purchase-character", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ slug }),
+    });
+    if (!res.ok) {
+      _cache = null;
+      const body = await res.json().catch(() => null);
+      const msg = body?.error?.message ?? `purchaseCharacter failed (${res.status})`;
+      throw new Error(msg);
+    }
+    const fresh = await fetchState();
+    _cache = fresh;
+    return fresh;
+  },
+
+  /** Unlock a room. Server debits coinsRequired and appends to unlockedRooms. */
+  unlockRoom: async (slug: string): Promise<KidsState> => {
+    const res = await fetch("/api/user-inventory/me/unlock-room", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ slug }),
+    });
+    if (!res.ok) {
+      _cache = null;
+      const body = await res.json().catch(() => null);
+      const msg = body?.error?.message ?? `unlockRoom failed (${res.status})`;
+      throw new Error(msg);
+    }
+    const fresh = await fetchState();
+    _cache = fresh;
+    return fresh;
   },
 
   /** Clear in-memory cache (e.g. on logout). */
