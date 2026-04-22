@@ -150,8 +150,7 @@ export function ProgramDetail({ program, onClose, onSave, onToggleStatus, onArch
 
             <Field label="Опис">
               <textarea
-                className="ios-input w-full py-2 resize-none"
-                style={{ height: 'auto', minHeight: 76 }}
+                className="ios-input w-full py-2 resize-none h-auto min-h-[76px]"
                 rows={3}
                 value={program.description}
                 onChange={e => handleField('description', e.target.value)}

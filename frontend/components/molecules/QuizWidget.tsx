@@ -118,7 +118,8 @@ export function QuizWidget({ variant = 'outline' }: { variant?: 'outline' | 'pri
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: POST до Strapi або CRM
+    // Real lead submission lands in Phase E (PROJECT.md §2 Phase E — Lessons & Scheduling).
+    // Until then we accept the form client-side so the UX is testable.
     setSubmitted(true);
   };
 

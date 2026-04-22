@@ -140,7 +140,7 @@ function BlockFields({
             />
           </div>
           <div>
-            <label className={fieldLabel}>Підпис (необов'язково)</label>
+            <label className={fieldLabel}>Підпис (необов&apos;язково)</label>
             <input
               type="text"
               value={block.body ?? ''}

@@ -1,53 +1,50 @@
+import { notFound } from 'next/navigation';
 import { LessonEngine } from '@/components/lesson/LessonEngine';
-import helloGoodbyeLesson  from '@/mocks/lessons/hello-goodbye';
-import myNameIsLesson      from '@/mocks/lessons/my-name-is';
-import numbersColorsLesson from '@/mocks/lessons/numbers-colors';
-import dailyRoutinesLesson from '@/mocks/lessons/daily-routines';
-import foodDrinksLesson    from '@/mocks/lessons/food-drinks';
-import myHouseLesson       from '@/mocks/lessons/my-house';
-import readingAnimalsLesson from '@/mocks/lessons/reading-animals';
+import type { LessonData, LessonStep } from '@/mocks/lessons/types';
+import { fetchLesson, fetchLessonsByCourse } from '@/lib/api';
+import type { Lesson } from '@/lib/types';
 
-/* ─── Реєстр уроків (замінити на Strapi) ────── */
-const LESSON_REGISTRY = {
-  'hello-goodbye':   helloGoodbyeLesson,
-  'my-name-is':      myNameIsLesson,
-  'numbers-colors':  numbersColorsLesson,
-  'daily-routines':  dailyRoutinesLesson,
-  'food-drinks':     foodDrinksLesson,
-  'my-house':           myHouseLesson,
-  'reading-animals':    readingAnimalsLesson,
-} as const;
-
-/* ─── Метадані вчителя (мок) ─────────────────── */
+/* ─── Метадані вчителя (мок; реальні дані — Phase G) ──────── */
 const TEACHER = {
   name: 'Maria S.',
   photo: 'https://randomuser.me/api/portraits/women/65.jpg',
-  callUrl: 'https://calendly.com/maria-s/trial', // TODO: замінити на реальний
+  callUrl: process.env.NEXT_PUBLIC_CALENDLY_TRIAL_URL ?? '',
 };
 
-/* ─── Наступний урок (мок) ──────────────────── */
-const NEXT_LESSON: Record<string, string> = {
-  'hello-goodbye':  'my-name-is',
-  'my-name-is':     'numbers-colors',
-  'numbers-colors': 'daily-routines',
-  'daily-routines': 'food-drinks',
-  'food-drinks':    'my-house',
-  'my-house':       'family-friends',
-};
+function toLessonData(lesson: Lesson): LessonData | null {
+  const steps = lesson.steps as LessonStep[] | undefined;
+  if (!steps || steps.length === 0) return null;
+  return {
+    slug: lesson.slug,
+    courseSlug: lesson.courseSlug ?? '',
+    title: lesson.title,
+    xp: lesson.xp ?? 10,
+    steps,
+  };
+}
 
 export default async function LessonPage({
   params,
 }: {
   params: Promise<{ courseSlug: string; lessonSlug: string }>;
 }) {
-  const { lessonSlug } = await params;
-  const lesson = LESSON_REGISTRY[lessonSlug as keyof typeof LESSON_REGISTRY]
-    ?? LESSON_REGISTRY['hello-goodbye'];
+  const { courseSlug, lessonSlug } = await params;
+  const lesson = await fetchLesson(courseSlug, lessonSlug);
+  if (!lesson) notFound();
+
+  const lessonData = toLessonData(lesson);
+  if (!lessonData) notFound();
+
+  // Compute next lesson slug from the course's lesson list (sorted by orderIndex).
+  const siblings = await fetchLessonsByCourse(courseSlug);
+  const idx = siblings.findIndex((l) => l.slug === lessonSlug);
+  const nextLessonSlug =
+    idx >= 0 && idx < siblings.length - 1 ? siblings[idx + 1].slug : undefined;
 
   return (
     <LessonEngine
-      lesson={lesson}
-      nextLessonSlug={NEXT_LESSON[lessonSlug]}
+      lesson={lessonData}
+      nextLessonSlug={nextLessonSlug}
       backUrl="/kids/school"
       teacherName={TEACHER.name}
       teacherPhoto={TEACHER.photo}

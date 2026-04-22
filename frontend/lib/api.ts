@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- Strapi v5 envelopes arrive as unknown raw shapes; narrowing lives in `normalize.ts`. Callers receive typed domain objects. */
 /**
  * Public API surface — every reader/writer against the Strapi backend goes
  * through here. Consumers import typed domain objects, not raw envelopes.

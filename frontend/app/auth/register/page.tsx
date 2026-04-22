@@ -1,6 +1,8 @@
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
+import { useSession } from '@/lib/session-context';
+import { apiErrorMessage } from '@/lib/fetcher';
 
 const AGE_GROUPS = [
   { value: '',        label: 'Вік дитини' },
@@ -12,7 +14,9 @@ const AGE_GROUPS = [
 ];
 
 export default function RegisterPage() {
+  const { register } = useSession();
   const [loading, setLoading] = useState(false);
+  const [error, setError]     = useState<string | null>(null);
   const [step, setStep]       = useState<1 | 2>(1);
   const [form, setForm]       = useState({ name: '', email: '', password: '', age: '', phone: '' });
   const [agree, setAgree]     = useState(false);
@@ -25,10 +29,21 @@ export default function RegisterPage() {
     e.preventDefault();
     if (step === 1) { setStep(2); return; }
     setLoading(true);
-    // TODO: replace with Strapi auth endpoint POST /api/auth/local/register
-    await new Promise(r => setTimeout(r, 900));
-    setLoading(false);
-    window.location.href = '/dashboard';
+    setError(null);
+    try {
+      await register({
+        email: form.email.trim(),
+        password: form.password,
+        firstName: form.name.trim() || form.email.split('@')[0],
+        role: form.age === '16+' ? 'adult' : 'kids',
+        ageGroup: form.age || undefined,
+        phone: form.phone.trim() || undefined,
+      });
+      window.location.href = '/dashboard';
+    } catch (err) {
+      setError(apiErrorMessage(err, 'Не вдалося зареєструватися. Спробуйте ще раз.'));
+      setLoading(false);
+    }
   }
 
   const inputCls = 'w-full h-11 px-4 rounded-xl border border-border text-sm text-ink bg-white focus:outline-none focus:border-primary transition-colors placeholder:text-ink-muted';
@@ -201,6 +216,15 @@ export default function RegisterPage() {
                   </span>
                 </label>
               </>
+            )}
+
+            {error && (
+              <div
+                role="alert"
+                className="rounded-xl border border-danger/30 bg-danger/10 px-3 py-2 text-xs text-danger"
+              >
+                {error}
+              </div>
             )}
 
             <button

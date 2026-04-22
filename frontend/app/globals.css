@@ -34,6 +34,11 @@
   --color-surface-muted: #F2F1EE;
   --color-border:        #E3E2DF;
 
+  /* ── Kids-zone surfaces (Toca Boca skin; superset, not override) */
+  --color-kid-bg:     #F7F9FC;
+  --color-kid-border: #E0E8F0;
+  --color-kid-ink:    #1a1a2e;
+
   /* ── Text ───────────────────────────────────────────────────── */
   --color-ink:       #1f1f1f;
   --color-ink-muted: #6b7280;

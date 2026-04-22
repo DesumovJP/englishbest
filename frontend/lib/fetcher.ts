@@ -29,6 +29,22 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * UA-localised message for any thrown value from fetcher.* helpers.
+ * Prefers Strapi's `error.message` in the response body, falls back to
+ * the caller-supplied copy, finally to a generic network-error string.
+ */
+export function apiErrorMessage(err: unknown, fallback: string): string {
+  if (err instanceof ApiError) {
+    const bodyMsg =
+      err.body && typeof err.body === 'object' && 'error' in err.body
+        ? (err.body as { error?: { message?: string } }).error?.message
+        : undefined;
+    return bodyMsg || err.message || fallback;
+  }
+  return "Помилка мережі. Перевірте з'єднання та спробуйте знову.";
+}
+
 type FetchInit = Omit<RequestInit, 'body'> & { body?: unknown };
 
 function absolutize(path: string): string {

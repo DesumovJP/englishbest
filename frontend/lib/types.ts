@@ -157,6 +157,13 @@ export type Lesson = {
   exercises: Exercise[];
   isFree?: boolean;
 
+  // Block-based interactive content (theory/mcq/fill-blank/match-pairs/…).
+  // Stored as a JSON field in Strapi; shape matches `mocks/lessons/types.ts`
+  // `LessonStep[]`. Kept loose here as `unknown[]` to avoid a cycle — the
+  // lesson page narrows via `toLessonData()` when handing it to LessonEngine.
+  steps?: unknown[];
+  xp?: number;
+
   // Legacy aliases
   lessonSlug?: string;
   content?: {

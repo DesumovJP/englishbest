@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- Boundary parser: raw Strapi shapes are unknown by design; all narrowing and typing happens in this file so callers receive domain types. */
 /**
  * Strapi v5 → domain types normalizer.
  *
@@ -185,6 +186,9 @@ export function normalizeLesson(raw: any): Lesson {
   const courseSlug = raw?.course?.slug ?? undefined;
   const courseDocumentId = raw?.course?.documentId ?? undefined;
 
+  const steps = Array.isArray(raw?.steps) ? (raw.steps as unknown[]) : undefined;
+  const xp = typeof raw?.xp === 'number' ? raw.xp : undefined;
+
   return {
     documentId: raw?.documentId,
     slug: raw?.slug ?? '',
@@ -200,6 +204,8 @@ export function normalizeLesson(raw: any): Lesson {
     coverUrl,
     exercises,
     isFree: raw?.isFree ?? undefined,
+    steps,
+    xp,
 
     // Legacy aliases.
     lessonSlug: raw?.slug ?? '',

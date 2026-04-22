@@ -63,6 +63,13 @@
       "repeatable": true,
       "component": "lesson.exercise"
     },
+    "steps": {
+      "type": "json"
+    },
+    "xp": {
+      "type": "integer",
+      "default": 10
+    },
     "isFree": {
       "type": "boolean",
       "default": false

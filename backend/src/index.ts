@@ -26,5 +26,18 @@ export default {
 
   async bootstrap({ strapi }: { strapi: Core.Strapi }) {
     await runSeeds(strapi);
+
+    // Opt-in one-shot mock import — set IMPORT_MOCKS_ON_BOOT=1 on Railway,
+    // redeploy, then unset the var once the admin panel shows the catalog.
+    // Script is idempotent (ensure*-helpers skip records that already exist).
+    if (process.env.IMPORT_MOCKS_ON_BOOT === '1') {
+      try {
+        const { runImport } = await import('./lib/mock-importer');
+        await runImport(strapi);
+      } catch (err) {
+        strapi.log.error('[boot] IMPORT_MOCKS_ON_BOOT failed:');
+        strapi.log.error(err as any);
+      }
+    }
   },
 };

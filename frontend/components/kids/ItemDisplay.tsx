@@ -109,10 +109,10 @@ export function ItemDisplay({
       </div>
       {showLabel && (
         <div className="text-center">
-          <p className="font-black text-xs text-[var(--tk-ink)] leading-tight">
+          <p className="font-black text-xs text-kid-ink leading-tight">
             {item.nameEn}
           </p>
-          <p className="font-bold text-[10px] text-[var(--tk-muted)]">
+          <p className="font-bold text-[10px] text-ink-muted">
             {item.nameUa}
           </p>
         </div>

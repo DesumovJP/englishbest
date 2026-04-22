@@ -91,15 +91,15 @@ function ImageUpload({
       <button
         type="button"
         onClick={() => inputRef.current?.click()}
-        className="w-16 h-16 rounded-2xl border-[3px] border-dashed border-[var(--tk-border)] bg-[var(--tk-bg)] flex items-center justify-center overflow-hidden transition-all hover:border-[var(--tk-blue)] active:scale-95"
+        className="w-16 h-16 rounded-2xl border-[3px] border-dashed border-kid-border bg-kid-bg flex items-center justify-center overflow-hidden transition-all hover:border-secondary active:scale-95"
       >
         {value ? (
           <img src={value} alt={label} className="w-full h-full object-contain" />
         ) : (
-          <span className="text-2xl text-[var(--tk-muted)]">+</span>
+          <span className="text-2xl text-ink-muted">+</span>
         )}
       </button>
-      <span className="text-[10px] font-bold text-[var(--tk-muted)]">{label}</span>
+      <span className="text-[10px] font-bold text-ink-muted">{label}</span>
       <input
         ref={inputRef}
         type="file"
@@ -159,32 +159,32 @@ function AddItemTab({ onDone }: { onDone: () => void }) {
       {/* Name fields */}
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="block text-xs font-black text-[var(--tk-muted)] mb-1 uppercase tracking-wide">
+          <label className="block text-xs font-black text-ink-muted mb-1 uppercase tracking-wide">
             Name EN
           </label>
           <input
             value={nameEn}
             onChange={(e) => setNameEn(e.target.value)}
             placeholder="Bed"
-            className="w-full rounded-xl border-2 border-[var(--tk-border)] px-3 py-2.5 text-sm font-bold bg-[var(--tk-bg)] focus:border-[var(--tk-blue)] focus:outline-none"
+            className="w-full rounded-xl border-2 border-kid-border px-3 py-2.5 text-sm font-bold bg-kid-bg focus:border-secondary focus:outline-none"
           />
         </div>
         <div>
-          <label className="block text-xs font-black text-[var(--tk-muted)] mb-1 uppercase tracking-wide">
+          <label className="block text-xs font-black text-ink-muted mb-1 uppercase tracking-wide">
             Назва UA
           </label>
           <input
             value={nameUa}
             onChange={(e) => setNameUa(e.target.value)}
             placeholder="Ліжко"
-            className="w-full rounded-xl border-2 border-[var(--tk-border)] px-3 py-2.5 text-sm font-bold bg-[var(--tk-bg)] focus:border-[var(--tk-blue)] focus:outline-none"
+            className="w-full rounded-xl border-2 border-kid-border px-3 py-2.5 text-sm font-bold bg-kid-bg focus:border-secondary focus:outline-none"
           />
         </div>
       </div>
 
       {/* Category */}
       <div>
-        <label className="block text-xs font-black text-[var(--tk-muted)] mb-2 uppercase tracking-wide">
+        <label className="block text-xs font-black text-ink-muted mb-2 uppercase tracking-wide">
           Category
         </label>
         <div className="flex gap-2 flex-wrap">
@@ -195,8 +195,8 @@ function AddItemTab({ onDone }: { onDone: () => void }) {
               onClick={() => setCategory(cat.id)}
               className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-black border-2 transition-all ${
                 category === cat.id
-                  ? "border-[var(--tk-blue)] bg-blue-50 text-[var(--tk-blue)]"
-                  : "border-[var(--tk-border)] bg-[var(--tk-bg)] text-[var(--tk-muted)]"
+                  ? "border-secondary bg-blue-50 text-secondary"
+                  : "border-kid-border bg-kid-bg text-ink-muted"
               }`}
             >
               {cat.emoji} {cat.label}
@@ -208,17 +208,17 @@ function AddItemTab({ onDone }: { onDone: () => void }) {
       {/* Emoji + price */}
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="block text-xs font-black text-[var(--tk-muted)] mb-1 uppercase tracking-wide">
+          <label className="block text-xs font-black text-ink-muted mb-1 uppercase tracking-wide">
             Emoji fallback
           </label>
           <input
             value={emoji}
             onChange={(e) => setEmoji(e.target.value)}
-            className="w-full rounded-xl border-2 border-[var(--tk-border)] px-3 py-2.5 text-lg font-bold bg-[var(--tk-bg)] focus:border-[var(--tk-blue)] focus:outline-none"
+            className="w-full rounded-xl border-2 border-kid-border px-3 py-2.5 text-lg font-bold bg-kid-bg focus:border-secondary focus:outline-none"
           />
         </div>
         <div>
-          <label className="block text-xs font-black text-[var(--tk-muted)] mb-1 uppercase tracking-wide">
+          <label className="block text-xs font-black text-ink-muted mb-1 uppercase tracking-wide">
             Price 🪙
           </label>
           <input
@@ -226,22 +226,22 @@ function AddItemTab({ onDone }: { onDone: () => void }) {
             value={price}
             onChange={(e) => setPrice(Number(e.target.value))}
             min={0}
-            className="w-full rounded-xl border-2 border-[var(--tk-border)] px-3 py-2.5 text-sm font-bold bg-[var(--tk-bg)] focus:border-[var(--tk-blue)] focus:outline-none"
+            className="w-full rounded-xl border-2 border-kid-border px-3 py-2.5 text-sm font-bold bg-kid-bg focus:border-secondary focus:outline-none"
           />
         </div>
       </div>
 
       {/* Images */}
       <div>
-        <label className="block text-xs font-black text-[var(--tk-muted)] mb-2 uppercase tracking-wide">
+        <label className="block text-xs font-black text-ink-muted mb-2 uppercase tracking-wide">
           Images (PNG / GIF)
         </label>
-        <div className="flex gap-4 justify-center bg-[var(--tk-bg)] rounded-2xl p-4">
+        <div className="flex gap-4 justify-center bg-kid-bg rounded-2xl p-4">
           <ImageUpload label="Idle"   value={imgIdle}   onChange={setImgIdle} />
           <ImageUpload label="Hover"  value={imgHover}  onChange={setImgHover} />
           <ImageUpload label="Active" value={imgActive} onChange={setImgActive} />
         </div>
-        <p className="text-[10px] font-bold text-[var(--tk-muted)] text-center mt-1">
+        <p className="text-[10px] font-bold text-ink-muted text-center mt-1">
           Only Idle is required. Hover/Active are optional.
         </p>
       </div>
@@ -287,31 +287,31 @@ function AddRoomTab({ onDone }: { onDone: () => void }) {
     <div className="flex flex-col gap-4">
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="block text-xs font-black text-[var(--tk-muted)] mb-1 uppercase tracking-wide">
+          <label className="block text-xs font-black text-ink-muted mb-1 uppercase tracking-wide">
             Name EN
           </label>
           <input
             value={nameEn}
             onChange={(e) => setNameEn(e.target.value)}
             placeholder="Library"
-            className="w-full rounded-xl border-2 border-[var(--tk-border)] px-3 py-2.5 text-sm font-bold bg-[var(--tk-bg)] focus:border-[var(--tk-blue)] focus:outline-none"
+            className="w-full rounded-xl border-2 border-kid-border px-3 py-2.5 text-sm font-bold bg-kid-bg focus:border-secondary focus:outline-none"
           />
         </div>
         <div>
-          <label className="block text-xs font-black text-[var(--tk-muted)] mb-1 uppercase tracking-wide">
+          <label className="block text-xs font-black text-ink-muted mb-1 uppercase tracking-wide">
             Назва UA
           </label>
           <input
             value={nameUa}
             onChange={(e) => setNameUa(e.target.value)}
             placeholder="Бібліотека"
-            className="w-full rounded-xl border-2 border-[var(--tk-border)] px-3 py-2.5 text-sm font-bold bg-[var(--tk-bg)] focus:border-[var(--tk-blue)] focus:outline-none"
+            className="w-full rounded-xl border-2 border-kid-border px-3 py-2.5 text-sm font-bold bg-kid-bg focus:border-secondary focus:outline-none"
           />
         </div>
       </div>
 
       <div>
-        <label className="block text-xs font-black text-[var(--tk-muted)] mb-1 uppercase tracking-wide">
+        <label className="block text-xs font-black text-ink-muted mb-1 uppercase tracking-wide">
           Coins to unlock 🪙
         </label>
         <input
@@ -319,15 +319,15 @@ function AddRoomTab({ onDone }: { onDone: () => void }) {
           value={coins}
           onChange={(e) => setCoins(Number(e.target.value))}
           min={0}
-          className="w-full rounded-xl border-2 border-[var(--tk-border)] px-3 py-2.5 text-sm font-bold bg-[var(--tk-bg)] focus:border-[var(--tk-blue)] focus:outline-none"
+          className="w-full rounded-xl border-2 border-kid-border px-3 py-2.5 text-sm font-bold bg-kid-bg focus:border-secondary focus:outline-none"
         />
       </div>
 
       <div>
-        <label className="block text-xs font-black text-[var(--tk-muted)] mb-2 uppercase tracking-wide">
+        <label className="block text-xs font-black text-ink-muted mb-2 uppercase tracking-wide">
           Background image
         </label>
-        <div className="flex justify-center bg-[var(--tk-bg)] rounded-2xl p-4">
+        <div className="flex justify-center bg-kid-bg rounded-2xl p-4">
           <div className="flex flex-col items-center gap-2">
             <button
               type="button"
@@ -341,14 +341,14 @@ function AddRoomTab({ onDone }: { onDone: () => void }) {
                 };
                 el.click();
               }}
-              className="w-48 h-28 rounded-2xl border-[3px] border-dashed border-[var(--tk-border)] flex items-center justify-center overflow-hidden"
+              className="w-48 h-28 rounded-2xl border-[3px] border-dashed border-kid-border flex items-center justify-center overflow-hidden"
             >
               {bgImg ? (
                 <img src={bgImg} alt="bg" className="w-full h-full object-cover" />
               ) : (
                 <div className="text-center">
                   <div className="text-3xl">🏠</div>
-                  <p className="text-xs font-bold text-[var(--tk-muted)] mt-1">Tap to upload</p>
+                  <p className="text-xs font-bold text-ink-muted mt-1">Tap to upload</p>
                 </div>
               )}
             </button>
@@ -424,32 +424,32 @@ function AddCharacterTab({ onDone }: { onDone: () => void }) {
     <div className="flex flex-col gap-4">
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="block text-xs font-black text-[var(--tk-muted)] mb-1 uppercase tracking-wide">
+          <label className="block text-xs font-black text-ink-muted mb-1 uppercase tracking-wide">
             Name EN
           </label>
           <input
             value={nameEn}
             onChange={(e) => setNameEn(e.target.value)}
             placeholder="Luna"
-            className="w-full rounded-xl border-2 border-[var(--tk-border)] px-3 py-2.5 text-sm font-bold bg-[var(--tk-bg)] focus:border-[var(--tk-blue)] focus:outline-none"
+            className="w-full rounded-xl border-2 border-kid-border px-3 py-2.5 text-sm font-bold bg-kid-bg focus:border-secondary focus:outline-none"
           />
         </div>
         <div>
-          <label className="block text-xs font-black text-[var(--tk-muted)] mb-1 uppercase tracking-wide">
-            Ім'я UA
+          <label className="block text-xs font-black text-ink-muted mb-1 uppercase tracking-wide">
+            Ім&apos;я UA
           </label>
           <input
             value={nameUa}
             onChange={(e) => setNameUa(e.target.value)}
             placeholder="Луна"
-            className="w-full rounded-xl border-2 border-[var(--tk-border)] px-3 py-2.5 text-sm font-bold bg-[var(--tk-bg)] focus:border-[var(--tk-blue)] focus:outline-none"
+            className="w-full rounded-xl border-2 border-kid-border px-3 py-2.5 text-sm font-bold bg-kid-bg focus:border-secondary focus:outline-none"
           />
         </div>
       </div>
 
       {/* Animal fallback */}
       <div>
-        <label className="block text-xs font-black text-[var(--tk-muted)] mb-2 uppercase tracking-wide">
+        <label className="block text-xs font-black text-ink-muted mb-2 uppercase tracking-wide">
           SVG Fallback
         </label>
         <div className="flex gap-2 flex-wrap">
@@ -460,8 +460,8 @@ function AddCharacterTab({ onDone }: { onDone: () => void }) {
               onClick={() => setAnimal(a.id)}
               className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-black border-2 transition-all ${
                 animal === a.id
-                  ? "border-[var(--tk-blue)] bg-blue-50 text-[var(--tk-blue)]"
-                  : "border-[var(--tk-border)] bg-[var(--tk-bg)] text-[var(--tk-muted)]"
+                  ? "border-secondary bg-blue-50 text-secondary"
+                  : "border-kid-border bg-kid-bg text-ink-muted"
               }`}
             >
               {a.emoji} {a.label}
@@ -472,7 +472,7 @@ function AddCharacterTab({ onDone }: { onDone: () => void }) {
 
       {/* Rarity */}
       <div>
-        <label className="block text-xs font-black text-[var(--tk-muted)] mb-2 uppercase tracking-wide">
+        <label className="block text-xs font-black text-ink-muted mb-2 uppercase tracking-wide">
           Rarity
         </label>
         <div className="flex gap-2 flex-wrap">
@@ -482,7 +482,7 @@ function AddCharacterTab({ onDone }: { onDone: () => void }) {
               type="button"
               onClick={() => setRarity(r.id)}
               className={`px-3 py-2 rounded-xl text-xs font-black border-2 transition-all ${
-                rarity === r.id ? "text-white" : "bg-[var(--tk-bg)] text-[var(--tk-muted)]"
+                rarity === r.id ? "text-white" : "bg-kid-bg text-ink-muted"
               }`}
               style={{
                 borderColor: rarity === r.id ? r.color : undefined,
@@ -497,10 +497,10 @@ function AddCharacterTab({ onDone }: { onDone: () => void }) {
 
       {/* Per-mood images */}
       <div>
-        <label className="block text-xs font-black text-[var(--tk-muted)] mb-2 uppercase tracking-wide">
+        <label className="block text-xs font-black text-ink-muted mb-2 uppercase tracking-wide">
           Images per mood (PNG / GIF)
         </label>
-        <div className="grid grid-cols-3 sm:grid-cols-5 gap-3 bg-[var(--tk-bg)] rounded-2xl p-4">
+        <div className="grid grid-cols-3 sm:grid-cols-5 gap-3 bg-kid-bg rounded-2xl p-4">
           {ALL_MOODS.map((m) => (
             <div key={m.id} className="flex flex-col items-center gap-1">
               <span className="text-lg">{m.emoji}</span>
@@ -512,7 +512,7 @@ function AddCharacterTab({ onDone }: { onDone: () => void }) {
             </div>
           ))}
         </div>
-        <p className="text-[10px] font-bold text-[var(--tk-muted)] text-center mt-1">
+        <p className="text-[10px] font-bold text-ink-muted text-center mt-1">
           Leave empty to use SVG fallback for that mood.
         </p>
       </div>
@@ -548,14 +548,14 @@ export default function AddCustomModal({ onClose }: AddCustomModalProps) {
         {/* Header */}
         <div className="flex items-center justify-between px-5 pt-5 pb-3">
           <div>
-            <h2 className="text-xl font-black text-[var(--tk-ink)]">Add Custom ✨</h2>
-            <p className="text-xs font-bold text-[var(--tk-muted)]">
+            <h2 className="text-xl font-black text-kid-ink">Add Custom ✨</h2>
+            <p className="text-xs font-bold text-ink-muted">
               Saved locally — works on prod
             </p>
           </div>
           <button
             onClick={onClose}
-            className="w-10 h-10 rounded-full bg-[var(--tk-bg)] border-2 border-[var(--tk-border)] flex items-center justify-center text-[var(--tk-muted)] font-black text-lg hover:bg-gray-100"
+            className="w-10 h-10 rounded-full bg-kid-bg border-2 border-kid-border flex items-center justify-center text-ink-muted font-black text-lg hover:bg-gray-100"
           >
             ✕
           </button>

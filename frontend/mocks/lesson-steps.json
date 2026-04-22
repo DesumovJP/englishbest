@@ -1,0 +1,938 @@
+[
+  {
+    "slug": "daily-routines",
+    "courseSlug": "elementary-kids",
+    "title": "Daily Routines",
+    "xp": 20,
+    "steps": [
+      {
+        "id": "theory-1",
+        "type": "theory",
+        "title": "Мій день по-англійськи ⏰",
+        "body": "Навчимось розповідати про свій розпорядок дня. Ці фрази допоможуть описати що ти робиш щодня.",
+        "examples": [
+          {
+            "en": "wake up",
+            "ua": "прокидатись"
+          },
+          {
+            "en": "have breakfast",
+            "ua": "снідати"
+          },
+          {
+            "en": "go to school",
+            "ua": "іти до школи"
+          },
+          {
+            "en": "do homework",
+            "ua": "робити домашнє завдання"
+          },
+          {
+            "en": "go to bed",
+            "ua": "лягати спати"
+          },
+          {
+            "en": "watch TV",
+            "ua": "дивитись телевізор"
+          }
+        ],
+        "tip": "💡 \"I wake up at 7\" = \"Я прокидаюсь о 7-й\". \"At\" використовуємо з часом!"
+      },
+      {
+        "id": "mc-1",
+        "type": "multiple-choice",
+        "question": "Що означає \"wake up\"?",
+        "options": [
+          "лягати спати",
+          "снідати",
+          "прокидатись",
+          "іти до школи"
+        ],
+        "correctIndex": 2,
+        "explanation": "\"Wake up\" — прокидатись. \"Go to bed\" — лягати спати."
+      },
+      {
+        "id": "wo-1",
+        "type": "word-order",
+        "prompt": "Склади речення:",
+        "translation": "Я снідаю о восьмій годині.",
+        "words": [
+          "I",
+          "have",
+          "breakfast",
+          "at",
+          "eight"
+        ],
+        "answer": [
+          "I",
+          "have",
+          "breakfast",
+          "at",
+          "eight"
+        ]
+      },
+      {
+        "id": "fill-1",
+        "type": "fill-blank",
+        "before": "After school I",
+        "after": "my homework.",
+        "answer": "do",
+        "hint": "\"Робити\" домашнє завдання…"
+      },
+      {
+        "id": "match-1",
+        "type": "match-pairs",
+        "prompt": "З'єднай дію з перекладом:",
+        "pairs": [
+          {
+            "left": "wake up",
+            "right": "прокидатись"
+          },
+          {
+            "left": "go to school",
+            "right": "іти до школи"
+          },
+          {
+            "left": "watch TV",
+            "right": "дивитись ТВ"
+          },
+          {
+            "left": "go to bed",
+            "right": "лягати спати"
+          }
+        ]
+      },
+      {
+        "id": "tr-1",
+        "type": "translate",
+        "prompt": "Перекладіть англійською:",
+        "sentence": "Я прокидаюсь о сьомій і іду до школи.",
+        "answer": "I wake up at seven and go to school.",
+        "acceptedAnswers": [
+          "I wake up at seven and go to school.",
+          "I wake up at seven and go to school",
+          "i wake up at seven and go to school.",
+          "I wake up at 7 and go to school."
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "food-drinks",
+    "courseSlug": "elementary-kids",
+    "title": "Food & Drinks",
+    "xp": 20,
+    "steps": [
+      {
+        "id": "theory-1",
+        "type": "theory",
+        "title": "Їжа та напої по-англійськи 🍎",
+        "body": "Сьогодні вивчаємо слова про їжу та напої. Запам'ятай ці слова — вони потрібні щодня!",
+        "examples": [
+          {
+            "en": "apple",
+            "ua": "яблуко"
+          },
+          {
+            "en": "bread",
+            "ua": "хліб"
+          },
+          {
+            "en": "milk",
+            "ua": "молоко"
+          },
+          {
+            "en": "water",
+            "ua": "вода"
+          },
+          {
+            "en": "juice",
+            "ua": "сік"
+          },
+          {
+            "en": "cake",
+            "ua": "торт"
+          }
+        ],
+        "tip": "💡 Щоб запам'ятати слово — уяви його смак!"
+      },
+      {
+        "id": "mc-1",
+        "type": "multiple-choice",
+        "question": "Що означає слово \"apple\"?",
+        "options": [
+          "банан",
+          "яблуко",
+          "груша",
+          "апельсин"
+        ],
+        "correctIndex": 1,
+        "explanation": "\"Apple\" — це яблуко. \"Banana\" — банан, \"pear\" — груша."
+      },
+      {
+        "id": "fill-1",
+        "type": "fill-blank",
+        "before": "I drink a glass of",
+        "after": "every morning.",
+        "answer": "milk",
+        "hint": "Молоко по-англійськи…"
+      },
+      {
+        "id": "mc-2",
+        "type": "multiple-choice",
+        "question": "Як сказати \"сік\" по-англійськи?",
+        "options": [
+          "water",
+          "milk",
+          "juice",
+          "tea"
+        ],
+        "correctIndex": 2
+      },
+      {
+        "id": "wo-1",
+        "type": "word-order",
+        "prompt": "Склади речення:",
+        "translation": "Мені подобається їсти хліб з маслом.",
+        "words": [
+          "I",
+          "like",
+          "to",
+          "eat",
+          "bread",
+          "with",
+          "butter"
+        ],
+        "answer": [
+          "I",
+          "like",
+          "to",
+          "eat",
+          "bread",
+          "with",
+          "butter"
+        ]
+      },
+      {
+        "id": "match-1",
+        "type": "match-pairs",
+        "prompt": "З'єднай слово з перекладом:",
+        "pairs": [
+          {
+            "left": "cake",
+            "right": "торт"
+          },
+          {
+            "left": "water",
+            "right": "вода"
+          },
+          {
+            "left": "juice",
+            "right": "сік"
+          },
+          {
+            "left": "bread",
+            "right": "хліб"
+          }
+        ]
+      },
+      {
+        "id": "tr-1",
+        "type": "translate",
+        "prompt": "Перекладіть речення англійською:",
+        "sentence": "Я хочу яблучний сік.",
+        "answer": "I want apple juice.",
+        "acceptedAnswers": [
+          "I want apple juice.",
+          "I want apple juice",
+          "i want apple juice"
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "hello-goodbye",
+    "courseSlug": "elementary-kids",
+    "title": "Hello & Goodbye",
+    "xp": 15,
+    "steps": [
+      {
+        "id": "theory-1",
+        "type": "theory",
+        "title": "Вітання та прощання 👋",
+        "body": "Перший крок у вивченні англійської — навчитись вітатись! Ці слова ти будеш використовувати щодня.",
+        "examples": [
+          {
+            "en": "Hello",
+            "ua": "Привіт"
+          },
+          {
+            "en": "Hi",
+            "ua": "Привіт (неформально)"
+          },
+          {
+            "en": "Goodbye",
+            "ua": "До побачення"
+          },
+          {
+            "en": "Bye",
+            "ua": "Бувай"
+          },
+          {
+            "en": "Good morning",
+            "ua": "Доброго ранку"
+          },
+          {
+            "en": "Good night",
+            "ua": "На добраніч"
+          }
+        ],
+        "tip": "💡 \"Hi\" — коротше та більш неформальне, ніж \"Hello\""
+      },
+      {
+        "id": "mc-1",
+        "type": "multiple-choice",
+        "question": "Як сказати \"Привіт\" по-англійськи?",
+        "options": [
+          "Goodbye",
+          "Hello",
+          "Good night",
+          "Please"
+        ],
+        "correctIndex": 1,
+        "explanation": "\"Hello\" або \"Hi\" — це вітання. \"Goodbye\" — до побачення."
+      },
+      {
+        "id": "mc-2",
+        "type": "multiple-choice",
+        "question": "Що означає \"Good morning\"?",
+        "options": [
+          "На добраніч",
+          "До побачення",
+          "Доброго ранку",
+          "Дякую"
+        ],
+        "correctIndex": 2
+      },
+      {
+        "id": "fill-1",
+        "type": "fill-blank",
+        "before": "A: Hello! B:",
+        "after": "! Nice to meet you.",
+        "answer": "Hi",
+        "hint": "Коротке вітання у відповідь…"
+      },
+      {
+        "id": "match-1",
+        "type": "match-pairs",
+        "prompt": "З'єднай слово з перекладом:",
+        "pairs": [
+          {
+            "left": "Hello",
+            "right": "Привіт"
+          },
+          {
+            "left": "Goodbye",
+            "right": "До побачення"
+          },
+          {
+            "left": "Good morning",
+            "right": "Доброго ранку"
+          },
+          {
+            "left": "Good night",
+            "right": "На добраніч"
+          }
+        ]
+      },
+      {
+        "id": "tr-1",
+        "type": "translate",
+        "prompt": "Перекладіть англійською:",
+        "sentence": "Доброго ранку! Як справи?",
+        "answer": "Good morning! How are you?",
+        "acceptedAnswers": [
+          "Good morning! How are you?",
+          "Good morning! How are you",
+          "good morning! how are you?",
+          "good morning how are you"
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "my-house",
+    "courseSlug": "elementary-kids",
+    "title": "My House",
+    "xp": 20,
+    "steps": [
+      {
+        "id": "theory-1",
+        "type": "theory",
+        "title": "Кімнати мого будинку 🏠",
+        "body": "Сьогодні вивчаємо назви кімнат та предметів у домі. Це допоможе тобі розповідати про своє житло!",
+        "examples": [
+          {
+            "en": "kitchen",
+            "ua": "кухня"
+          },
+          {
+            "en": "bedroom",
+            "ua": "спальня"
+          },
+          {
+            "en": "bathroom",
+            "ua": "ванна кімната"
+          },
+          {
+            "en": "living room",
+            "ua": "вітальня"
+          },
+          {
+            "en": "garden",
+            "ua": "сад"
+          },
+          {
+            "en": "window",
+            "ua": "вікно"
+          }
+        ],
+        "tip": "💡 \"Room\" означає кімната — bedroom = ліжко + кімната!"
+      },
+      {
+        "id": "mc-1",
+        "type": "multiple-choice",
+        "question": "Де ми готуємо їжу?",
+        "options": [
+          "bedroom",
+          "kitchen",
+          "bathroom",
+          "garden"
+        ],
+        "correctIndex": 1,
+        "explanation": "\"Kitchen\" — це кухня, місце де готують їжу."
+      },
+      {
+        "id": "fill-1",
+        "type": "fill-blank",
+        "before": "I sleep in my",
+        "after": "every night.",
+        "answer": "bedroom",
+        "hint": "Де ми спимо?"
+      },
+      {
+        "id": "match-1",
+        "type": "match-pairs",
+        "prompt": "З'єднай кімнату з описом:",
+        "pairs": [
+          {
+            "left": "kitchen",
+            "right": "готувати їжу"
+          },
+          {
+            "left": "bedroom",
+            "right": "спати"
+          },
+          {
+            "left": "bathroom",
+            "right": "митись"
+          },
+          {
+            "left": "living room",
+            "right": "відпочивати"
+          }
+        ]
+      },
+      {
+        "id": "mc-2",
+        "type": "multiple-choice",
+        "question": "Як перекласти \"вікно\"?",
+        "options": [
+          "door",
+          "floor",
+          "window",
+          "wall"
+        ],
+        "correctIndex": 2
+      },
+      {
+        "id": "wo-1",
+        "type": "word-order",
+        "prompt": "Склади речення:",
+        "translation": "У мене є великий сад.",
+        "words": [
+          "I",
+          "have",
+          "a",
+          "big",
+          "garden"
+        ],
+        "answer": [
+          "I",
+          "have",
+          "a",
+          "big",
+          "garden"
+        ]
+      },
+      {
+        "id": "tr-1",
+        "type": "translate",
+        "prompt": "Перекладіть речення англійською:",
+        "sentence": "Моя спальня дуже велика.",
+        "answer": "My bedroom is very big.",
+        "acceptedAnswers": [
+          "My bedroom is very big.",
+          "My bedroom is very big",
+          "my bedroom is very big",
+          "my bedroom is very big."
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "my-name-is",
+    "courseSlug": "elementary-kids",
+    "title": "My name is...",
+    "xp": 15,
+    "steps": [
+      {
+        "id": "theory-1",
+        "type": "theory",
+        "title": "Як представитись по-англійськи 🙋",
+        "body": "Навчимось розповідати про себе: ім'я, вік, звідки ти. Ці фрази потрібні при знайомстві!",
+        "examples": [
+          {
+            "en": "My name is...",
+            "ua": "Мене звати..."
+          },
+          {
+            "en": "I am ... years old",
+            "ua": "Мені ... років"
+          },
+          {
+            "en": "I am from Ukraine",
+            "ua": "Я з України"
+          },
+          {
+            "en": "Nice to meet you",
+            "ua": "Приємно познайомитись"
+          },
+          {
+            "en": "What is your name?",
+            "ua": "Як тебе звати?"
+          }
+        ],
+        "tip": "💡 \"I am\" часто скорочують до \"I'm\" у розмові"
+      },
+      {
+        "id": "mc-1",
+        "type": "multiple-choice",
+        "question": "Як запитати ім'я по-англійськи?",
+        "options": [
+          "How are you?",
+          "Where are you from?",
+          "What is your name?",
+          "How old are you?"
+        ],
+        "correctIndex": 2,
+        "explanation": "\"What is your name?\" = \"Як тебе звати?\""
+      },
+      {
+        "id": "wo-1",
+        "type": "word-order",
+        "prompt": "Склади речення:",
+        "translation": "Мене звати Марія.",
+        "words": [
+          "My",
+          "name",
+          "is",
+          "Maria"
+        ],
+        "answer": [
+          "My",
+          "name",
+          "is",
+          "Maria"
+        ]
+      },
+      {
+        "id": "fill-1",
+        "type": "fill-blank",
+        "before": "I am",
+        "after": "years old.",
+        "answer": "ten",
+        "hint": "Вік по-англійськи словами: ten = 10"
+      },
+      {
+        "id": "mc-2",
+        "type": "multiple-choice",
+        "question": "Що означає \"Nice to meet you\"?",
+        "options": [
+          "До побачення",
+          "Як справи?",
+          "Приємно познайомитись",
+          "Дякую"
+        ],
+        "correctIndex": 2
+      },
+      {
+        "id": "tr-1",
+        "type": "translate",
+        "prompt": "Перекладіть англійською:",
+        "sentence": "Мене звати Олексій. Я з України.",
+        "answer": "My name is Oleksii. I am from Ukraine.",
+        "acceptedAnswers": [
+          "My name is Oleksii. I am from Ukraine.",
+          "My name is Oleksii. I'm from Ukraine.",
+          "my name is oleksii. i am from ukraine.",
+          "My name is Oleksiy. I am from Ukraine."
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "numbers-colors",
+    "courseSlug": "elementary-kids",
+    "title": "Numbers & Colors",
+    "xp": 20,
+    "steps": [
+      {
+        "id": "theory-1",
+        "type": "theory",
+        "title": "Числа та кольори 🎨",
+        "body": "Числа і кольори — базова лексика. Без них не обійтись у будь-якій розмові!",
+        "examples": [
+          {
+            "en": "one / two / three",
+            "ua": "один / два / три"
+          },
+          {
+            "en": "four / five / six",
+            "ua": "чотири / п'ять / шість"
+          },
+          {
+            "en": "red",
+            "ua": "червоний"
+          },
+          {
+            "en": "blue",
+            "ua": "синій"
+          },
+          {
+            "en": "green",
+            "ua": "зелений"
+          },
+          {
+            "en": "yellow",
+            "ua": "жовтий"
+          }
+        ],
+        "tip": "💡 Запам'ятай: \"green\" схожий на \"грін\" — зелений!"
+      },
+      {
+        "id": "mc-1",
+        "type": "multiple-choice",
+        "question": "Що означає \"yellow\"?",
+        "options": [
+          "синій",
+          "червоний",
+          "зелений",
+          "жовтий"
+        ],
+        "correctIndex": 3
+      },
+      {
+        "id": "match-1",
+        "type": "match-pairs",
+        "prompt": "З'єднай число з перекладом:",
+        "pairs": [
+          {
+            "left": "one",
+            "right": "один"
+          },
+          {
+            "left": "three",
+            "right": "три"
+          },
+          {
+            "left": "five",
+            "right": "п'ять"
+          },
+          {
+            "left": "six",
+            "right": "шість"
+          }
+        ]
+      },
+      {
+        "id": "fill-1",
+        "type": "fill-blank",
+        "before": "The sky is",
+        "after": ".",
+        "answer": "blue",
+        "hint": "Яким кольором є небо?"
+      },
+      {
+        "id": "mc-2",
+        "type": "multiple-choice",
+        "question": "Як сказати \"чотири\" по-англійськи?",
+        "options": [
+          "three",
+          "five",
+          "four",
+          "six"
+        ],
+        "correctIndex": 2
+      },
+      {
+        "id": "wo-1",
+        "type": "word-order",
+        "prompt": "Склади речення:",
+        "translation": "У мене є три зелені яблука.",
+        "words": [
+          "I",
+          "have",
+          "three",
+          "green",
+          "apples"
+        ],
+        "answer": [
+          "I",
+          "have",
+          "three",
+          "green",
+          "apples"
+        ]
+      },
+      {
+        "id": "tr-1",
+        "type": "translate",
+        "prompt": "Перекладіть англійською:",
+        "sentence": "Моя кішка червона і біла.",
+        "answer": "My cat is red and white.",
+        "acceptedAnswers": [
+          "My cat is red and white.",
+          "My cat is red and white",
+          "my cat is red and white."
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "reading-animals",
+    "courseSlug": "elementary-kids",
+    "title": "Reading: Animals in the Forest",
+    "xp": 25,
+    "steps": [
+      {
+        "id": "reading-1",
+        "type": "reading",
+        "title": "The Fox and the Forest",
+        "text": "A fox lives in the forest. The fox is orange and has a big bushy tail. Every morning, the fox wakes up early and looks for food. It eats small animals and berries. The fox is very clever and fast. At night, the fox sleeps in its den under a big tree.",
+        "vocabulary": [
+          {
+            "word": "fox",
+            "translation": "лисиця"
+          },
+          {
+            "word": "forest",
+            "translation": "ліс"
+          },
+          {
+            "word": "bushy",
+            "translation": "пухнастий"
+          },
+          {
+            "word": "clever",
+            "translation": "розумний"
+          },
+          {
+            "word": "den",
+            "translation": "нора"
+          },
+          {
+            "word": "berries",
+            "translation": "ягоди"
+          }
+        ],
+        "questions": [
+          {
+            "id": "q1",
+            "question": "Де живе лисиця?",
+            "options": [
+              "В морі",
+              "В лісі",
+              "В місті",
+              "В горах"
+            ],
+            "correctIndex": 1
+          },
+          {
+            "id": "q2",
+            "question": "Якого кольору лисиця?",
+            "options": [
+              "Сіра",
+              "Біла",
+              "Оранжева",
+              "Чорна"
+            ],
+            "correctIndex": 2,
+            "explanation": "У тексті: \"The fox is orange\""
+          },
+          {
+            "id": "q3",
+            "question": "Що означає слово \"clever\"?",
+            "options": [
+              "Швидкий",
+              "Великий",
+              "Розумний",
+              "Маленький"
+            ],
+            "correctIndex": 2
+          },
+          {
+            "id": "q4",
+            "question": "Що їсть лисиця?",
+            "options": [
+              "Рибу та хліб",
+              "Невеликих тварин та ягоди",
+              "Тільки траву",
+              "Фрукти та овочі"
+            ],
+            "correctIndex": 1,
+            "explanation": "У тексті: \"It eats small animals and berries\""
+          },
+          {
+            "id": "q5",
+            "question": "Де лисиця спить вночі?",
+            "options": [
+              "На гілці дерева",
+              "В норі під великим деревом",
+              "В траві",
+              "Біля річки"
+            ],
+            "correctIndex": 1
+          }
+        ]
+      },
+      {
+        "id": "reading-2",
+        "type": "reading",
+        "title": "The Big Brown Bear",
+        "text": "A bear is a large and strong animal. Bears live in forests and mountains. They love to eat fish, honey, and berries. Bears are excellent swimmers. In winter, bears sleep in a cave for many months. This long sleep is called hibernation. In spring, the bear wakes up very hungry.",
+        "vocabulary": [
+          {
+            "word": "bear",
+            "translation": "ведмідь"
+          },
+          {
+            "word": "honey",
+            "translation": "мед"
+          },
+          {
+            "word": "cave",
+            "translation": "печера"
+          },
+          {
+            "word": "hibernation",
+            "translation": "зимова сплячка"
+          },
+          {
+            "word": "hungry",
+            "translation": "голодний"
+          },
+          {
+            "word": "mountains",
+            "translation": "гори"
+          }
+        ],
+        "questions": [
+          {
+            "id": "q6",
+            "question": "Що означає слово \"honey\"?",
+            "options": [
+              "Риба",
+              "Мед",
+              "Ягоди",
+              "Вода"
+            ],
+            "correctIndex": 1
+          },
+          {
+            "id": "q7",
+            "question": "Де живуть ведмеді?",
+            "options": [
+              "В пустелі та степу",
+              "В лісах та горах",
+              "В океані",
+              "В тропіках"
+            ],
+            "correctIndex": 1,
+            "explanation": "У тексті: \"Bears live in forests and mountains\""
+          },
+          {
+            "id": "q8",
+            "question": "Що таке \"hibernation\"?",
+            "options": [
+              "Полювання взимку",
+              "Зимова сплячка",
+              "Весняне пробудження",
+              "Пошук їжі"
+            ],
+            "correctIndex": 1
+          },
+          {
+            "id": "q9",
+            "question": "Яким ведмідь прокидається навесні?",
+            "options": [
+              "Щасливим",
+              "Злим",
+              "Голодним",
+              "Сонним"
+            ],
+            "correctIndex": 2,
+            "explanation": "У тексті: \"the bear wakes up very hungry\""
+          }
+        ]
+      },
+      {
+        "id": "mc-review-1",
+        "type": "multiple-choice",
+        "question": "Як перекласти \"The fox is very clever\"?",
+        "options": [
+          "Лисиця дуже велика",
+          "Лисиця дуже розумна",
+          "Лисиця дуже швидка",
+          "Лисиця дуже красива"
+        ],
+        "correctIndex": 1
+      },
+      {
+        "id": "mc-review-2",
+        "type": "multiple-choice",
+        "question": "Що означає \"den\"?",
+        "options": [
+          "Ліс",
+          "Печера",
+          "Нора",
+          "Дерево"
+        ],
+        "correctIndex": 2
+      },
+      {
+        "id": "tr-review-1",
+        "type": "translate",
+        "prompt": "Перекладіть речення англійською:",
+        "sentence": "Ведмідь живе в лісі.",
+        "answer": "The bear lives in the forest.",
+        "acceptedAnswers": [
+          "The bear lives in the forest.",
+          "The bear lives in the forest",
+          "A bear lives in the forest.",
+          "A bear lives in the forest"
+        ]
+      }
+    ]
+  }
+]

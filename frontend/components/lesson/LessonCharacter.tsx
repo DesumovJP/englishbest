@@ -98,8 +98,7 @@ export function LessonCharacter({ emotion }: { emotion: CharEmotion }) {
       <div className="relative z-30 flex lg:hidden [@media(max-height:500px)]:hidden flex-shrink-0 flex-col items-center gap-0 pt-10 sm:pt-4 pb-0 select-none">
         <div
           key={bounceKey}
-          className={`relative flex flex-col items-center ${emotion === 'correct' ? 'animate-bounce-in' : ''}`}
-          style={{ transformOrigin: "bottom center" }}
+          className={`relative flex flex-col items-center origin-bottom ${emotion === 'correct' ? 'animate-bounce-in' : ''}`}
         >
           {visible && (
             <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-1 z-50 pointer-events-none">
@@ -131,8 +130,7 @@ export function LessonCharacter({ emotion }: { emotion: CharEmotion }) {
       <div className="hidden lg:flex fixed bottom-0 left-8 z-20 flex-col items-center gap-0 pb-5 select-none">
         <div
           key={`d-${bounceKey}`}
-          className={`flex flex-col items-center ${emotion === 'correct' ? 'animate-bounce-in' : ''}`}
-          style={{ transformOrigin: "bottom center" }}
+          className={`flex flex-col items-center origin-bottom ${emotion === 'correct' ? 'animate-bounce-in' : ''}`}
         >
           {visible && <div className="mb-2"><SpeechBubble text={bubble} maxWidth={160} size="sm" /></div>}
           <EquippedAvatar
