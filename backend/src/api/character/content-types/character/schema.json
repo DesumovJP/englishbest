@@ -8,7 +8,7 @@
     "description": "Kids Zone playable companion character. Each character has a set of emotion images the FE swaps based on mood."
   },
   "options": {
-    "draftAndPublish": true
+    "draftAndPublish": false
   },
   "attributes": {
     "slug": {

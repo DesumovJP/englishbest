@@ -97,9 +97,7 @@ export async function up(strapi: any) {
         fallbackEmotion: c.fallbackEmotion,
         emotions: c.emotions,
         orderIndex: c.orderIndex,
-        publishedAt: new Date().toISOString(),
       },
-      status: 'published',
     });
     created += 1;
   }

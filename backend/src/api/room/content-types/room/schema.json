@@ -8,7 +8,7 @@
     "description": "Kids Zone room backdrop. The starter room (bedroom) has coinsRequired=0 and is auto-unlocked for every new inventory."
   },
   "options": {
-    "draftAndPublish": true
+    "draftAndPublish": false
   },
   "attributes": {
     "slug": {

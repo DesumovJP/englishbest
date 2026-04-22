@@ -614,7 +614,7 @@ export interface ApiCharacterCharacter extends Struct.CollectionTypeSchema {
     singularName: 'character';
   };
   options: {
-    draftAndPublish: true;
+    draftAndPublish: false;
   };
   attributes: {
     createdAt: Schema.Attribute.DateTime;
@@ -1187,7 +1187,7 @@ export interface ApiRoomRoom extends Struct.CollectionTypeSchema {
     singularName: 'room';
   };
   options: {
-    draftAndPublish: true;
+    draftAndPublish: false;
   };
   attributes: {
     background: Schema.Attribute.String;

@@ -95,9 +95,7 @@ export async function up(strapi: any) {
         background: r.background,
         iconEmoji: r.iconEmoji,
         orderIndex: r.orderIndex,
-        publishedAt: new Date().toISOString(),
       },
-      status: 'published',
     });
     created += 1;
   }
