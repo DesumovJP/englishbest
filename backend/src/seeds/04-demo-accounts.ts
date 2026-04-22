@@ -36,8 +36,7 @@ const DEMO_ACCOUNTS: DemoAccount[] = [
       data: {
         companionAnimal: 'fox',
         companionName: 'Foxie',
-        ageGroup: '8-10',
-        currentLevel: 'A1',
+        ageGroup: 'age7to11',
       },
     },
   },
