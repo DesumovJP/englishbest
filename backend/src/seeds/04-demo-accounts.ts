@@ -116,6 +116,26 @@ export async function up(strapi: any) {
         });
         strapi.log.info(`[seed] repaired locale on user-profile for ${acc.email}`);
       }
+
+      // Repair path: ensure the role-specific profile row exists. Earlier
+      // creation attempts may have failed silently (e.g. schema migration
+      // race, deploy interrupted between user-profile and role-profile
+      // create). Without this row, /api/{role}-profile/me returns 404.
+      if (brokenProfile) {
+        const existingRoleProfile = await strapi.db
+          .query(acc.roleProfile.uid)
+          .findOne({ where: { user: { id: brokenProfile.id } } });
+        if (!existingRoleProfile) {
+          await strapi.documents(acc.roleProfile.uid).create({
+            data: {
+              user: brokenProfile.documentId,
+              ...acc.roleProfile.data,
+            },
+          });
+          strapi.log.info(`[seed] created missing ${acc.role}-profile for ${acc.email}`);
+        }
+      }
+
       strapi.log.info(`[seed] demo account exists: ${acc.email}`);
       continue;
     }
