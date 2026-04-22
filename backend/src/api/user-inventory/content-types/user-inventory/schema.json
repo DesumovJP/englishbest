@@ -1,0 +1,41 @@
+{
+  "kind": "collectionType",
+  "collectionName": "user_inventories",
+  "info": {
+    "singularName": "user-inventory",
+    "pluralName": "user-inventories",
+    "displayName": "User Inventory",
+    "description": "Kids Zone inventory state (coins-independent). 1:1 to user-profile. Owns shop items, outfit, placed items, and active room/character (rooms/character added in Phase C)."
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "user": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::user-profile.user-profile",
+      "required": true
+    },
+    "ownedShopItems": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "api::shop-item.shop-item"
+    },
+    "equippedItems": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "api::shop-item.shop-item"
+    },
+    "outfit": {
+      "type": "json"
+    },
+    "placedItems": {
+      "type": "json"
+    },
+    "seedVersion": {
+      "type": "integer",
+      "default": 0
+    }
+  }
+}

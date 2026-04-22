@@ -134,6 +134,10 @@ export function SessionProvider({
 
   const logout = useCallback(async () => {
     await fetch('/api/auth/logout', { method: 'POST' });
+    // Drop cached Kids Zone state so the next login doesn't see the
+    // previous user's coins/inventory.
+    const { kidsStateStore } = await import('./kids-store');
+    kidsStateStore.reset();
     setSession(null);
     setStatus('anonymous');
   }, []);

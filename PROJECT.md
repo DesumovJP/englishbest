@@ -35,7 +35,7 @@
 - Mock import script (`npm run import-mocks`) готовий (локально перевірено білд, не запускався проти staging).
 
 **Що ще живе в моках / IndexedDB**
-- **Kids Zone state** (монетки, streak, XP, активний персонаж/кімната, inventory, outfit, placedItems) → тільки `frontend/lib/kids-store.ts` (IndexedDB на клієнті).
+- **Kids Zone state** (монетки, streak, XP, inventory, outfit, placedItems) → бекенд (Phase B ✅): coins/xp/streak у `kids-profile`, owned/equipped/outfit/placedItems у `user-inventory`, обидва через `/me` endpoints. `activeCharacter` + `unlockedRooms` поки in-memory — live з Phase C. IndexedDB-код у `kids-store.ts` лишився тільки для user-uploaded custom items/rooms/characters (Phase I → offline cache).
 - **Персонажі + емоції** — hard-coded у `frontend/lib/characters.ts` (fox + raccoon, PNG з `/public/characters/*`). На бекенді немає сутності.
 - **Кімнати** — hard-coded у `frontend/app/(kids)/kids/room/page.tsx` (bedroom/garden/castle/space/underwater). На бекенді немає.
 - **Shop catalog** — `frontend/lib/shop-catalog.ts` (20 предметів). Бекенд content-type існує, але seed порожній; front не читає з нього.
@@ -304,19 +304,17 @@ Rollback: скрипт ідемпотентний (dedupe по slug/publicSlug/e
 
 Мета: перенести `KidsState` з IndexedDB у Strapi, щоб прогрес зберігався між пристроями.
 
-- [ ] **B1** Content-type `api::user-inventory.user-inventory` (1:1 до `user-profile`). Поля:
+- [x] **B1** Content-type `api::user-inventory.user-inventory` (1:1 до `user-profile`). Поля:
   - `ownedShopItems` — relation manyToMany → `shop-item`.
   - `equippedItems` — relation manyToMany → `shop-item` (підмножина owned; validate у контролері).
   - `outfit` — json (slot → shop-item.slug): `{ hat, glasses, scarf, backpack }`.
-  - `placedItems` — json component `[{ placementId, itemSlug, x, y, scale, z }]`.
-  - `unlockedRooms` — relation manyToMany → `room` (Phase C).
-  - `activeRoom` — relation oneToOne → `room`.
-  - `activeCharacter` — relation oneToOne → `character` (Phase C).
+  - `placedItems` — json `[{ id, itemId, x, y, scale, z }]` (deferred component-type — Phase D).
   - `seedVersion` — integer.
-- [ ] **B2** Kids-profile: endpoint `PATCH /api/kids-profile/me` (scoped self-update) для `totalCoins / totalXp / streakDays / streakLastAt / characterMood`. Перевірка: inc/dec-only для coins (backend validate), щоб клієнт не відкручував собі гроші довільно.
-- [ ] **B3** Scoped controller для `user-inventory` (read/update тільки свій; staff — free).
-- [ ] **B4** Seed: для існуючих kids-profile створити порожні `user-inventory` через migration-like seed (idempotent).
-- [ ] **B5** FE — `lib/kids-store.ts` підмінити на remote-first модель: read від `/api/user-inventory/me`, write через `PATCH`. IndexedDB залишаємо як offline cache (optional, Phase I).
+  - Relations до `room` (unlockedRooms/activeRoom) і `character` (activeCharacter) відкладено у Phase C, бо сутностей ще нема.
+- [x] **B2** Kids-profile: endpoint `PATCH /api/kids-profile/me` + `GET /api/kids-profile/me`. Приймає `totalCoinsDelta` (int, може бути від'ємним; backend валідує баланс ≥0), `totalXpDelta` (non-negative int), `streakDays`, `streakLastAt`, `characterMood`. Абсолютні coins/xp не приймаються — уникаємо client-authoritative balance writes.
+- [x] **B3** Кастомний `user-inventory` controller з тільки `/me` endpoints: `GET` (auto-create on first hit), `PATCH` (outfit/placedItems/equippedItems/ownedShopItems/seedVersion — приймає масиви slugs, сам конвертує у docIds). `equippedItems` — subset-of-owned check (проти post-patch owned, щоб purchase+equip в одному виклику лишалось валідним). Core router не підключено — тільки `/me` endpoints назовні.
+- [x] **B4** Seed `07-user-inventories.ts` — idempotent backfill порожнього `user-inventory` для кожного existing kids-profile. Always-run. Controller також auto-creates on first `GET` — belt-and-suspenders.
+- [x] **B5** FE `lib/kids-store.ts` переписано на remote-first: `kidsStateStore.get()` паралельно фетчить kids-profile + user-inventory через `/api/kids-profile/me` + `/api/user-inventory/me` proxy routes; `patch()` робить diff проти in-memory кешу й роутить поля у два endpoints (coins/xp/streak → kids-profile; outfit/placedItems/owned/equipped → user-inventory). Кеш очищується на logout (`kidsStateStore.reset()` виклик у session-context). Next proxies у `app/api/user-inventory/me/route.ts` + `app/api/kids-profile/me/route.ts` — читають access-JWT з httpOnly cookie, ніколи не віддають його в браузер. IndexedDB-код для custom items/rooms/characters залишено як є (user-uploaded — Phase I offline-cache з'єднає).
 
 **Acceptance:** Coins/XP/streak/inventory/outfit/placedItems переживають вихід і вхід на інший браузер; IndexedDB порожня на свіжому пристрої = state приходить із бекенду.
 
@@ -487,6 +485,8 @@ Frontend (Vercel):
 
 ## 10. Change log
 
+- **2026-04-22** Phase B (Kids Zone state → backend) done. **Backend**: new content-type `api::user-inventory.user-inventory` (1:1 to user-profile; owned/equipped shop items as m2m, outfit/placedItems as json, seedVersion int — room/character relations deferred to Phase C); kids-profile controller gets `/me` GET + PATCH with integer-delta writes for coins (server enforces balance≥0) and xp (non-negative only); user-inventory controller exposes only `/me` — GET auto-creates, PATCH accepts slugs for item relations and validates equipped⊆owned against the post-patch set; seed `07-user-inventories.ts` backfills empty inventory rows for existing kids-profiles (idempotent). **Frontend**: `lib/kids-store.ts` rewritten remote-first — `kidsStateStore.get()` parallel-fetches kids-profile + user-inventory, `patch()` diffs against cache and routes fields to the two endpoints; Next proxies in `app/api/user-inventory/me/route.ts` + `app/api/kids-profile/me/route.ts` (httpOnly-cookie auth); logout resets in-memory kids-state cache. IndexedDB retained for custom items/rooms/characters (user-uploaded — Phase I offline-cache work). Backend + frontend `tsc --noEmit` clean.
+- **2026-04-22** Fix: seed `04-demo-accounts.ts` no longer writes `locale: 'uk'` into user-profile, and adds a repair path that forces `locale=null` on the 4 pre-existing demo profiles. Strapi v5 Documents API reserves the `locale` column for i18n bookkeeping on non-localized types; a non-null value caused downstream document lookups (refresh-token relation → profile) to fail with `Document with id X, locale "null" not found`, breaking `/api/auth/login` for all demo accounts. Verified post-deploy: all 4 demo emails return 200 with access + refresh tokens.
 - **2026-04-22** Catalog seeds: `05-shop-items.ts` (20 items із `frontend/lib/shop-catalog.ts` — category/rarity/price/level/slotOffset, ідемпотентно по slug, always-run) і `06-achievements.ts` (12 ачівок: lessons/streak/coins/mastery/kids/special — tier+coin/xp reward+criteria JSON, ідемпотентно по slug, always-run). Обидва підключено у `seeds/index.ts` після `04-demo-accounts`. Після redeploy Railway підтягне shop-items і achievements одразу (без opt-in env). `tsc --noEmit` чистий на backend.
 - **2026-04-22** Login page: видалено legacy Demo-picker (localStorage `demo_role` bypass) + Mode toggle; лишилась одна signin-форма, підключена до `useSession().login()` з real-auth + error UI + role-based redirect. Додано окремий блок «Тестові акаунти» — 4 картки (kids/adult/teacher/parent) з email + паролем + кнопкою «Копіювати» + «Заповнити форму». Backend — новий seed `04-demo-accounts.ts` (opt-in `SEED_DEMO_ACCOUNTS=1`, idempotent skip-if-exists): створює 4 users з паролем `Demo2026!` і відповідні role-profile. Увімкнути на Railway раз: `SEED_DEMO_ACCOUNTS=1` → redeploy → зняти змінну.
 - **2026-04-22** Vercel build fix: видалено server-only `fetcherAuth` + `fetchMySessions` з `lib/fetcher.ts` / `lib/api.ts` (обидва unused, cross-referenced). Turbopack статичний трейсинг більше не тягне `next/headers` у client bundle через ланцюг `auth/register/page.tsx → fetcher.ts → auth-server.ts`.

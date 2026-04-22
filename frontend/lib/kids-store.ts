@@ -227,68 +227,185 @@ export const charactersStore = {
     tx(STORE_CHARACTERS, "readwrite", (s) => s.delete(id)) as Promise<undefined>,
 };
 
-// ─── Kids State ───────────────────────────────────────────────────────────────
-
-const STATE_KEY = "main";
-
-/**
- * Bump this when seed fields (coins, ownedItemIds) should be re-applied
- * to existing local installs. On load, if stored.seedVersion < current,
- * coins + ownedItemIds are overwritten from DEFAULT_STATE.
- */
-const SEED_VERSION = 2;
+// ─── Kids State (remote-first, Phase B) ──────────────────────────────────────
+//
+// Backed by Strapi: `/api/kids-profile/me` (coins/xp/streak/mood) and
+// `/api/user-inventory/me` (owned/equipped items, outfit, placedItems).
+//
+// Wire transport — slugs for item relations, integer deltas for coins/xp
+// (server enforces inc/dec-only for coins; see backend/src/api/kids-profile
+// controller). We keep the synchronous `KidsState` shape so existing
+// consumers (shop, dashboard, characters) don't change.
+//
+// IndexedDB is still used below for user-uploaded custom items/rooms/
+// characters — those are Phase I work (offline cache will re-add local
+// mirroring of KidsState). For now KidsState only lives in memory + server.
 
 export const DEFAULT_STATE: KidsState = {
-  coins: 2000,
-  streak: 3,
-  xp: 40,
+  coins: 0,
+  streak: 0,
+  xp: 0,
   level: 1,
   activeCharacterId: "fox",
   unlockedRoomIds: [],
   outfit: {},
-  ownedItemIds: [
-    "sofa", "bookshelf", "armchair", "lamp",
-    "globe", "plant", "clock", "rainbow",
-    "hat", "scarf", "backpack",
-    "trophy", "rocket",
-  ],
+  ownedItemIds: [],
   placedItems: [],
   equippedItemIds: [],
-  seedVersion: SEED_VERSION,
+  seedVersion: 0,
 };
+
+type InventoryDto = {
+  documentId: string;
+  outfit?: KidsState["outfit"] | null;
+  placedItems?: PlacedItem[] | null;
+  seedVersion?: number | null;
+  ownedShopItems?: Array<{ slug: string }>;
+  equippedItems?: Array<{ slug: string }>;
+};
+
+type KidsProfileDto = {
+  documentId: string;
+  totalCoins?: number | string | null;
+  totalXp?: number | string | null;
+  streakDays?: number | null;
+  characterMood?: string | null;
+};
+
+let _cache: KidsState | null = null;
+let _inflight: Promise<KidsState> | null = null;
+
+function toNum(v: unknown): number {
+  if (typeof v === "number") return v;
+  if (typeof v === "string" && v !== "" && !Number.isNaN(Number(v))) return Number(v);
+  return 0;
+}
+
+async function fetchState(): Promise<KidsState> {
+  const [profRes, invRes] = await Promise.all([
+    fetch("/api/kids-profile/me", { credentials: "include", cache: "no-store" }),
+    fetch("/api/user-inventory/me", { credentials: "include", cache: "no-store" }),
+  ]);
+  const prof: { data?: KidsProfileDto } = profRes.ok ? await profRes.json() : {};
+  const inv: { data?: InventoryDto } = invRes.ok ? await invRes.json() : {};
+
+  const p = prof.data;
+  const i = inv.data;
+
+  const state: KidsState = {
+    ...DEFAULT_STATE,
+    coins: p ? toNum(p.totalCoins) : 0,
+    xp: p ? toNum(p.totalXp) : 0,
+    streak: p ? toNum(p.streakDays) : 0,
+    ownedItemIds: (i?.ownedShopItems ?? []).map((x) => x.slug),
+    equippedItemIds: (i?.equippedItems ?? []).map((x) => x.slug),
+    outfit: (i?.outfit as KidsState["outfit"]) ?? {},
+    placedItems: Array.isArray(i?.placedItems) ? (i!.placedItems as PlacedItem[]) : [],
+    seedVersion: toNum(i?.seedVersion),
+  };
+  return state;
+}
 
 export const kidsStateStore = {
   get: async (): Promise<KidsState> => {
-    const row = await tx<{ key: string; value: Partial<KidsState> } | undefined>(
-      STORE_STATE,
-      "readonly",
-      (s) => s.get(STATE_KEY)
-    );
-    // Merge defaults so rows written before a field was introduced still work.
-    const storedSeed = row?.value?.seedVersion ?? 0;
-    const merged = { ...DEFAULT_STATE, ...(row?.value ?? {}) };
-    // Re-seed coins + ownedItemIds if local copy is below current seed version.
-    if (storedSeed < SEED_VERSION) {
-      merged.coins = DEFAULT_STATE.coins;
-      merged.ownedItemIds = [...DEFAULT_STATE.ownedItemIds];
-      merged.seedVersion = SEED_VERSION;
-      await tx(STORE_STATE, "readwrite", (s) =>
-        s.put({ key: STATE_KEY, value: merged })
-      );
-    }
-    return merged;
+    if (_cache) return _cache;
+    if (_inflight) return _inflight;
+    _inflight = fetchState()
+      .then((s) => {
+        _cache = s;
+        return s;
+      })
+      .finally(() => {
+        _inflight = null;
+      });
+    return _inflight;
   },
 
-  set: (state: KidsState): Promise<string> =>
-    tx(STORE_STATE, "readwrite", (s) =>
-      s.put({ key: STATE_KEY, value: state })
-    ) as Promise<string>,
+  /** Write a full snapshot to the server. Diffs against cache to route fields. */
+  set: async (state: KidsState): Promise<string> => {
+    await kidsStateStore.patch(state);
+    return "ok";
+  },
 
   patch: async (partial: Partial<KidsState>): Promise<KidsState> => {
-    const current = await kidsStateStore.get();
-    const next = { ...current, ...partial };
-    await kidsStateStore.set(next);
-    return next;
+    const current = _cache ?? (await kidsStateStore.get());
+
+    // Route writes by field into the two backend endpoints.
+    const profileBody: Record<string, unknown> = {};
+    if (partial.coins !== undefined) {
+      const delta = partial.coins - current.coins;
+      if (delta !== 0) profileBody.totalCoinsDelta = delta;
+    }
+    if (partial.xp !== undefined) {
+      const delta = partial.xp - current.xp;
+      if (delta > 0) profileBody.totalXpDelta = delta;
+      // XP never decreases on the server — negative deltas are dropped.
+    }
+    if (partial.streak !== undefined) profileBody.streakDays = partial.streak;
+
+    const inventoryBody: Record<string, unknown> = {};
+    if (partial.outfit !== undefined) inventoryBody.outfit = partial.outfit;
+    if (partial.placedItems !== undefined) inventoryBody.placedItems = partial.placedItems;
+    if (partial.ownedItemIds !== undefined) inventoryBody.ownedShopItems = partial.ownedItemIds;
+    if (partial.equippedItemIds !== undefined) inventoryBody.equippedItems = partial.equippedItemIds;
+    if (partial.seedVersion !== undefined) inventoryBody.seedVersion = partial.seedVersion;
+
+    const calls: Promise<Response>[] = [];
+    if (Object.keys(profileBody).length > 0) {
+      calls.push(
+        fetch("/api/kids-profile/me", {
+          method: "PATCH",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(profileBody),
+        }),
+      );
+    }
+    if (Object.keys(inventoryBody).length > 0) {
+      calls.push(
+        fetch("/api/user-inventory/me", {
+          method: "PATCH",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(inventoryBody),
+        }),
+      );
+    }
+
+    if (calls.length === 0) {
+      // Non-persisted fields (activeCharacterId/level/unlockedRoomIds/
+      // roomBackground) — Phase C territory. Update cache only so the UI
+      // reflects the change for the current session.
+      const merged = { ...current, ...partial };
+      _cache = merged;
+      return merged;
+    }
+
+    const results = await Promise.all(calls);
+    const firstBad = results.find((r) => !r.ok);
+    if (firstBad) {
+      // Invalidate cache so the next read pulls fresh truth.
+      _cache = null;
+      throw new Error(`kidsStateStore.patch failed (${firstBad.status})`);
+    }
+
+    const fresh = await fetchState();
+    // Preserve fields that aren't persisted server-side yet.
+    _cache = {
+      ...fresh,
+      activeCharacterId: partial.activeCharacterId ?? current.activeCharacterId,
+      activeRoomId: partial.activeRoomId ?? current.activeRoomId,
+      unlockedRoomIds: partial.unlockedRoomIds ?? current.unlockedRoomIds,
+      roomBackground: partial.roomBackground ?? current.roomBackground,
+      level: partial.level ?? current.level,
+    };
+    return _cache;
+  },
+
+  /** Clear in-memory cache (e.g. on logout). */
+  reset: (): void => {
+    _cache = null;
+    _inflight = null;
   },
 };
 

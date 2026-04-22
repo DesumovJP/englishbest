@@ -853,6 +853,7 @@ export interface ApiLessonLesson extends Struct.CollectionTypeSchema {
     publishedAt: Schema.Attribute.DateTime;
     sectionSlug: Schema.Attribute.String;
     slug: Schema.Attribute.UID<'title'> & Schema.Attribute.Required;
+    steps: Schema.Attribute.JSON;
     title: Schema.Attribute.String & Schema.Attribute.Required;
     transcript: Schema.Attribute.Text;
     type: Schema.Attribute.Enumeration<
@@ -865,6 +866,7 @@ export interface ApiLessonLesson extends Struct.CollectionTypeSchema {
       Schema.Attribute.Private;
     video: Schema.Attribute.Media<'videos'>;
     videoUrl: Schema.Attribute.String;
+    xp: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<10>;
   };
 }
 
@@ -1335,6 +1337,51 @@ export interface ApiUserAchievementUserAchievement
       'manyToOne',
       'api::user-profile.user-profile'
     >;
+  };
+}
+
+export interface ApiUserInventoryUserInventory
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'user_inventories';
+  info: {
+    description: 'Kids Zone inventory state (coins-independent). 1:1 to user-profile. Owns shop items, outfit, placed items, and active room/character (rooms/character added in Phase C).';
+    displayName: 'User Inventory';
+    pluralName: 'user-inventories';
+    singularName: 'user-inventory';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    equippedItems: Schema.Attribute.Relation<
+      'manyToMany',
+      'api::shop-item.shop-item'
+    >;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::user-inventory.user-inventory'
+    > &
+      Schema.Attribute.Private;
+    outfit: Schema.Attribute.JSON;
+    ownedShopItems: Schema.Attribute.Relation<
+      'manyToMany',
+      'api::shop-item.shop-item'
+    >;
+    placedItems: Schema.Attribute.JSON;
+    publishedAt: Schema.Attribute.DateTime;
+    seedVersion: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    user: Schema.Attribute.Relation<
+      'oneToOne',
+      'api::user-profile.user-profile'
+    > &
+      Schema.Attribute.Required;
   };
 }
 
@@ -2012,6 +2059,7 @@ declare module '@strapi/strapi' {
       'api::shop-item.shop-item': ApiShopItemShopItem;
       'api::teacher-profile.teacher-profile': ApiTeacherProfileTeacherProfile;
       'api::user-achievement.user-achievement': ApiUserAchievementUserAchievement;
+      'api::user-inventory.user-inventory': ApiUserInventoryUserInventory;
       'api::user-profile.user-profile': ApiUserProfileUserProfile;
       'api::user-progress.user-progress': ApiUserProgressUserProgress;
       'plugin::content-releases.release': PluginContentReleasesRelease;
