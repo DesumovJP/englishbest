@@ -105,6 +105,14 @@ const GRANTS: Grant[] = [
   { action: 'api::user-profile.user-profile.findOne', roles: AUTH_ALL },
   { action: 'api::user-profile.user-profile.update', roles: AUTH_ALL },
 
+  // Kids-profile /me (custom scoped endpoints — controller 404s if caller isn't a kid)
+  { action: 'api::kids-profile.kids-profile.findMe', roles: AUTH_ALL },
+  { action: 'api::kids-profile.kids-profile.updateMe', roles: AUTH_ALL },
+
+  // User-inventory /me (custom scoped endpoints — auto-create on first read)
+  { action: 'api::user-inventory.user-inventory.findMe', roles: AUTH_ALL },
+  { action: 'api::user-inventory.user-inventory.updateMe', roles: AUTH_ALL },
+
   // Organization (auth read, admin write)
   { action: 'api::organization.organization.findOne', roles: AUTH_ALL },
   { action: 'api::organization.organization.update', roles: ADMIN },
