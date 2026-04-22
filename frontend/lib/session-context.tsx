@@ -20,6 +20,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import { ApiError } from './fetcher';
 
 type Role = 'kids' | 'adult' | 'teacher' | 'parent' | 'admin';
 
@@ -83,8 +84,16 @@ async function jsonPost(url: string, body: unknown) {
     cache: 'no-store',
   });
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err?.error?.message ?? err?.message ?? `${res.status}`);
+    const errBody = await res.json().catch(() => null);
+    const message =
+      (errBody && typeof errBody === 'object' && 'error' in errBody
+        ? (errBody as { error?: { message?: string } }).error?.message
+        : undefined) ??
+      (errBody && typeof errBody === 'object' && 'message' in errBody
+        ? (errBody as { message?: string }).message
+        : undefined) ??
+      `Request failed: ${res.status}`;
+    throw new ApiError(message, res.status, url, errBody);
   }
   return res.status === 204 ? null : res.json();
 }
