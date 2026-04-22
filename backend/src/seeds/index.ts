@@ -25,9 +25,11 @@ const SEEDS: { name: string; up: (strapi: any) => Promise<void> }[] = [
   { name: '04-demo-accounts', up: demoAccounts.up },
   { name: '05-shop-items', up: shopItems.up },
   { name: '06-achievements', up: achievements.up },
-  { name: '07-user-inventories', up: userInventories.up },
+  // Characters and rooms must run before user-inventories so the starter
+  // bootstrap can reference them when backfilling existing inventories.
   { name: '08-characters', up: characters.up },
   { name: '09-rooms', up: rooms.up },
+  { name: '07-user-inventories', up: userInventories.up },
 ];
 
 export async function runSeeds(strapi: any) {
