@@ -1,20 +1,19 @@
 /**
  * Fetch helpers.
  *
- * Three entry points:
+ * Two entry points:
  *   - `fetcher`       — anonymous GET (public catalog).
- *   - `fetcherAuth`   — SERVER ONLY. Reads the access JWT from the httpOnly
- *                       cookie and hits Strapi directly. Use from RSC / route
- *                       handlers / server actions.
  *   - `fetcherClient` — client-side fetch against same-origin Next routes
  *                       (`/api/...` proxies). Sends cookies so the proxy can
  *                       attach the Bearer itself. Never talks to BACKEND_URL
  *                       directly from the browser.
  *
+ * Server-side authenticated fetching (that reads the httpOnly access cookie)
+ * belongs in a separate module — colocate it with the caller so this file
+ * stays safe to import from client components.
+ *
  * Non-2xx responses throw `ApiError` with the HTTP status attached.
  */
-
-import { API_BASE_URL } from './config';
 
 export class ApiError extends Error {
   status: number;
@@ -46,12 +45,6 @@ export function apiErrorMessage(err: unknown, fallback: string): string {
 }
 
 type FetchInit = Omit<RequestInit, 'body'> & { body?: unknown };
-
-function absolutize(path: string): string {
-  if (/^https?:\/\//i.test(path)) return path;
-  const base = API_BASE_URL.replace(/\/+$/, '');
-  return `${base}${path.startsWith('/') ? path : `/${path}`}`;
-}
 
 async function parseResponse<T>(res: Response, url: string): Promise<T> {
   const contentType = res.headers.get('content-type') ?? '';
@@ -96,22 +89,6 @@ function buildInit(init: FetchInit | undefined, bearer?: string): RequestInit {
  */
 export async function fetcher<T>(url: string, init?: FetchInit): Promise<T> {
   const res = await fetch(url, { ...buildInit(init), cache: init?.cache ?? 'no-store' });
-  return parseResponse<T>(res, url);
-}
-
-/**
- * Server-only fetch with the caller's access JWT attached as Bearer.
- * Imports `auth-server` lazily so this module stays safe to import from client
- * code (tree-shaken; the lazy path never executes in the browser).
- */
-export async function fetcherAuth<T>(path: string, init?: FetchInit): Promise<T> {
-  const { getAccessToken } = await import('./auth-server');
-  const token = await getAccessToken();
-  const url = absolutize(path);
-  const res = await fetch(url, {
-    ...buildInit(init, token ?? undefined),
-    cache: init?.cache ?? 'no-store',
-  });
   return parseResponse<T>(res, url);
 }
 

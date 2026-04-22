@@ -6,27 +6,28 @@
  * Layering:
  *   - Public catalog reads (courses, lessons, sessions): anonymous HTTP with
  *     `fetcher`; safe to call from RSC or browser.
- *   - Auth'd reads/writes (user-progress, my sessions): go through
- *     `fetcherAuth` when server-side, or through same-origin Next proxies
- *     (`/api/user-progress`) when client-side, so the httpOnly access cookie
- *     is attached as Bearer without exposing it to the browser.
+ *   - Auth'd client writes (user-progress): go through same-origin Next
+ *     proxies (`/api/user-progress`) so the httpOnly access cookie is
+ *     attached as Bearer without exposing it to the browser.
+ *
+ * Server-only auth'd reads (that need the httpOnly cookie directly) live in
+ * their own module — keeping this file client-safe avoids leaking
+ * `next/headers` into the browser bundle via Turbopack's static trace.
  *
  * All results flow through `lib/normalize.ts` so the UI never handles raw
  * Strapi envelopes.
  */
 import { API_BASE_URL } from './config';
-import { fetcher, fetcherAuth, fetcherClient } from './fetcher';
+import { fetcher, fetcherClient } from './fetcher';
 import {
   normalizeCourses,
   normalizeCourse,
   normalizeLessons,
   normalizeLesson,
-  normalizeSessions,
 } from './normalize';
 import type {
   Course,
   Lesson,
-  CalendarSession,
   ProgressStatus,
   StrapiCollection,
   StrapiSingle,
@@ -58,10 +59,6 @@ const LESSON_POPULATE =
   '&populate[cover]=true' +
   '&populate[video]=true' +
   '&populate[course][fields][0]=slug&populate[course][fields][1]=documentId';
-
-const SESSION_POPULATE =
-  'populate[course][fields][0]=slug' +
-  '&populate[teacher][fields][0]=publicSlug';
 
 // ─── Courses ────────────────────────────────────────────────────────────────
 
@@ -105,21 +102,6 @@ export async function fetchLesson(
   );
   const first = (env?.data ?? [])[0];
   return first ? normalizeLesson(first) : null;
-}
-
-// ─── Calendar (sessions) ────────────────────────────────────────────────────
-
-/**
- * Server-only: lists sessions visible to the caller. The default
- * `find` permission is AUTH_ALL (any signed-in role), and any per-caller
- * scoping lives in a future session-controller override. For now we pass
- * the common filters the UI needs.
- */
-export async function fetchMySessions(): Promise<CalendarSession[]> {
-  const env = await fetcherAuth<StrapiCollection<any>>(
-    `/api/sessions?sort[0]=startAt:asc&${SESSION_POPULATE}`,
-  );
-  return normalizeSessions(env);
 }
 
 // ─── User progress (auth'd write) ───────────────────────────────────────────
