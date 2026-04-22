@@ -98,6 +98,24 @@ export async function up(strapi: any) {
   for (const acc of DEMO_ACCOUNTS) {
     const existing = await strapi.db.query(USER_UID).findOne({ where: { email: acc.email } });
     if (existing) {
+      // Repair path: earlier versions of this seed wrote `locale: 'uk'` into
+      // the user-profile attribute. Strapi v5's Documents API reserves the
+      // `locale` column for i18n bookkeeping on localized types; when a
+      // non-localized type carries its own `locale` attribute and the value
+      // is non-null, subsequent documents() lookups (e.g. creating a
+      // refresh-token that relates to the profile) fail with
+      // `Document with id ..., locale "null" not found`. Force the column
+      // back to null so the Documents API can find the profile again.
+      const brokenProfile = await strapi.db
+        .query(PROFILE_UID)
+        .findOne({ where: { user: { id: existing.id } } });
+      if (brokenProfile && brokenProfile.locale !== null) {
+        await strapi.db.query(PROFILE_UID).update({
+          where: { id: brokenProfile.id },
+          data: { locale: null },
+        });
+        strapi.log.info(`[seed] repaired locale on user-profile for ${acc.email}`);
+      }
       strapi.log.info(`[seed] demo account exists: ${acc.email}`);
       continue;
     }
@@ -118,6 +136,7 @@ export async function up(strapi: any) {
       role: upRole.id,
     });
 
+    // Deliberately does NOT set `locale` — see the repair comment above.
     const profile = await strapi.documents(PROFILE_UID).create({
       data: {
         user: user.id,
@@ -126,7 +145,6 @@ export async function up(strapi: any) {
         firstName: acc.firstName,
         lastName: acc.lastName,
         displayName: `${acc.firstName} ${acc.lastName}`,
-        locale: 'uk',
         timezone: 'Europe/Kyiv',
         status: 'active',
         consentTermsAt: new Date().toISOString(),
