@@ -605,6 +605,58 @@ export interface ApiAuditLogAuditLog extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiCharacterCharacter extends Struct.CollectionTypeSchema {
+  collectionName: 'characters';
+  info: {
+    description: 'Kids Zone playable companion character. Each character has a set of emotion images the FE swaps based on mood.';
+    displayName: 'Character';
+    pluralName: 'characters';
+    singularName: 'character';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    description: Schema.Attribute.Text;
+    emotions: Schema.Attribute.JSON;
+    fallbackEmotion: Schema.Attribute.Enumeration<
+      [
+        'idle',
+        'happy',
+        'celebrate',
+        'sleepy',
+        'angry',
+        'sad',
+        'thinking',
+        'surprised',
+      ]
+    > &
+      Schema.Attribute.DefaultTo<'idle'>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::character.character'
+    > &
+      Schema.Attribute.Private;
+    nameEn: Schema.Attribute.String & Schema.Attribute.Required;
+    nameUa: Schema.Attribute.String;
+    orderIndex: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
+    priceCoins: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
+    publishedAt: Schema.Attribute.DateTime;
+    rarity: Schema.Attribute.Enumeration<
+      ['common', 'rare', 'epic', 'legendary']
+    > &
+      Schema.Attribute.DefaultTo<'common'>;
+    slug: Schema.Attribute.UID<'nameEn'> & Schema.Attribute.Required;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiConsentLogConsentLog extends Struct.CollectionTypeSchema {
   collectionName: 'consent_logs';
   info: {
@@ -1123,6 +1175,38 @@ export interface ApiReviewReview extends Struct.CollectionTypeSchema {
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
     verified: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
+  };
+}
+
+export interface ApiRoomRoom extends Struct.CollectionTypeSchema {
+  collectionName: 'rooms';
+  info: {
+    description: 'Kids Zone room backdrop. The starter room (bedroom) has coinsRequired=0 and is auto-unlocked for every new inventory.';
+    displayName: 'Room';
+    pluralName: 'rooms';
+    singularName: 'room';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    background: Schema.Attribute.String;
+    coinsRequired: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    iconEmoji: Schema.Attribute.String;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<'oneToMany', 'api::room.room'> &
+      Schema.Attribute.Private;
+    nameEn: Schema.Attribute.String & Schema.Attribute.Required;
+    nameUa: Schema.Attribute.String;
+    orderIndex: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
+    publishedAt: Schema.Attribute.DateTime;
+    slug: Schema.Attribute.UID<'nameEn'> & Schema.Attribute.Required;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
   };
 }
 
@@ -2044,6 +2128,7 @@ declare module '@strapi/strapi' {
       'api::admin-profile.admin-profile': ApiAdminProfileAdminProfile;
       'api::adult-profile.adult-profile': ApiAdultProfileAdultProfile;
       'api::audit-log.audit-log': ApiAuditLogAuditLog;
+      'api::character.character': ApiCharacterCharacter;
       'api::consent-log.consent-log': ApiConsentLogConsentLog;
       'api::course.course': ApiCourseCourse;
       'api::homework.homework': ApiHomeworkHomework;
@@ -2055,6 +2140,7 @@ declare module '@strapi/strapi' {
       'api::parent-profile.parent-profile': ApiParentProfileParentProfile;
       'api::refresh-token.refresh-token': ApiRefreshTokenRefreshToken;
       'api::review.review': ApiReviewReview;
+      'api::room.room': ApiRoomRoom;
       'api::session.session': ApiSessionSession;
       'api::shop-item.shop-item': ApiShopItemShopItem;
       'api::teacher-profile.teacher-profile': ApiTeacherProfileTeacherProfile;

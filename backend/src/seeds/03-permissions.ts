@@ -125,6 +125,20 @@ const GRANTS: Grant[] = [
   // Audit-log (admin-only)
   { action: 'api::audit-log.audit-log.find', roles: ADMIN },
   { action: 'api::audit-log.audit-log.findOne', roles: ADMIN },
+
+  // Character catalog (public read, admin write)
+  { action: 'api::character.character.find', roles: PUBLIC_ALL },
+  { action: 'api::character.character.findOne', roles: PUBLIC_ALL },
+  { action: 'api::character.character.create', roles: ADMIN },
+  { action: 'api::character.character.update', roles: ADMIN },
+  { action: 'api::character.character.delete', roles: ADMIN },
+
+  // Room catalog (public read, admin write)
+  { action: 'api::room.room.find', roles: PUBLIC_ALL },
+  { action: 'api::room.room.findOne', roles: PUBLIC_ALL },
+  { action: 'api::room.room.create', roles: ADMIN },
+  { action: 'api::room.room.update', roles: ADMIN },
+  { action: 'api::room.room.delete', roles: ADMIN },
 ];
 
 const ROLE_UID = 'plugin::users-permissions.role';

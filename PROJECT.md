@@ -165,9 +165,9 @@ frontend/
 | Kids-profile (coins/xp/streak/companion/mood) | ✅ | default | ⚠ | IndexedDB | — | 🔴 |
 | Shop catalog | ✅ | default | ✅ | hard-coded | ❌ | 🟠 |
 | **User inventory** (owned / equipped / placedItems / outfit / unlockedRooms) | **❌** | — | — | IndexedDB | — | 🔴 |
-| **Characters + emotions catalog** | **❌** | — | — | hard-coded | — | 🔴 |
+| **Characters + emotions catalog** | ✅ (Phase C1) | default | ✅ | hard-coded | ✅ (2 seeds) | 🟠 (catalog ready, FE not migrated) |
 | **User-character ownership + mood** | **❌** | — | — | IndexedDB | — | 🔴 |
-| **Rooms catalog** | **❌** | — | — | hard-coded | — | 🔴 |
+| **Rooms catalog** | ✅ (Phase C3) | default | ✅ | hard-coded | ✅ (5 seeds) | 🟠 (catalog ready, FE not migrated) |
 | **User-room unlock/active** | **❌** | — | — | IndexedDB | — | 🔴 |
 | Homework | ✅ | default | ✅ | ❌ | — | 🔴 |
 | **Homework-submission** | **❌** | — | — | mock | — | 🔴 |
@@ -320,15 +320,15 @@ Rollback: скрипт ідемпотентний (dedupe по slug/publicSlug/e
 
 ### Phase C — Characters + Rooms каталоги
 
-- [ ] **C1** Content-type `api::character.character`:
-  - `slug` uid, `nameEn`, `nameUa`, `description`, `rarity` (common/uncommon/rare/legendary), `priceCoins` integer, `levelRequired` enum L(evel).
-  - `emotionImages` — component repeatable `{ emotion: enum, image: media }` (підтримує всі 8 емоцій із `lib/characters.ts`).
+- [x] **C1** Content-type `api::character.character`:
+  - `slug` uid, `nameEn`, `nameUa`, `description`, `rarity` (common/rare/epic/legendary), `priceCoins` integer, `orderIndex`.
+  - `emotions` — JSON map `Record<emotion, imagePath>` (8 емоцій із `lib/characters.ts`). PNG-шляхи вказують на `frontend/public/characters/*` — лишаємо на Vercel-static, без media-upload, поки є art-pipeline.
   - `fallbackEmotion` enum.
-- [ ] **C2** Content-type `api::user-character.user-character` (manyToOne → user-profile; manyToOne → character; унікальність пари; `acquiredAt`). Власність персонажа.
-- [ ] **C3** Content-type `api::room.room`:
-  - `slug`, `nameEn`, `nameUa`, `coinsRequired`, `background` media, `iconEmoji`, `orderIndex`.
-- [ ] **C4** Seed: `04-characters.ts` + `05-rooms.ts` — імпортують існуючі fox/raccoon (скопіювати PNG у `backend/public/uploads/characters/`) і 5 rooms.
-- [ ] **C5** Permissions: public read для обох каталогів; write — admin.
+- [ ] **C2** User-character ownership — **rescoped**. Замість окремої сутності `api::user-character.user-character` візьмемо m2m-relation на `user-inventory.ownedCharacters` + `activeCharacter` (m2o). Причина: легше для одного кіда (без per-pair metadata поки що), консистентно з уже наявним `ownedShopItems`. Окрему сутність додамо в Phase I якщо з'являться per-ownership поля (acquiredAt, gift-from, …).
+- [x] **C3** Content-type `api::room.room`:
+  - `slug`, `nameEn`, `nameUa`, `coinsRequired`, `background` **string** (CSS shorthand — `url(...)` або `linear-gradient(...)`), `iconEmoji`, `orderIndex`. String, не media, щоб зберегти існуючі gradient-кімнати з FE без art-pipeline.
+- [x] **C4** Seed: `08-characters.ts` (fox + raccoon, emotion PNG paths) + `09-rooms.ts` (bedroom/garden/castle/space/underwater з існуючими FE-значеннями).
+- [x] **C5** Permissions: public read для обох каталогів; write — admin. Grants додані у `03-permissions.ts`.
 - [ ] **C6** Endpoints:
   - `POST /api/user-character/purchase { characterSlug }` — перевіряє coins, рівень, створює user-character + списує coins у transaction-like послідовності з compensating cleanup.
   - `POST /api/user-inventory/unlock-room { roomSlug }` — аналогічно.

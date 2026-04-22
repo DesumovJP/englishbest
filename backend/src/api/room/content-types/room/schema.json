@@ -1,0 +1,42 @@
+{
+  "kind": "collectionType",
+  "collectionName": "rooms",
+  "info": {
+    "singularName": "room",
+    "pluralName": "rooms",
+    "displayName": "Room",
+    "description": "Kids Zone room backdrop. The starter room (bedroom) has coinsRequired=0 and is auto-unlocked for every new inventory."
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "attributes": {
+    "slug": {
+      "type": "uid",
+      "targetField": "nameEn",
+      "required": true
+    },
+    "nameEn": {
+      "type": "string",
+      "required": true
+    },
+    "nameUa": {
+      "type": "string"
+    },
+    "coinsRequired": {
+      "type": "integer",
+      "default": 0
+    },
+    "background": {
+      "type": "string",
+      "description": "CSS background shorthand — either url('...') or a linear-gradient(...)."
+    },
+    "iconEmoji": {
+      "type": "string"
+    },
+    "orderIndex": {
+      "type": "integer",
+      "default": 0
+    }
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "kind": "collectionType",
+  "collectionName": "characters",
+  "info": {
+    "singularName": "character",
+    "pluralName": "characters",
+    "displayName": "Character",
+    "description": "Kids Zone playable companion character. Each character has a set of emotion images the FE swaps based on mood."
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "attributes": {
+    "slug": {
+      "type": "uid",
+      "targetField": "nameEn",
+      "required": true
+    },
+    "nameEn": {
+      "type": "string",
+      "required": true
+    },
+    "nameUa": {
+      "type": "string"
+    },
+    "description": {
+      "type": "text"
+    },
+    "rarity": {
+      "type": "enumeration",
+      "enum": ["common", "rare", "epic", "legendary"],
+      "default": "common"
+    },
+    "priceCoins": {
+      "type": "integer",
+      "default": 0
+    },
+    "fallbackEmotion": {
+      "type": "enumeration",
+      "enum": ["idle", "happy", "celebrate", "sleepy", "angry", "sad", "thinking", "surprised"],
+      "default": "idle"
+    },
+    "emotions": {
+      "type": "json"
+    },
+    "orderIndex": {
+      "type": "integer",
+      "default": 0
+    }
+  }
+}
