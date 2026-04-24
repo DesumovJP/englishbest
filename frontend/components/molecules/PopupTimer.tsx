@@ -32,7 +32,6 @@ export function PopupTimer() {
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') handleClose(); };
     if (open) document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   function handleSubmit(e: React.FormEvent) {
@@ -54,7 +53,10 @@ export function PopupTimer() {
         {submitted ? (
           /* ── Success state ── */
           <div className="flex flex-col items-center gap-5 text-center px-8 py-12">
-            <div className="w-20 h-20 rounded-3xl bg-primary/10 flex items-center justify-center text-5xl">🦉</div>
+            <div className="w-24 h-24 rounded-3xl bg-primary/10 flex items-center justify-center overflow-hidden">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/characters/fox/hi.png" alt="" aria-hidden className="w-full h-full object-contain" />
+            </div>
             <div>
               <h3 className="text-2xl font-black text-ink">Дякуємо, {name}!</h3>
               <p className="text-ink-muted text-sm mt-2 leading-relaxed">
@@ -72,7 +74,7 @@ export function PopupTimer() {
           </div>
         ) : (
           <>
-            {/* ── Primary gradient header ── */}
+            {/* ── Primary gradient header with fox mascot ── */}
             <div className="relative bg-gradient-to-br from-primary to-primary-dark px-7 pt-7 pb-7 overflow-hidden">
               <div aria-hidden className="pointer-events-none absolute -right-10 -top-10 w-40 h-40 rounded-full border border-white/20" />
               <div aria-hidden className="pointer-events-none absolute -right-4 -top-4 w-24 h-24 rounded-full border border-white/15" />
@@ -80,7 +82,10 @@ export function PopupTimer() {
 
               <div className="relative flex items-start justify-between gap-3">
                 <div className="flex items-start gap-3">
-                  <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center text-3xl flex-shrink-0">🎁</div>
+                  <div className="w-14 h-14 rounded-2xl bg-white/15 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src="/characters/fox/hi.png" alt="" aria-hidden className="w-full h-full object-contain" />
+                  </div>
                   <div>
                     <p className="text-white/80 text-[11px] font-black uppercase tracking-widest mb-1.5">Спеціальна пропозиція</p>
                     <h3 className="text-[1.55rem] font-black text-white leading-tight tracking-tight">
