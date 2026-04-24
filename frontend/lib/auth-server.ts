@@ -56,13 +56,22 @@ export async function getRefreshToken(): Promise<string | null> {
 
 export async function getSession(): Promise<Session | null> {
   const token = await getAccessToken();
-  if (!token) return null;
+  if (!token) {
+    console.log('[auth] getSession: no access cookie');
+    return null;
+  }
 
   const res = await fetch(`${BACKEND_URL}/api/auth/me`, {
     headers: { Authorization: `Bearer ${token}` },
     cache: 'no-store',
   });
-  if (!res.ok) return null;
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    console.log(
+      `[auth] getSession: backend ${res.status} ${res.statusText} — ${body.slice(0, 200)}`,
+    );
+    return null;
+  }
   return (await res.json()) as Session;
 }
 

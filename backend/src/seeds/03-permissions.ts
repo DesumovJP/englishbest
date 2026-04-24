@@ -29,6 +29,11 @@ const ADMIN: RoleType[] = ['admin'];
 const LEARNERS: RoleType[] = ['kids', 'adult', 'admin'];
 
 const GRANTS: Grant[] = [
+  // Auth /me + logout-all (policy-gated; users-permissions plugin still
+  // requires the role to hold the permission before policies run).
+  { action: 'api::auth.auth.me', roles: AUTH_ALL },
+  { action: 'api::auth.auth.logoutAll', roles: AUTH_ALL },
+
   // Course (public catalog, staff write)
   { action: 'api::course.course.find', roles: PUBLIC_ALL },
   { action: 'api::course.course.findOne', roles: PUBLIC_ALL },

@@ -9,6 +9,8 @@ export default (policyContext, _config, { strapi }) => {
     return true;
   }
 
-  strapi.log.debug('is-authenticated: no user on ctx.state — denying');
+  const route = policyContext.request?.url ?? '<unknown>';
+  const authHeader = policyContext.request?.header?.authorization ? 'present' : 'missing';
+  strapi.log.warn(`[is-authenticated] deny — url=${route} auth-header=${authHeader}`);
   return false;
 };
