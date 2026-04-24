@@ -1,11 +1,11 @@
 "use client";
 
-import { useMemo, useState, useRef, Suspense } from "react";
+import { useCallback, useMemo, useState, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import type { Level } from "@/lib/types";
 import { useKidsIdentity } from "@/lib/use-kids-identity";
 import { LootBoxModal, BoxCard } from "@/components/kids/LootBox";
-import type { BoxRarity, LootItem } from "@/components/kids/LootBox";
+import type { BoxRarity } from "@/components/kids/LootBox";
 import AddCustomModal from "@/components/kids/AddCustomModal";
 import {
   useCharacterCatalog,
@@ -600,6 +600,7 @@ function ShopPageInner() {
     purchaseShopItem,
     equipShopItem,
     placeItem,
+    openLootBox,
   } = useKidsState();
   const { items: customItems } = useCustomItems();
   const { items: serverItems } = useShopCatalog();
@@ -689,11 +690,17 @@ function ShopPageInner() {
     setBuyItem(null);
   }
 
-  async function handleBoxPurchase(cost: number, item: LootItem) {
-    await patchState({ coins: Math.max(0, (kidsState.coins ?? 0) - cost) });
-    setToast(`${item.emoji} ${item.nameUa} — yours!`);
-    setTimeout(() => setToast(null), 4000);
-  }
+  const handleLootBoxOpen = useCallback(
+    async (boxType: BoxRarity) => {
+      const result = await openLootBox(boxType);
+      if (result?.item) {
+        setToast(`${result.item.emoji} ${result.item.nameUa} — yours!`);
+        setTimeout(() => setToast(null), 4000);
+      }
+      return result;
+    },
+    [openLootBox],
+  );
 
   async function handlePlaceFromInventory(itemId: string) {
     await placeItem(itemId);
@@ -981,7 +988,7 @@ function ShopPageInner() {
       </div>
 
       {buyItem && <BuyModal item={buyItem} onSuccess={handleSuccess} onClose={() => setBuyItem(null)} />}
-      {openBox && <LootBoxModal boxType={openBox} balance={balance} onClose={() => setOpenBox(null)} onPurchase={handleBoxPurchase} />}
+      {openBox && <LootBoxModal boxType={openBox} balance={balance} onClose={() => setOpenBox(null)} onOpen={handleLootBoxOpen} />}
       {showAdd && <AddCustomModal onClose={() => setShowAdd(false)} />}
 
       {toast && (

@@ -8,6 +8,7 @@
  *   POST  /api/user-inventory/me/unlock-room           → debit coins, add to unlockedRooms
  *   POST  /api/user-inventory/me/purchase-shop-item    → debit coins, add to ownedShopItems
  *   POST  /api/user-inventory/me/equip                 → toggle equipped state for an owned item
+ *   POST  /api/user-inventory/me/open-loot-box         → pay box cost, roll random reward, award it
  *
  * Client-writable fields on PATCH:
  *   outfit, placedItems, equippedItems, ownedShopItems, seedVersion,
@@ -465,6 +466,197 @@ export default {
       populate: POPULATE,
     });
     return { data: fresh };
+  },
+
+  /**
+   * Open a loot box. Body: { boxType: 'common'|'silver'|'gold'|'legendary' }.
+   *
+   * Server resolves the pool by mapping box → rarity (dynamic query against
+   * shop-item + character catalogs), filters out already-owned entries, picks
+   * uniformly at random, deducts the fixed box cost from kids-profile, and
+   * appends the reward to the appropriate inventory collection (shop-item or
+   * character). If the caller already owns every eligible entry we refund
+   * (no coin deduction) and return `{ duplicate: true, item: null }` so the
+   * FE can show a "nothing new to win" state instead of punishing the user.
+   *
+   * Rarity mapping (intentionally mirrors the FE box tier colours):
+   *   common    → shop-items with rarity='common'
+   *   silver    → shop-items with rarity='uncommon'
+   *   gold      → shop-items with rarity='rare'
+   *   legendary → shop-items with rarity='legendary' UNION characters with
+   *               rarity in ('rare','epic','legendary')
+   *
+   * Box prices: 50 / 150 / 400 / 1000 (coins). Matches FE BOX_CONFIG.
+   */
+  async openLootBox(ctx: any) {
+    const user = ctx.state.user;
+    if (!user) return ctx.unauthorized();
+
+    const profile = await callerProfileWithLevel(strapi, user.id);
+    if (!profile) return ctx.forbidden('no user-profile');
+
+    const kp = await callerKidsProfile(strapi, profile.documentId);
+    if (!kp) return ctx.forbidden('not a kid');
+
+    const body = ctx.request.body ?? {};
+    const data = body?.data ?? body;
+    const boxType = typeof data?.boxType === 'string' ? data.boxType : null;
+
+    const BOX_COST: Record<string, number> = {
+      common: 50,
+      silver: 150,
+      gold: 400,
+      legendary: 1000,
+    };
+    const BOX_ITEM_RARITY = {
+      common: 'common',
+      silver: 'uncommon',
+      gold: 'rare',
+      legendary: 'legendary',
+    } as const;
+    if (!boxType || !(boxType in BOX_COST)) {
+      return ctx.badRequest('boxType must be one of common|silver|gold|legendary');
+    }
+
+    const cost = BOX_COST[boxType];
+    const balance = toInt((kp as any).totalCoins) ?? 0;
+    if (balance < cost) return ctx.badRequest('insufficient coins');
+
+    const itemRarity = BOX_ITEM_RARITY[boxType as keyof typeof BOX_ITEM_RARITY];
+    const poolItems: any[] = await strapi.documents(SHOP_ITEM_UID).findMany({
+      filters: { rarity: { $eq: itemRarity } },
+      fields: ['documentId', 'slug', 'nameUa', 'emoji', 'rarity'],
+      pagination: { pageSize: 200 },
+    });
+    let poolCharacters: any[] = [];
+    if (boxType === 'legendary') {
+      poolCharacters = await strapi.documents(CHARACTER_UID).findMany({
+        filters: { rarity: { $in: ['rare', 'epic', 'legendary'] } },
+        fields: ['documentId', 'slug', 'nameUa', 'rarity'],
+        pagination: { pageSize: 200 },
+      });
+    }
+
+    const inventory = await getOrCreateInventory(strapi, profile.documentId);
+    const ownedItemSlugs = new Set(
+      ((inventory as any).ownedShopItems ?? []).map((i: any) => i.slug),
+    );
+    const ownedCharSlugs = new Set(
+      ((inventory as any).ownedCharacters ?? []).map((c: any) => c.slug),
+    );
+
+    const CHAR_EMOJI: Record<string, string> = {
+      fox: '🦊',
+      raccoon: '🦝',
+      cat: '🐱',
+      dragon: '🐉',
+      unicorn: '🦄',
+      rabbit: '🐰',
+      frog: '🐸',
+      bear: '🐻',
+    };
+
+    type Candidate =
+      | { kind: 'shop-item'; documentId: string; slug: string; nameUa: string; emoji: string; rarity: string }
+      | { kind: 'character'; documentId: string; slug: string; nameUa: string; emoji: string; rarity: string };
+
+    const candidates: Candidate[] = [];
+    for (const it of poolItems) {
+      if (ownedItemSlugs.has(it.slug)) continue;
+      candidates.push({
+        kind: 'shop-item',
+        documentId: it.documentId,
+        slug: it.slug,
+        nameUa: it.nameUa ?? it.slug,
+        emoji: it.emoji ?? '🎁',
+        rarity: it.rarity ?? itemRarity,
+      });
+    }
+    for (const c of poolCharacters) {
+      if (ownedCharSlugs.has(c.slug)) continue;
+      candidates.push({
+        kind: 'character',
+        documentId: c.documentId,
+        slug: c.slug,
+        nameUa: c.nameUa ?? c.slug,
+        emoji: CHAR_EMOJI[c.slug] ?? '🎭',
+        rarity: c.rarity ?? 'legendary',
+      });
+    }
+
+    if (candidates.length === 0) {
+      // User already owns every eligible reward — no debit, no award.
+      const fresh = await strapi.documents(INVENTORY_UID).findOne({
+        documentId: (inventory as any).documentId,
+        populate: POPULATE,
+      });
+      return {
+        data: fresh,
+        loot: { item: null, duplicate: true, boxType, cost },
+      };
+    }
+
+    const picked = candidates[Math.floor(Math.random() * candidates.length)];
+
+    // Award first, then debit (same compensating order as purchase actions).
+    if (picked.kind === 'shop-item') {
+      const prev = ((inventory as any).ownedShopItems ?? []).map((i: any) => i.documentId);
+      await strapi.documents(INVENTORY_UID).update({
+        documentId: (inventory as any).documentId,
+        data: { ownedShopItems: [...prev, picked.documentId] },
+      });
+      try {
+        await strapi.documents(KIDS_PROFILE_UID).update({
+          documentId: (kp as any).documentId,
+          data: { totalCoins: balance - cost },
+        });
+      } catch (err) {
+        await strapi.documents(INVENTORY_UID).update({
+          documentId: (inventory as any).documentId,
+          data: { ownedShopItems: prev },
+        });
+        throw err;
+      }
+    } else {
+      const prev = ((inventory as any).ownedCharacters ?? []).map((c: any) => c.documentId);
+      await strapi.documents(INVENTORY_UID).update({
+        documentId: (inventory as any).documentId,
+        data: { ownedCharacters: [...prev, picked.documentId] },
+      });
+      try {
+        await strapi.documents(KIDS_PROFILE_UID).update({
+          documentId: (kp as any).documentId,
+          data: { totalCoins: balance - cost },
+        });
+      } catch (err) {
+        await strapi.documents(INVENTORY_UID).update({
+          documentId: (inventory as any).documentId,
+          data: { ownedCharacters: prev },
+        });
+        throw err;
+      }
+    }
+
+    const fresh = await strapi.documents(INVENTORY_UID).findOne({
+      documentId: (inventory as any).documentId,
+      populate: POPULATE,
+    });
+
+    return {
+      data: fresh,
+      loot: {
+        item: {
+          kind: picked.kind,
+          slug: picked.slug,
+          nameUa: picked.nameUa,
+          emoji: picked.emoji,
+          rarity: picked.rarity,
+        },
+        duplicate: false,
+        boxType,
+        cost,
+      },
+    };
   },
 
   /**

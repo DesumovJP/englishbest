@@ -85,6 +85,25 @@ export interface PlacedItem {
   z?: number;
 }
 
+/**
+ * Server-authoritative loot box result. `item` is null when the user already
+ * owns every eligible item (server refunded — no debit occurred).
+ */
+export interface LootItem {
+  kind: "shop" | "character";
+  slug: string;
+  nameUa: string;
+  emoji: string;
+  rarity: "common" | "uncommon" | "rare" | "epic" | "legendary";
+}
+
+export interface LootResult {
+  item: LootItem | null;
+  duplicate: boolean;
+  boxType: "common" | "silver" | "gold" | "legendary";
+  cost: number;
+}
+
 export interface KidsState {
   coins: number;
   streak: number;
@@ -554,6 +573,32 @@ export const kidsStateStore = {
     const fresh = await fetchState();
     _cache = fresh;
     return fresh;
+  },
+
+  /**
+   * Open a loot box. Server picks a random un-owned item of matching rarity,
+   * appends to inventory, and debits coins (compensating revert on failure).
+   * Returns fresh state + `loot` payload (item awarded + duplicate flag).
+   */
+  openLootBox: async (
+    boxType: "common" | "silver" | "gold" | "legendary",
+  ): Promise<{ state: KidsState; loot: LootResult }> => {
+    const res = await fetch("/api/user-inventory/me/open-loot-box", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ boxType }),
+    });
+    if (!res.ok) {
+      _cache = null;
+      const body = await res.json().catch(() => null);
+      const msg = body?.error?.message ?? `openLootBox failed (${res.status})`;
+      throw new Error(msg);
+    }
+    const payload = await res.json().catch(() => ({}));
+    const fresh = await fetchState();
+    _cache = fresh;
+    return { state: fresh, loot: payload.loot as LootResult };
   },
 
   /** Unlock a room. Server debits coinsRequired and appends to unlockedRooms. */

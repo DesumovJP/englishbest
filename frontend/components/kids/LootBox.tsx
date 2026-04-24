@@ -1,18 +1,14 @@
 'use client';
 
 import { useState, useCallback, useEffect, useRef } from 'react';
+import type { LootItem, LootResult } from '@/lib/kids-store';
+
+export type { LootItem } from '@/lib/kids-store';
 
 /* ── Types ─────────────────────────────────────────────────────── */
 export type BoxRarity = 'common' | 'silver' | 'gold' | 'legendary';
-type BoxState = 'idle' | 'shaking' | 'opening' | 'revealed';
-type ItemRarity = 'common' | 'uncommon' | 'rare' | 'legendary';
-
-export interface LootItem {
-  emoji: string;
-  nameUa: string;
-  rarity: ItemRarity;
-  isCharacter?: boolean;
-}
+type BoxState = 'idle' | 'shaking' | 'opening' | 'revealed' | 'duplicate' | 'error';
+type ItemRarity = LootItem['rarity'];
 
 /* ── Box config ─────────────────────────────────────────────────── */
 export const BOX_CONFIG: Record<BoxRarity, {
@@ -82,46 +78,12 @@ export const BOX_CONFIG: Record<BoxRarity, {
   },
 };
 
-/* ── Loot pools ─────────────────────────────────────────────────── */
-const LOOT: Record<BoxRarity, LootItem[]> = {
-  common: [
-    { emoji: '🛋️', nameUa: 'Диван', rarity: 'common' },
-    { emoji: '📚', nameUa: 'Книжкова полиця', rarity: 'common' },
-    { emoji: '🌈', nameUa: 'Постер-веселка', rarity: 'common' },
-    { emoji: '⏰', nameUa: 'Годинник', rarity: 'common' },
-    { emoji: '🪑', nameUa: 'Крісло', rarity: 'common' },
-    { emoji: '🎩', nameUa: 'Циліндр', rarity: 'common' },
-    { emoji: '🧣', nameUa: 'Шарф', rarity: 'common' },
-  ],
-  silver: [
-    { emoji: '🪞', nameUa: 'Шафа', rarity: 'uncommon' },
-    { emoji: '🌍', nameUa: 'Глобус', rarity: 'uncommon' },
-    { emoji: '🕶️', nameUa: 'Окуляри', rarity: 'uncommon' },
-    { emoji: '🐟', nameUa: 'Рибка', rarity: 'uncommon' },
-    { emoji: '🌺', nameUa: 'Квітка', rarity: 'uncommon' },
-    { emoji: '🎸', nameUa: 'Гітара', rarity: 'uncommon' },
-  ],
-  gold: [
-    { emoji: '🐠', nameUa: 'Акваріум', rarity: 'rare' },
-    { emoji: '👑', nameUa: 'Корона', rarity: 'rare' },
-    { emoji: '🏆', nameUa: 'Кубок', rarity: 'rare' },
-    { emoji: '🚀', nameUa: 'Ракета', rarity: 'rare' },
-    { emoji: '🎠', nameUa: 'Каруселька', rarity: 'rare' },
-  ],
-  legendary: [
-    { emoji: '🦄', nameUa: 'Єдиноріг', rarity: 'legendary', isCharacter: true },
-    { emoji: '🦊', nameUa: 'Рустік-лис', rarity: 'legendary', isCharacter: true },
-    { emoji: '🐉', nameUa: 'Дракон', rarity: 'legendary', isCharacter: true },
-    { emoji: '🥚', nameUa: 'Яйце дракона', rarity: 'legendary' },
-    { emoji: '🌙', nameUa: 'Чарівний місяць', rarity: 'legendary' },
-  ],
-};
-
 /* ── Rarity display ─────────────────────────────────────────────── */
 const RARITY: Record<ItemRarity, { label: string; color: string; bg: string; glow: string }> = {
   common:    { label: 'Звичайний',   color: '#6b7280', bg: '#f3f4f6',  glow: 'rgba(107,114,128,0.3)' },
   uncommon:  { label: 'Рідкісний',   color: '#7c3aed', bg: '#f5f3ff',  glow: 'rgba(124,58,237,0.4)'  },
-  rare:      { label: 'Епічний',     color: '#d97706', bg: '#fffbeb',  glow: 'rgba(217,119,6,0.45)'  },
+  rare:      { label: 'Рідкий',      color: '#d97706', bg: '#fffbeb',  glow: 'rgba(217,119,6,0.45)'  },
+  epic:      { label: 'Епічний',     color: '#dc2626', bg: '#fef2f2',  glow: 'rgba(220,38,38,0.5)'   },
   legendary: { label: 'Легендарний', color: '#be185d', bg: '#fdf2f8',  glow: 'rgba(190,24,93,0.5)'   },
 };
 
@@ -253,13 +215,13 @@ function RevealCard({ item, onClose, onOpenAnother, canAfford }: {
           boxShadow: `0 0 16px 4px ${r.glow}`,
         }}
       >
-        {item.isCharacter ? '🎭 Новий персонаж!' : r.label}
+        {item.kind === 'character' ? '🎭 Новий персонаж!' : r.label}
       </div>
 
       {/* Item name */}
       <div className="text-center animate-fade-in-up [animation-delay:0.5s]">
         <p className="text-3xl font-black text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)]">{item.nameUa}</p>
-        {item.isCharacter && (
+        {item.kind === 'character' && (
           <p className="text-sm font-bold text-white/75 mt-1">Тепер він у твоїй колекції!</p>
         )}
       </div>
@@ -294,10 +256,16 @@ interface LootBoxModalProps {
   boxType: BoxRarity;
   balance: number;
   onClose: () => void;
-  onPurchase: (cost: number, item: LootItem) => void;
+  /**
+   * Server call that opens the box. Must debit coins + award the reward
+   * atomically. Returns the loot payload, or `null` on network / 4xx /
+   * 5xx error. A payload with `item: null` + `duplicate: true` means the
+   * user already owns every eligible reward — no debit occurred.
+   */
+  onOpen: (boxType: BoxRarity) => Promise<LootResult | null>;
 }
 
-export function LootBoxModal({ boxType, balance, onClose, onPurchase }: LootBoxModalProps) {
+export function LootBoxModal({ boxType, balance, onClose, onOpen }: LootBoxModalProps) {
   const cfg = BOX_CONFIG[boxType];
   const [state, setState] = useState<BoxState>('idle');
   const [item, setItem] = useState<LootItem | null>(null);
@@ -331,36 +299,45 @@ export function LootBoxModal({ boxType, balance, onClose, onPurchase }: LootBoxM
     return () => { document.body.style.overflow = ''; };
   }, []);
 
-  const handleTap = useCallback(() => {
+  const handleTap = useCallback(async () => {
     if (state !== 'idle' || balance < cfg.price) return;
 
-    // Pick random item
-    const pool = LOOT[boxType];
-    const picked = pool[Math.floor(Math.random() * pool.length)];
-    setItem(picked);
-
-    // State machine: idle → shaking → opening → revealed
     setState('shaking');
 
-    timerRef.current = setTimeout(() => {
-      setState('opening');
+    // Fire the server call in parallel with the shake animation so the
+    // minimum box-shake duration masks network latency.
+    const minShake = new Promise<void>(resolve => {
+      timerRef.current = setTimeout(resolve, 550);
+    });
+    const serverPromise = onOpen(boxType);
+    const [loot] = await Promise.all([serverPromise, minShake]);
 
-      timerRef.current = setTimeout(() => {
-        // Generate confetti
-        const particles = Array.from({ length: 28 }, (_, i) => ({
-          id: i,
-          color: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
-          angle: (i / 28) * Math.PI * 2,
-          dist: 70 + Math.random() * 80,
-          delay: Math.random() * 120,
-          size: 6 + Math.random() * 8,
-        }));
-        setConfetti(particles);
-        setState('revealed');
-        onPurchase(cfg.price, picked);
-      }, 450);
-    }, 550);
-  }, [state, balance, cfg, boxType, onPurchase]);
+    if (!loot) {
+      setState('error');
+      return;
+    }
+    if (!loot.item) {
+      // Server refunded — nothing un-owned of this rarity remains.
+      setState('duplicate');
+      return;
+    }
+
+    setItem(loot.item);
+    setState('opening');
+
+    timerRef.current = setTimeout(() => {
+      const particles = Array.from({ length: 28 }, (_, i) => ({
+        id: i,
+        color: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
+        angle: (i / 28) * Math.PI * 2,
+        dist: 70 + Math.random() * 80,
+        delay: Math.random() * 120,
+        size: 6 + Math.random() * 8,
+      }));
+      setConfetti(particles);
+      setState('revealed');
+    }, 450);
+  }, [state, balance, cfg, boxType, onOpen]);
 
   const handleOpenAnother = useCallback(() => {
     clearTimeout(timerRef.current);
@@ -373,8 +350,8 @@ export function LootBoxModal({ boxType, balance, onClose, onPurchase }: LootBoxM
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-lg">
-      {/* Close button — only in idle */}
-      {state === 'idle' && (
+      {/* Close button — available in any non-animating state */}
+      {(state === 'idle' || state === 'duplicate' || state === 'error') && (
         <button
           onClick={onClose}
           className="absolute top-5 right-5 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors z-10"
@@ -402,7 +379,7 @@ export function LootBoxModal({ boxType, balance, onClose, onPurchase }: LootBoxM
         {/* Box + stars + confetti */}
         <div className="relative flex items-center justify-center w-[260px] h-[260px]">
           {/* Idle stars */}
-          {state === 'idle' && stars.map(s => (
+          {(state === 'idle' || state === 'duplicate' || state === 'error') && stars.map(s => (
             <Star key={s.id} color={s.color} x={s.x} y={s.y} delay={s.delay} size={s.size} />
           ))}
 
@@ -412,7 +389,11 @@ export function LootBoxModal({ boxType, balance, onClose, onPurchase }: LootBoxM
           ))}
 
           {/* The box */}
-          <BoxArt cfg={cfg} state={state} onTap={handleTap} />
+          <BoxArt
+            cfg={cfg}
+            state={state === 'duplicate' || state === 'error' ? 'idle' : state}
+            onTap={handleTap}
+          />
 
           {/* Item emerges from box */}
           {state === 'revealed' && item && (
@@ -449,6 +430,18 @@ export function LootBoxModal({ boxType, balance, onClose, onPurchase }: LootBoxM
               onOpenAnother={handleOpenAnother}
               canAfford={canAfford}
             />
+          )}
+          {state === 'duplicate' && (
+            <div className="text-center animate-fade-in-up">
+              <p className="text-base font-black text-white">Усе вже у колекції 🎉</p>
+              <p className="text-xs text-white/60 mt-1">Монети не списалися. Спробуй інший бокс!</p>
+            </div>
+          )}
+          {state === 'error' && (
+            <div className="text-center animate-fade-in-up">
+              <p className="text-base font-black text-white">Не вдалось відкрити</p>
+              <p className="text-xs text-white/60 mt-1">Перевір з’єднання і спробуй ще раз.</p>
+            </div>
           )}
         </div>
 

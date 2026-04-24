@@ -18,6 +18,7 @@ import {
   CustomRoom,
   CustomCharacter,
   KidsState,
+  LootResult,
   PlacedItem,
   DEFAULT_STATE,
 } from "./kids-store";
@@ -352,6 +353,25 @@ export function useKidsState() {
     [],
   );
 
+  /**
+   * Open a loot box via the server-authoritative endpoint. Returns the loot
+   * result (item awarded, duplicate flag) on success or null on error. State
+   * is always refreshed — server may have debited coins or refunded.
+   */
+  const openLootBox = useCallback(
+    async (boxType: "common" | "silver" | "gold" | "legendary"): Promise<LootResult | null> => {
+      try {
+        const { loot } = await kidsStateStore.openLootBox(boxType);
+        emitKidsEvent("kids:state-changed");
+        return loot;
+      } catch {
+        emitKidsEvent("kids:state-changed");
+        return null;
+      }
+    },
+    [],
+  );
+
   /** Toggle equip state for an owned shop item (server-authoritative). */
   const equipShopItem = useCallback(
     async (slug: string, equip: boolean): Promise<boolean> => {
@@ -410,6 +430,7 @@ export function useKidsState() {
     spendCoins,
     purchaseShopItem,
     equipShopItem,
+    openLootBox,
     placeItem,
     movePlacement,
     removePlacement,

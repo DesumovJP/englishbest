@@ -42,5 +42,11 @@ export default {
       handler: 'api::user-inventory.user-inventory.equipShopItem',
       config: { policies: ['global::is-authenticated'] },
     },
+    {
+      method: 'POST',
+      path: '/user-inventory/me/open-loot-box',
+      handler: 'api::user-inventory.user-inventory.openLootBox',
+      config: { policies: ['global::is-authenticated'] },
+    },
   ],
 };

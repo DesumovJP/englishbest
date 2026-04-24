@@ -3,7 +3,7 @@
 import { useState, useCallback, useRef } from "react";
 import Link from "next/link";
 import { LootBoxModal } from "@/components/kids/LootBox";
-import type { BoxRarity, LootItem } from "@/components/kids/LootBox";
+import type { BoxRarity } from "@/components/kids/LootBox";
 import CharacterAvatar from "@/components/kids/CharacterAvatar";
 import type { CharacterEmotion } from "@/lib/characters";
 import { useKidsState } from "@/lib/use-kids-store";
@@ -179,7 +179,7 @@ function PlacedItemsLayer({
 }
 
 export default function KidsDashboardPage() {
-  const { state: kidsState, patch: patchState, movePlacement, removePlacement } = useKidsState();
+  const { state: kidsState, movePlacement, removePlacement, openLootBox } = useKidsState();
 
   const [emotionIdx, setEmotionIdx] = useState(0);
   const [bubble, setBubble]         = useState<Bubble | null>(null);
@@ -200,10 +200,6 @@ export default function KidsDashboardPage() {
     });
     setBounceKey(k => k + 1);
   }, []);
-
-  const handleBoxPurchase = useCallback(async (cost: number, _item: LootItem) => {
-    await patchState({ coins: Math.max(0, coins - cost) });
-  }, [patchState, coins]);
 
   const placedItems = kidsState.placedItems ?? [];
 
@@ -345,7 +341,7 @@ export default function KidsDashboardPage() {
           boxType={openBox}
           balance={coins}
           onClose={() => setOpenBox(null)}
-          onPurchase={handleBoxPurchase}
+          onOpen={openLootBox}
         />
       )}
     </div>
