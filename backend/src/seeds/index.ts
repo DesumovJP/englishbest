@@ -16,6 +16,7 @@ import * as achievements from './06-achievements';
 import * as userInventories from './07-user-inventories';
 import * as characters from './08-characters';
 import * as rooms from './09-rooms';
+import * as libraryItems from './10-library-items';
 
 const SEEDS: { name: string; up: (strapi: any) => Promise<void> }[] = [
   { name: '00-roles', up: roles.up },
@@ -30,6 +31,7 @@ const SEEDS: { name: string; up: (strapi: any) => Promise<void> }[] = [
   { name: '08-characters', up: characters.up },
   { name: '09-rooms', up: rooms.up },
   { name: '07-user-inventories', up: userInventories.up },
+  { name: '10-library-items', up: libraryItems.up },
 ];
 
 export async function runSeeds(strapi: any) {

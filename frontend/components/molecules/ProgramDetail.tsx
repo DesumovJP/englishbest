@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { LevelBadge } from '@/components/teacher/ui';
-import type { Level } from '@/lib/teacher-mocks';
+import type { Level } from '@/lib/types/teacher';
 
 export type ProgramStatus = 'published' | 'draft' | 'archived';
 

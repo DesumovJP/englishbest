@@ -89,6 +89,41 @@
     },
     "maxStudents": {
       "type": "integer"
+    },
+    "kind": {
+      "type": "enumeration",
+      "enum": ["course", "book", "video", "game"],
+      "default": "course",
+      "required": true
+    },
+    "iconEmoji": {
+      "type": "string",
+      "maxLength": 8
+    },
+    "externalUrl": {
+      "type": "string"
+    },
+    "provider": {
+      "type": "string"
+    },
+    "titleUa": {
+      "type": "string"
+    },
+    "subtitle": {
+      "type": "string"
+    },
+    "descriptionShort": {
+      "type": "text"
+    },
+    "descriptionLong": {
+      "type": "json"
+    },
+    "preview": {
+      "type": "json"
+    },
+    "isNew": {
+      "type": "boolean",
+      "default": false
     }
   }
 }

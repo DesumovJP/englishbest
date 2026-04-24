@@ -282,6 +282,90 @@ type KidsProfileDto = {
 let _cache: KidsState | null = null;
 let _inflight: Promise<KidsState> | null = null;
 
+/**
+ * Debounced placedItems persistence state. Mutations are applied to `_cache`
+ * immediately (so the UI reacts on every drop/move/remove) but the PATCH to
+ * the server is coalesced across rapid edits — only the most recent snapshot
+ * is sent, and only after `PLACED_ITEMS_DEBOUNCE_MS` of quiescence.
+ */
+const PLACED_ITEMS_DEBOUNCE_MS = 500;
+let _placedItemsTimer: ReturnType<typeof setTimeout> | null = null;
+let _placedItemsPending = false;
+
+function schedulePlacedItemsFlush(): void {
+  if (_placedItemsTimer) clearTimeout(_placedItemsTimer);
+  _placedItemsPending = true;
+  _placedItemsTimer = setTimeout(flushPlacedItems, PLACED_ITEMS_DEBOUNCE_MS);
+}
+
+async function flushPlacedItems(): Promise<void> {
+  _placedItemsTimer = null;
+  if (!_placedItemsPending || !_cache) return;
+  const snapshot = _cache.placedItems;
+  _placedItemsPending = false;
+  try {
+    const res = await fetch("/api/user-inventory/me", {
+      method: "PATCH",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ placedItems: snapshot }),
+    });
+    if (!res.ok) {
+      // Drop the cache so the next read re-fetches authoritative server state.
+      _cache = null;
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("kids:state-changed"));
+      }
+    }
+  } catch {
+    _cache = null;
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("kids:state-changed"));
+    }
+  }
+}
+
+/**
+ * Force any pending placedItems PATCH to fire immediately. Call before
+ * navigation/unload so in-flight edits aren't lost.
+ */
+export async function flushPendingPlacedItems(): Promise<void> {
+  if (_placedItemsTimer) {
+    clearTimeout(_placedItemsTimer);
+    _placedItemsTimer = null;
+  }
+  if (_placedItemsPending) {
+    await flushPlacedItems();
+  }
+}
+
+// Flush pending placedItems edits when the tab is hidden (backgrounded or
+// closed) or the page is being unloaded. `pagehide` covers browser
+// BFCache transitions and mobile; `beforeunload` covers desktop refresh.
+// Uses fetch `keepalive:true` so the request outlives the unload (sendBeacon
+// can't be used because the proxy only exposes PATCH, not POST).
+if (typeof window !== "undefined") {
+  const flushOnHide = () => {
+    if (!_placedItemsPending || !_cache) return;
+    if (_placedItemsTimer) {
+      clearTimeout(_placedItemsTimer);
+      _placedItemsTimer = null;
+    }
+    _placedItemsPending = false;
+    fetch("/api/user-inventory/me", {
+      method: "PATCH",
+      credentials: "include",
+      keepalive: true,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ placedItems: _cache.placedItems }),
+    }).catch(() => {
+      // Ignore — the tab is closing, nothing to show anyway.
+    });
+  };
+  window.addEventListener("pagehide", flushOnHide);
+  window.addEventListener("beforeunload", flushOnHide);
+}
+
 function toNum(v: unknown): number {
   if (typeof v === "number") return v;
   if (typeof v === "string" && v !== "" && !Number.isNaN(Number(v))) return Number(v);
@@ -428,6 +512,50 @@ export const kidsStateStore = {
     return fresh;
   },
 
+  /**
+   * Purchase a shop item. Server validates level + balance, appends to
+   * ownedShopItems, debits coins (with compensating revert on debit failure).
+   */
+  purchaseShopItem: async (slug: string): Promise<KidsState> => {
+    const res = await fetch("/api/user-inventory/me/purchase-shop-item", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ slug }),
+    });
+    if (!res.ok) {
+      _cache = null;
+      const body = await res.json().catch(() => null);
+      const msg = body?.error?.message ?? `purchaseShopItem failed (${res.status})`;
+      throw new Error(msg);
+    }
+    const fresh = await fetchState();
+    _cache = fresh;
+    return fresh;
+  },
+
+  /**
+   * Toggle equip state for an owned shop item. Idempotent — server returns
+   * current state if already matching.
+   */
+  equipShopItem: async (slug: string, equip: boolean): Promise<KidsState> => {
+    const res = await fetch("/api/user-inventory/me/equip", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ slug, equip }),
+    });
+    if (!res.ok) {
+      _cache = null;
+      const body = await res.json().catch(() => null);
+      const msg = body?.error?.message ?? `equipShopItem failed (${res.status})`;
+      throw new Error(msg);
+    }
+    const fresh = await fetchState();
+    _cache = fresh;
+    return fresh;
+  },
+
   /** Unlock a room. Server debits coinsRequired and appends to unlockedRooms. */
   unlockRoom: async (slug: string): Promise<KidsState> => {
     const res = await fetch("/api/user-inventory/me/unlock-room", {
@@ -447,10 +575,31 @@ export const kidsStateStore = {
     return fresh;
   },
 
-  /** Clear in-memory cache (e.g. on logout). */
+  /**
+   * Apply a placedItems mutator to the in-memory cache and schedule a
+   * debounced PATCH to the server. Callers get instant UI updates (via the
+   * updated cache) while rapid successive edits coalesce into a single
+   * server round-trip.
+   */
+  updatePlacedItems: async (
+    updater: (prev: PlacedItem[]) => PlacedItem[],
+  ): Promise<PlacedItem[]> => {
+    const current = _cache ?? (await kidsStateStore.get());
+    const next = updater(current.placedItems);
+    _cache = { ...current, placedItems: next };
+    schedulePlacedItemsFlush();
+    return next;
+  },
+
+  /** Clear in-memory cache (e.g. on logout). Also cancels pending flushes. */
   reset: (): void => {
     _cache = null;
     _inflight = null;
+    if (_placedItemsTimer) {
+      clearTimeout(_placedItemsTimer);
+      _placedItemsTimer = null;
+    }
+    _placedItemsPending = false;
   },
 };
 

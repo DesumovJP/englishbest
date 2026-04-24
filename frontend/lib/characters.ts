@@ -28,6 +28,24 @@ export interface CharacterDef {
   emotions: Partial<Record<CharacterEmotion, string>>;
 }
 
+/**
+ * Runtime overrides for characters fetched from the server. When set,
+ * `getCharacterImage` consults these first. This lets admins add new
+ * characters in Strapi with emotion-map pointing at uploaded PNGs and
+ * have them render in the FE without a redeploy.
+ *
+ * Populated by `lib/character-catalog.ts::fetchCharacters()` on mount.
+ */
+const SERVER_OVERRIDES: Record<string, CharacterDef> = {};
+
+export function registerServerCharacter(def: CharacterDef): void {
+  SERVER_OVERRIDES[def.id] = def;
+}
+
+export function getRegisteredCharacter(id: string): CharacterDef | undefined {
+  return SERVER_OVERRIDES[id] ?? CHARACTERS[id];
+}
+
 export const CHARACTERS: Record<string, CharacterDef> = {
   fox: {
     id: 'fox',
@@ -70,19 +88,21 @@ export const CHARACTERS: Record<string, CharacterDef> = {
 /** Normalize legacy / unknown character ids → a known character. */
 export function resolveCharacterId(characterId?: string): string {
   if (!characterId) return 'fox';
-  if (CHARACTERS[characterId]) return characterId;
+  if (SERVER_OVERRIDES[characterId] || CHARACTERS[characterId]) return characterId;
   // legacy values like "fox_default" or custom ids without image sets
   if (characterId.startsWith('raccoon')) return 'raccoon';
   return 'fox';
 }
 
 /** Returns the image path for a given character + emotion.
+ *  Consults server-registered characters first, then static catalog.
  *  Falls back to the character's fallbackEmotion, then to fox/idle. */
 export function getCharacterImage(
   characterId: string,
   emotion: CharacterEmotion = 'idle',
 ): string {
-  const char = CHARACTERS[resolveCharacterId(characterId)];
+  const resolved = resolveCharacterId(characterId);
+  const char = SERVER_OVERRIDES[resolved] ?? CHARACTERS[resolved];
   return (
     char.emotions[emotion] ??
     char.emotions[char.fallbackEmotion] ??

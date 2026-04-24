@@ -1,0 +1,49 @@
+{
+  "kind": "collectionType",
+  "collectionName": "messages",
+  "info": {
+    "singularName": "message",
+    "pluralName": "messages",
+    "displayName": "Message",
+    "description": "Chat message inside a thread."
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "thread": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::thread.thread",
+      "inversedBy": "messages"
+    },
+    "author": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::user-profile.user-profile"
+    },
+    "body": {
+      "type": "text",
+      "required": true
+    },
+    "attachments": {
+      "type": "media",
+      "multiple": true,
+      "required": false
+    },
+    "pinned": {
+      "type": "boolean",
+      "default": false
+    },
+    "replyTo": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::message.message"
+    },
+    "readBy": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "api::user-profile.user-profile"
+    }
+  }
+}

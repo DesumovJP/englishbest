@@ -1,16 +1,27 @@
+/**
+ * LessonActionSheet — live-wired session actions (complete / cancel / reschedule /
+ * note / delete). Operates on a `Session` passed in by the calendar page; each
+ * action mutates via updateSession/deleteSession and returns the fresh row to
+ * the caller so the grid can re-render without a full refetch.
+ */
 'use client';
 import { useState } from 'react';
-import { Modal } from '@/components/atoms/Modal';
+import { Modal } from '@/components/ui/Modal';
+import { Button } from '@/components/ui/Button';
 import {
-  LESSON_STATUS_STYLES,
-  getGroup,
-  getStudent,
-  type ScheduledLesson,
-} from '@/lib/teacher-mocks';
+  combineStartAt,
+  deleteSession,
+  splitStartAt,
+  updateSession,
+  type Session,
+  type SessionStatus,
+} from '@/lib/sessions';
 
 interface LessonActionSheetProps {
-  lesson: ScheduledLesson | null;
+  session: Session | null;
   onClose: () => void;
+  onChanged?: (session: Session) => void;
+  onDeleted?: (documentId: string) => void;
 }
 
 type PendingAction =
@@ -19,24 +30,48 @@ type PendingAction =
   | { kind: 'note' }
   | null;
 
+const STATUS_STYLES: Record<SessionStatus, { label: string; cls: string }> = {
+  scheduled: { label: 'Заплановано',  cls: 'bg-surface-muted text-ink' },
+  live:      { label: 'У процесі',    cls: 'bg-success/15 text-success-dark' },
+  completed: { label: 'Проведено',    cls: 'bg-surface-muted text-ink-muted' },
+  cancelled: { label: 'Скасовано',    cls: 'bg-danger/10 text-danger-dark' },
+  'no-show': { label: 'Неявка',       cls: 'bg-warning/15 text-warning-dark' },
+};
+
+const TYPE_LABELS: Record<Session['type'], string> = {
+  group:          'Група',
+  'one-to-one':   '1-на-1',
+  trial:          'Пробне',
+  consultation:   'Консультація',
+};
+
 const fieldLabel = 'text-xs font-black text-ink-muted uppercase tracking-wide';
 const fieldInput =
   'w-full mt-1.5 h-10 px-3 rounded-xl border border-border bg-white text-sm text-ink focus:outline-none focus:border-primary';
 
-export function LessonActionSheet({ lesson, onClose }: LessonActionSheetProps) {
+export function LessonActionSheet({
+  session,
+  onClose,
+  onChanged,
+  onDeleted,
+}: LessonActionSheetProps) {
   const [pending, setPending] = useState<PendingAction>(null);
   const [reason, setReason] = useState('');
   const [newDate, setNewDate] = useState('');
   const [newTime, setNewTime] = useState('');
   const [note, setNote] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
-  if (!lesson) return null;
+  if (!session) return null;
 
-  const student = lesson.studentId ? getStudent(lesson.studentId) : undefined;
-  const group = lesson.groupId ? getGroup(lesson.groupId) : undefined;
-  const subjectName = student?.name ?? group?.name ?? '—';
-  const status = LESSON_STATUS_STYLES[lesson.status];
+  const status = STATUS_STYLES[session.status];
+  const split = splitStartAt(session.startAt);
+  const audience =
+    session.attendees.length === 1
+      ? session.attendees[0].displayName
+      : `${session.attendees.length} учнів`;
 
   function flash(msg: string) {
     setToast(msg);
@@ -44,24 +79,78 @@ export function LessonActionSheet({ lesson, onClose }: LessonActionSheetProps) {
       setToast(null);
       setPending(null);
       onClose();
-    }, 1200);
+    }, 1100);
   }
 
-  function commitCancel() {
+  async function runUpdate(
+    patch: Partial<Parameters<typeof updateSession>[1]>,
+    successMsg: string,
+  ) {
+    setError(null);
+    setBusy(true);
+    try {
+      const next = await updateSession(session!.documentId, patch);
+      onChanged?.(next);
+      flash(successMsg);
+    } catch (e: any) {
+      setError(e?.message ?? 'Не вдалось виконати дію');
+      setBusy(false);
+    }
+  }
+
+  async function markCompleted() {
+    await runUpdate({ status: 'completed' }, 'Позначено як проведено');
+  }
+
+  async function markLive() {
+    await runUpdate({ status: 'live' }, 'Урок запущено');
+  }
+
+  async function commitCancel() {
     if (!reason.trim()) return;
-    flash(`❌ Скасовано: ${reason}`);
+    const mergedNotes = [session!.notes, `Скасовано: ${reason.trim()}`]
+      .filter(Boolean)
+      .join('\n');
+    await runUpdate(
+      { status: 'cancelled', notes: mergedNotes },
+      'Урок скасовано',
+    );
   }
-  function commitReschedule() {
+
+  async function commitReschedule() {
     if (!newDate || !newTime) return;
-    flash(`📆 Перенесено на ${newDate} ${newTime}`);
+    const startAt = combineStartAt(newDate, newTime);
+    if (!startAt) {
+      setError('Невірна дата або час');
+      return;
+    }
+    await runUpdate({ startAt, status: 'scheduled' }, 'Перенесено');
   }
-  function commitNote() {
+
+  async function commitNote() {
     if (!note.trim()) return;
-    flash('📝 Нотатку збережено');
+    const mergedNotes = [session!.notes, note.trim()].filter(Boolean).join('\n');
+    await runUpdate({ notes: mergedNotes }, 'Нотатку збережено');
   }
+
+  async function handleDelete() {
+    if (!confirm('Видалити урок назавжди?')) return;
+    setError(null);
+    setBusy(true);
+    try {
+      await deleteSession(session!.documentId);
+      onDeleted?.(session!.documentId);
+      flash('Урок видалено');
+    } catch (e: any) {
+      setError(e?.message ?? 'Не вдалось видалити');
+      setBusy(false);
+    }
+  }
+
+  const title = `${split.time || '—'} · ${audience}`;
 
   return (
-    <Modal isOpen={true} onClose={onClose} title={`${lesson.time} · ${subjectName}`}>
+    <Modal isOpen={true} onClose={onClose} title={title}>
       {toast ? (
         <div className="py-6 text-center">
           <p className="text-3xl mb-2">✅</p>
@@ -77,17 +166,20 @@ export function LessonActionSheet({ lesson, onClose }: LessonActionSheetProps) {
             placeholder="Наприклад: учень захворів"
             className={`${fieldInput} h-auto min-h-24 py-2 resize-y`}
           />
+          {error && <p className="text-xs text-danger-dark">{error}</p>}
           <div className="flex justify-end gap-2">
-            <button onClick={() => setPending(null)} className="px-4 py-2 rounded-xl text-sm font-bold text-ink-muted hover:text-ink">
+            <Button variant="ghost" size="sm" onClick={() => setPending(null)} disabled={busy}>
               Назад
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="danger"
+              size="sm"
               onClick={commitCancel}
+              loading={busy}
               disabled={!reason.trim()}
-              className="px-4 py-2 rounded-xl bg-danger text-white text-sm font-black hover:opacity-90 disabled:opacity-40 transition-opacity"
             >
               Скасувати урок
-            </button>
+            </Button>
           </div>
         </div>
       ) : pending?.kind === 'reschedule' ? (
@@ -95,24 +187,36 @@ export function LessonActionSheet({ lesson, onClose }: LessonActionSheetProps) {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className={fieldLabel}>Нова дата</label>
-              <input type="date" value={newDate} onChange={e => setNewDate(e.target.value)} className={fieldInput} />
+              <input
+                type="date"
+                value={newDate}
+                onChange={e => setNewDate(e.target.value)}
+                className={fieldInput}
+              />
             </div>
             <div>
               <label className={fieldLabel}>Новий час</label>
-              <input type="time" value={newTime} onChange={e => setNewTime(e.target.value)} className={fieldInput} />
+              <input
+                type="time"
+                value={newTime}
+                onChange={e => setNewTime(e.target.value)}
+                className={fieldInput}
+              />
             </div>
           </div>
+          {error && <p className="text-xs text-danger-dark">{error}</p>}
           <div className="flex justify-end gap-2">
-            <button onClick={() => setPending(null)} className="px-4 py-2 rounded-xl text-sm font-bold text-ink-muted hover:text-ink">
+            <Button variant="ghost" size="sm" onClick={() => setPending(null)} disabled={busy}>
               Назад
-            </button>
-            <button
+            </Button>
+            <Button
+              size="sm"
               onClick={commitReschedule}
+              loading={busy}
               disabled={!newDate || !newTime}
-              className="px-4 py-2 rounded-xl bg-primary text-white text-sm font-black hover:opacity-90 disabled:opacity-40 transition-opacity"
             >
               Перенести
-            </button>
+            </Button>
           </div>
         </div>
       ) : pending?.kind === 'note' ? (
@@ -124,86 +228,100 @@ export function LessonActionSheet({ lesson, onClose }: LessonActionSheetProps) {
             placeholder="Що важливо пам'ятати про цей урок…"
             className={`${fieldInput} h-auto min-h-28 py-2 resize-y`}
           />
+          {error && <p className="text-xs text-danger-dark">{error}</p>}
           <div className="flex justify-end gap-2">
-            <button onClick={() => setPending(null)} className="px-4 py-2 rounded-xl text-sm font-bold text-ink-muted hover:text-ink">
+            <Button variant="ghost" size="sm" onClick={() => setPending(null)} disabled={busy}>
               Назад
-            </button>
-            <button
+            </Button>
+            <Button
+              size="sm"
               onClick={commitNote}
+              loading={busy}
               disabled={!note.trim()}
-              className="px-4 py-2 rounded-xl bg-primary text-white text-sm font-black hover:opacity-90 disabled:opacity-40 transition-opacity"
             >
               Зберегти
-            </button>
+            </Button>
           </div>
         </div>
       ) : (
         <div className="flex flex-col gap-4">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className={`text-xs font-bold px-2 py-0.5 rounded-md ${status.cls}`}>{status.label}</span>
+            <span className={`text-xs font-bold px-2 py-0.5 rounded-md ${status.cls}`}>
+              {status.label}
+            </span>
             <span className="text-xs text-ink-muted">
-              {lesson.date} · {lesson.duration} хв · {lesson.level} · {lesson.topic}
+              {split.date || '—'} · {session.durationMin} хв · {TYPE_LABELS[session.type]}
             </span>
           </div>
 
+          {session.title && (
+            <p className="text-sm font-semibold text-ink">{session.title}</p>
+          )}
+
           <div className="grid grid-cols-2 gap-2">
+            {session.joinUrl && (
+              <a
+                href={session.joinUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-left px-3 py-2.5 rounded-xl border border-border text-ink hover:border-primary/40 hover:bg-primary/5 transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-base">▶</span>
+                  <span className="text-sm font-black">Відкрити кімнату</span>
+                </div>
+                <p className="text-[11px] text-ink-muted mt-0.5">Перейти за посиланням</p>
+              </a>
+            )}
             <ActionBtn
-              icon="▶"
-              label="Почати"
-              hint="Відкрити кімнату"
-              disabled={lesson.status === 'done' || lesson.status === 'cancelled'}
-              onClick={() => flash('📹 Перехід у кімнату…')}
+              icon="▶️"
+              label="Запустити"
+              hint="Позначити як у процесі"
+              disabled={busy || session.status !== 'scheduled'}
+              onClick={markLive}
             />
             <ActionBtn
               icon="✓"
               label="Провести"
               hint="Позначити як проведений"
-              disabled={lesson.status === 'done'}
-              onClick={() => flash('✅ Позначено як проведено')}
-            />
-            {group && (
-              <ActionBtn
-                icon="📋"
-                label="Відвідуваність"
-                hint="Журнал групи"
-                onClick={() => flash('Відкриваю журнал…')}
-              />
-            )}
-            <ActionBtn
-              icon="✍️"
-              label="Призначити ДЗ"
-              onClick={() => flash('Створюю ДЗ…')}
+              disabled={busy || session.status === 'completed'}
+              onClick={markCompleted}
             />
             <ActionBtn
               icon="📝"
               label="Нотатка"
+              disabled={busy}
               onClick={() => setPending({ kind: 'note' })}
             />
             <ActionBtn
               icon="📆"
               label="Перенести"
-              disabled={lesson.status === 'done'}
+              disabled={busy || session.status === 'completed'}
               onClick={() => setPending({ kind: 'reschedule' })}
             />
             <ActionBtn
               icon="❌"
               label="Скасувати"
               tone="danger"
-              disabled={lesson.status === 'done' || lesson.status === 'cancelled'}
+              disabled={busy || session.status === 'completed' || session.status === 'cancelled'}
               onClick={() => setPending({ kind: 'cancel' })}
+            />
+            <ActionBtn
+              icon="🗑"
+              label="Видалити"
+              tone="danger"
+              disabled={busy}
+              onClick={handleDelete}
             />
           </div>
 
-          {lesson.cancelReason && (
-            <p className="text-xs text-danger-dark bg-danger/10 rounded-lg px-3 py-2">
-              Причина скасування: {lesson.cancelReason}
+          {session.notes && (
+            <p className="text-xs text-ink bg-surface-muted rounded-lg px-3 py-2 whitespace-pre-line">
+              <span className="font-bold">Нотатка:</span> {session.notes}
             </p>
           )}
-          {lesson.notes && (
-            <p className="text-xs text-ink bg-surface-muted rounded-lg px-3 py-2">
-              <span className="font-bold">Нотатка:</span> {lesson.notes}
-            </p>
-          )}
+
+          {error && <p className="text-xs text-danger-dark">{error}</p>}
         </div>
       )}
     </Modal>

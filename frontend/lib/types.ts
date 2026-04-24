@@ -198,6 +198,7 @@ export type Review = {
   title?: string;
   body?: string;
   verified?: boolean;
+  authorId?: string;
   authorName?: string;
   createdAt: string;
 };

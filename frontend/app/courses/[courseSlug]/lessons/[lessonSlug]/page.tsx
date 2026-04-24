@@ -4,13 +4,6 @@ import type { LessonData, LessonStep } from '@/mocks/lessons/types';
 import { fetchLesson, fetchLessonsByCourse } from '@/lib/api';
 import type { Lesson } from '@/lib/types';
 
-/* ─── Метадані вчителя (мок; реальні дані — Phase G) ──────── */
-const TEACHER = {
-  name: 'Maria S.',
-  photo: 'https://randomuser.me/api/portraits/women/65.jpg',
-  callUrl: process.env.NEXT_PUBLIC_CALENDLY_TRIAL_URL ?? '',
-};
-
 function toLessonData(lesson: Lesson): LessonData | null {
   const steps = lesson.steps as LessonStep[] | undefined;
   if (!steps || steps.length === 0) return null;
@@ -46,9 +39,6 @@ export default async function LessonPage({
       lesson={lessonData}
       nextLessonSlug={nextLessonSlug}
       backUrl="/kids/school"
-      teacherName={TEACHER.name}
-      teacherPhoto={TEACHER.photo}
-      callUrl={TEACHER.callUrl}
     />
   );
 }

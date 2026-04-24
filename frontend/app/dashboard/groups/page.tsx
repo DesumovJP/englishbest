@@ -1,93 +1,161 @@
 'use client';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
-  MOCK_GROUPS,
-  MOCK_SCHEDULE,
-  MOCK_STUDENTS,
-  MOCK_TODAY,
+  fetchGroups,
   type Group,
-} from '@/lib/teacher-mocks';
-import { LevelBadge, PageHeader, SearchInput } from '@/components/teacher/ui';
-import { Modal } from '@/components/atoms/Modal';
-import { AssignLessonModal } from '@/components/teacher/AssignLessonModal';
+  type GroupMember,
+} from '@/lib/groups';
+import { fetchSessions, type Session } from '@/lib/sessions';
+import { LevelBadge, SearchInput } from '@/components/teacher/ui';
+import { Modal } from '@/components/ui/Modal';
+import { CreateHomeworkModal } from '@/components/teacher/CreateHomeworkModal';
+import { CreateGroupModal } from '@/components/teacher/CreateGroupModal';
+import { DashboardPageShell } from '@/components/ui/shells';
+import { Button } from '@/components/ui/Button';
+import { Avatar } from '@/components/ui/Avatar';
 
 export default function GroupsPage() {
+  const router = useRouter();
   const [query, setQuery] = useState('');
+  const [groups, setGroups] = useState<Group[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<Group | null>(null);
   const [assignOpen, setAssignOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const rows = await fetchGroups();
+        if (!alive) return;
+        setGroups(rows);
+        setError(null);
+      } catch (e) {
+        if (!alive) return;
+        setError(e instanceof Error ? e.message : 'failed');
+      } finally {
+        if (alive) setLoading(false);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return MOCK_GROUPS.filter(g => q === '' || g.name.toLowerCase().includes(q));
-  }, [query]);
+    return groups.filter(g => q === '' || g.name.toLowerCase().includes(q));
+  }, [groups, query]);
 
   function flashToast(msg: string) {
     setToast(msg);
     window.setTimeout(() => setToast(null), 1500);
   }
 
+  const shellStatus: 'loading' | 'error' | 'empty' | 'ready' =
+    error ? 'error'
+    : loading ? 'loading'
+    : filtered.length === 0 ? 'empty'
+    : 'ready';
+
   return (
-    <div className="flex flex-col gap-5">
-      <PageHeader
-        title="Групи"
-        subtitle={`${MOCK_GROUPS.length} активних груп`}
-        action={
-          <button type="button" onClick={() => flashToast('Створення групи — незабаром')} className="ios-btn ios-btn-primary">
-            + Група
-          </button>
-        }
-      />
+    <>
+    <DashboardPageShell
+      title="Групи"
+      subtitle={loading ? 'Завантаження…' : `${groups.length} активних груп`}
+      actions={
+        <Button onClick={() => setCreateOpen(true)}>
+          + Група
+        </Button>
+      }
+      toolbar={
+        <SearchInput
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+          placeholder="Пошук за назвою…"
+          containerClassName="w-full sm:w-80"
+        />
+      }
+      status={shellStatus}
+      error={error ?? undefined}
+      onRetry={() => location.reload()}
+      loadingShape="card"
+      empty={{
+        title: groups.length === 0 ? 'Ще немає груп' : 'Нічого не знайдено',
+        description:
+          groups.length === 0
+            ? 'Створіть першу групу, щоб почати'
+            : 'Спробуй інший запит',
+      }}
+    >
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {filtered.map(g => (
+          <GroupCard key={g.documentId} group={g} onClick={() => setSelected(g)} />
+        ))}
+      </div>
+    </DashboardPageShell>
 
-      <SearchInput
-        value={query}
-        onChange={e => setQuery(e.target.value)}
-        placeholder="Пошук за назвою…"
-        containerClassName="w-full sm:w-80"
-      />
-
-      {filtered.length === 0 ? (
-        <div className="ios-card py-16 text-center">
-          <p className="text-[14px] font-semibold text-ink">Нічого не знайдено</p>
-          <p className="text-[13px] text-ink-muted mt-1">Спробуй інший запит</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map(g => (
-            <GroupCard key={g.id} group={g} onClick={() => setSelected(g)} />
-          ))}
-        </div>
+    <Modal
+      isOpen={selected !== null}
+      onClose={() => setSelected(null)}
+      title={selected?.name}
+      width="lg"
+      bodyClassName="p-0"
+    >
+      {selected && (
+        <GroupDetail
+          group={selected}
+          onAssignClick={() => setAssignOpen(true)}
+          onMessage={() => {
+            const qs = new URLSearchParams({ tab: 'group', q: selected.name });
+            router.push(`/dashboard/chat?${qs.toString()}`);
+          }}
+        />
       )}
+    </Modal>
 
-      <Modal
-        isOpen={selected !== null}
-        onClose={() => setSelected(null)}
-        title={selected?.name}
-        width="lg"
-        bodyClassName="p-0"
-      >
-        {selected && (
-          <GroupDetail
-            group={selected}
-            onAssignClick={() => setAssignOpen(true)}
-            onMessage={() => flashToast(`Відкриваю груповий чат: ${selected.name}`)}
-          />
-        )}
-      </Modal>
+    <CreateHomeworkModal
+      open={assignOpen}
+      onClose={() => setAssignOpen(false)}
+      defaultTarget={selected ? { type: 'group', id: selected.documentId } : undefined}
+      onCreated={hw => flashToast(`ДЗ опубліковано: ${hw.title}`)}
+    />
 
-      <AssignLessonModal open={assignOpen} onClose={() => setAssignOpen(false)} lesson={null} />
+    <CreateGroupModal
+      open={createOpen}
+      onClose={() => setCreateOpen(false)}
+      onCreated={(g) => {
+        setGroups((prev) => [g, ...prev]);
+        flashToast(`Групу «${g.name}» створено`);
+      }}
+    />
 
-      {toast && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-lg bg-primary text-white text-[13px] font-semibold shadow-card-md">
-          {toast}
-        </div>
-      )}
-    </div>
+    {toast && (
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-lg bg-primary text-white text-[13px] font-semibold shadow-card-md">
+        {toast}
+      </div>
+    )}
+    </>
+  );
+}
+
+function StackedAvatar({ member }: { member: GroupMember }) {
+  return (
+    <Avatar
+      name={member.displayName || '?'}
+      src={member.avatarUrl ?? null}
+      size="sm"
+      className="border-2 border-surface-raised bg-surface-muted text-ink-muted"
+    />
   );
 }
 
 function GroupCard({ group, onClick }: { group: Group; onClick: () => void }) {
-  const members = group.studentIds.map(id => MOCK_STUDENTS.find(s => s.id === id)).filter(Boolean);
+  const members = group.members;
   const attPct = Math.round(group.avgAttendance * 100);
   const hwPct = Math.round(group.avgHomework * 100);
 
@@ -107,18 +175,12 @@ function GroupCard({ group, onClick }: { group: Group; onClick: () => void }) {
         </div>
       </div>
 
-      <div className="flex -space-x-1.5">
+      <div className="flex -space-x-1.5 min-h-8">
         {members.slice(0, 5).map(m => (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            key={m!.id}
-            src={m!.photo}
-            alt={m!.name}
-            className="w-7 h-7 rounded-full object-cover border-2 border-white"
-          />
+          <StackedAvatar key={m.documentId} member={m} />
         ))}
         {members.length > 5 && (
-          <span className="w-7 h-7 rounded-full bg-surface-muted border-2 border-white text-[10px] font-semibold text-ink-muted flex items-center justify-center">
+          <span className="w-8 h-8 rounded-full bg-surface-muted border-2 border-surface-raised text-[10px] font-semibold text-ink-muted flex items-center justify-center">
             +{members.length - 5}
           </span>
         )}
@@ -150,15 +212,35 @@ function GroupDetail({
   onAssignClick: () => void;
   onMessage: () => void;
 }) {
-  const members = group.studentIds.map(id => MOCK_STUDENTS.find(s => s.id === id)!).filter(Boolean);
-  const upcoming = MOCK_SCHEDULE
-    .filter(l => l.groupId === group.id && l.date >= MOCK_TODAY)
-    .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time))
-    .slice(0, 3);
-  const recent = MOCK_SCHEDULE
-    .filter(l => l.groupId === group.id && l.date < MOCK_TODAY)
-    .sort((a, b) => (b.date + b.time).localeCompare(a.date + a.time))
-    .slice(0, 3);
+  const members = group.members;
+  const [upcoming, setUpcoming] = useState<Session[] | null>(null);
+  const [sessionsError, setSessionsError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    setUpcoming(null);
+    setSessionsError(null);
+    (async () => {
+      try {
+        const all = await fetchSessions({
+          fromISO: new Date().toISOString(),
+          status: ['scheduled', 'live'],
+        });
+        if (!alive) return;
+        const memberIds = new Set(members.map((m) => m.documentId));
+        const mine = all
+          .filter((s) => s.attendees.some((a) => memberIds.has(a.documentId)))
+          .sort((a, b) => a.startAt.localeCompare(b.startAt))
+          .slice(0, 5);
+        setUpcoming(mine);
+      } catch (e) {
+        if (!alive) return;
+        setSessionsError(e instanceof Error ? e.message : 'failed');
+        setUpcoming([]);
+      }
+    })();
+    return () => { alive = false; };
+  }, [group.documentId, members]);
 
   return (
     <div>
@@ -172,65 +254,53 @@ function GroupDetail({
           <StatCell label="Здача ДЗ" value={`${Math.round(group.avgHomework * 100)}%`} />
         </div>
         <div className="flex gap-2">
-          <button type="button" onClick={onAssignClick} className="ios-btn ios-btn-primary flex-1">
+          <Button onClick={onAssignClick} fullWidth>
             Призначити ДЗ
-          </button>
-          <button type="button" onClick={onMessage} className="ios-btn ios-btn-secondary flex-1">
+          </Button>
+          <Button variant="secondary" onClick={onMessage} fullWidth>
             Чат групи
-          </button>
+          </Button>
         </div>
       </div>
 
       <div>
         <Section title="Учасники">
-          <ul>
-            {members.map(m => (
-              <li key={m.id} className="flex items-center gap-3 px-6 py-2.5 border-t border-border first:border-t-0 hover:bg-surface-muted/50 transition-colors">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={m.photo} alt={m.name} className="w-8 h-8 rounded-full object-cover" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-[13px] font-semibold text-ink truncate">{m.name}</p>
-                  <p className="text-[11px] text-ink-muted tabular-nums">
-                    Баланс: {m.lessonsLeft} · ДЗ {Math.round(m.homeworkCompletionRate * 100)}%
-                  </p>
-                </div>
-                <LevelBadge level={m.level} />
-              </li>
-            ))}
-          </ul>
-        </Section>
-
-        <Section title="Наступні уроки">
-          {upcoming.length === 0 ? (
-            <p className="px-6 py-4 text-[13px] text-ink-muted">Немає запланованих уроків</p>
+          {members.length === 0 ? (
+            <p className="px-6 py-4 text-[13px] text-ink-muted">Ще немає учасників</p>
           ) : (
             <ul>
-              {upcoming.map(l => (
-                <li key={l.id} className="flex items-center justify-between gap-3 px-6 py-2.5 border-t border-border first:border-t-0">
-                  <div className="min-w-0">
-                    <p className="text-[13px] font-semibold text-ink truncate">{l.topic}</p>
-                    <p className="text-[11px] text-ink-muted tabular-nums">{l.date} · {l.time} · {l.duration} хв</p>
+              {members.map(m => (
+                <li
+                  key={m.documentId}
+                  className="flex items-center gap-3 px-6 py-2.5 border-t border-border first:border-t-0 hover:bg-surface-muted/50 transition-colors"
+                >
+                  <Avatar
+                    name={m.displayName || '?'}
+                    src={m.avatarUrl ?? null}
+                    size="sm"
+                    className="bg-surface-muted text-ink-muted"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[13px] font-semibold text-ink truncate">{m.displayName}</p>
                   </div>
-                  <LevelBadge level={l.level} />
+                  {m.level && <LevelBadge level={m.level} />}
                 </li>
               ))}
             </ul>
           )}
         </Section>
 
-        <Section title="Останні уроки">
-          {recent.length === 0 ? (
-            <p className="px-6 py-4 text-[13px] text-ink-muted">Ще не було уроків</p>
+        <Section title="Наступні уроки">
+          {upcoming === null ? (
+            <p className="px-6 py-4 text-[13px] text-ink-muted">Завантаження…</p>
+          ) : sessionsError ? (
+            <p className="px-6 py-4 text-[13px] text-danger-dark">Не вдалось завантажити розклад</p>
+          ) : upcoming.length === 0 ? (
+            <p className="px-6 py-4 text-[13px] text-ink-muted">Поки немає запланованих уроків</p>
           ) : (
             <ul>
-              {recent.map(l => (
-                <li key={l.id} className="flex items-center justify-between gap-3 px-6 py-2.5 border-t border-border first:border-t-0">
-                  <div className="min-w-0">
-                    <p className="text-[13px] text-ink truncate">{l.topic}</p>
-                    <p className="text-[11px] text-ink-faint tabular-nums">{l.date}</p>
-                  </div>
-                  <span className="text-[11px] font-semibold text-ink-muted">{l.status === 'done' ? 'Проведено' : l.status}</span>
-                </li>
+              {upcoming.map((s) => (
+                <SessionRow key={s.documentId} session={s} />
               ))}
             </ul>
           )}
@@ -238,6 +308,41 @@ function GroupDetail({
       </div>
     </div>
   );
+}
+
+function SessionRow({ session }: { session: Session }) {
+  const when = formatSessionWhen(session.startAt);
+  return (
+    <li className="flex items-center gap-3 px-6 py-2.5 border-t border-border first:border-t-0">
+      <div className="flex-1 min-w-0">
+        <p className="text-[13px] font-semibold text-ink truncate">{session.title || 'Урок'}</p>
+        <p className="text-[11px] text-ink-muted tabular-nums">
+          {when} · {session.durationMin} хв · {session.attendees.length} учасників
+        </p>
+      </div>
+      {session.joinUrl ? (
+        <a
+          href={session.joinUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="ios-btn ios-btn-sm ios-btn-secondary"
+        >
+          Join
+        </a>
+      ) : (
+        <span className="text-[11px] text-ink-faint">{session.status}</span>
+      )}
+    </li>
+  );
+}
+
+function formatSessionWhen(iso: string): string {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toLocaleString('uk-UA', {
+    day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
+  });
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {

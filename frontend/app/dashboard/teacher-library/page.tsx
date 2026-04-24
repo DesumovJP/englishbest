@@ -1,24 +1,32 @@
 'use client';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { LESSON_SOURCE_LABELS } from '@/lib/ui/teacher-labels';
+import type {
+  LibraryLesson,
+  LessonSource,
+  Level,
+} from '@/lib/types/teacher';
 import {
-  MOCK_LIBRARY,
-  LESSON_SOURCE_LABELS,
-  type LibraryLesson,
-  type LessonSource,
-  type Level,
-} from '@/lib/teacher-mocks';
+  cloneLesson,
+  deleteLesson,
+  fetchLesson,
+  fetchLessons,
+  publishLesson,
+  unpublishLesson,
+} from '@/lib/teacher-library';
 import {
-  EmptyState,
   FilterChips,
   LevelBadge,
-  PageHeader,
   SearchInput,
   SegmentedControl,
   type FilterChipOption,
   type SegmentedControlOption,
 } from '@/components/teacher/ui';
-import { AssignLessonModal } from '@/components/teacher/AssignLessonModal';
+import { CreateHomeworkModal } from '@/components/teacher/CreateHomeworkModal';
+import { DashboardPageShell } from '@/components/ui/shells';
+import { Card } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
 
 const SOURCE_OPTIONS: ReadonlyArray<FilterChipOption<LessonSource | 'all'>> = [
   { value: 'all',      label: 'Усе' },
@@ -36,6 +44,7 @@ const LEVEL_OPTIONS: ReadonlyArray<FilterChipOption<Level | 'all'>> = [
   { value: 'B1',  label: 'B1' },
   { value: 'B2',  label: 'B2' },
   { value: 'C1',  label: 'C1' },
+  { value: 'C2',  label: 'C2' },
 ];
 
 const VIEW_OPTIONS: ReadonlyArray<SegmentedControlOption<'grid' | 'list'>> = [
@@ -50,73 +59,177 @@ export default function TeacherLibraryPage() {
   const [query, setQuery] = useState('');
   const [assignFor, setAssignFor] = useState<LibraryLesson | null>(null);
 
+  const [lessons, setLessons] = useState<LibraryLesson[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const rows = await fetchLessons();
+        if (!alive) return;
+        setLessons(rows);
+        setError(null);
+      } catch (e) {
+        if (!alive) return;
+        setError(e instanceof Error ? e.message : 'failed');
+      } finally {
+        if (alive) setLoading(false);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, []);
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return MOCK_LIBRARY.filter(l => {
+    return lessons.filter(l => {
       if (source !== 'all' && l.source !== source) return false;
       if (level !== 'all' && l.level !== level) return false;
       if (q === '') return true;
       const haystack = [l.title, l.topic, ...(l.tags ?? [])].join(' ').toLowerCase();
       return haystack.includes(q);
     });
-  }, [source, level, query]);
+  }, [lessons, source, level, query]);
+
+  function flashToast(msg: string) {
+    setToast(msg);
+    window.setTimeout(() => setToast(null), 1800);
+  }
+
+  async function copyLesson(lesson: LibraryLesson) {
+    try {
+      const detail = await fetchLesson(lesson.id);
+      if (!detail) throw new Error('lesson not found');
+      const copy = await cloneLesson(detail);
+      setLessons(prev => [copy, ...prev]);
+      flashToast(`Копія: ${copy.title}`);
+    } catch (e) {
+      flashToast(e instanceof Error ? e.message : 'Не вдалося скопіювати');
+    }
+  }
+
+  async function removeLesson(lesson: LibraryLesson) {
+    if (!window.confirm(`Видалити урок «${lesson.title}»?`)) return;
+    try {
+      await deleteLesson(lesson.id);
+      setLessons(prev => prev.filter(l => l.id !== lesson.id));
+      flashToast(`Урок видалено: ${lesson.title}`);
+    } catch (e) {
+      flashToast(e instanceof Error ? e.message : 'Не вдалося видалити');
+    }
+  }
+
+  async function togglePublish(lesson: LibraryLesson) {
+    try {
+      const next = lesson.published
+        ? await unpublishLesson(lesson.id)
+        : await publishLesson(lesson.id);
+      setLessons(prev => prev.map(l => (l.id === lesson.id ? { ...l, ...next } : l)));
+      flashToast(next.published ? 'Опубліковано' : 'Знято з публікації');
+    } catch (e) {
+      flashToast(e instanceof Error ? e.message : 'Не вдалося змінити статус');
+    }
+  }
+
+  const shellStatus: 'loading' | 'error' | 'empty' | 'ready' =
+    error ? 'error'
+    : loading ? 'loading'
+    : filtered.length === 0 ? 'empty'
+    : 'ready';
 
   return (
-    <div className="flex flex-col gap-5">
-      <PageHeader
-        title="Бібліотека уроків"
-        subtitle={`${MOCK_LIBRARY.length} уроків · ${filtered.length} після фільтрів`}
-        action={
-          <Link href="/dashboard/teacher-library/new/edit" className="ios-btn ios-btn-primary">
-            + Урок
-          </Link>
-        }
-      />
-
-      <div className="flex flex-col gap-3">
-        <div className="flex items-center gap-3 flex-wrap">
-          <SearchInput
-            value={query}
-            onChange={e => setQuery(e.target.value)}
-            placeholder="Пошук за назвою, темою, тегом…"
-            containerClassName="w-full sm:w-80"
-          />
-          <SegmentedControl value={view} onChange={setView} options={VIEW_OPTIONS} label="Режим перегляду" />
+    <>
+    <DashboardPageShell
+      title="Бібліотека уроків"
+      subtitle={
+        loading
+          ? 'Завантаження…'
+          : `${lessons.length} уроків · ${filtered.length} після фільтрів`
+      }
+      actions={
+        <Link
+          href="/dashboard/teacher-library/new/edit"
+          className="ios-btn ios-btn-primary"
+        >
+          + Урок
+        </Link>
+      }
+      toolbar={
+        <div className="flex flex-col gap-3 w-full">
+          <div className="flex items-center gap-3 flex-wrap">
+            <SearchInput
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              placeholder="Пошук за назвою, темою, тегом…"
+              containerClassName="w-full sm:w-80"
+            />
+            <SegmentedControl value={view} onChange={setView} options={VIEW_OPTIONS} label="Режим перегляду" />
+          </div>
+          <FilterChips value={source} onChange={setSource} options={SOURCE_OPTIONS} />
+          <FilterChips value={level} onChange={setLevel} options={LEVEL_OPTIONS} />
         </div>
-        <FilterChips value={source} onChange={setSource} options={SOURCE_OPTIONS} />
-        <FilterChips value={level} onChange={setLevel} options={LEVEL_OPTIONS} />
-      </div>
-
-      {filtered.length === 0 ? (
-        <EmptyState title="Нічого не знайдено" subtitle="Спробуй інший фільтр або запит" />
-      ) : view === 'grid' ? (
-        <GridView lessons={filtered} onAssign={setAssignFor} />
+      }
+      status={shellStatus}
+      error={error ?? undefined}
+      onRetry={() => location.reload()}
+      loadingShape={view === 'list' ? 'table' : 'card'}
+      empty={{
+        title: lessons.length === 0 ? 'Бібліотека порожня' : 'Нічого не знайдено',
+        description:
+          lessons.length === 0
+            ? 'Створіть перший урок'
+            : 'Спробуй інший фільтр або запит',
+      }}
+    >
+      {view === 'grid' ? (
+        <GridView lessons={filtered} onAssign={setAssignFor} onCopy={copyLesson} onDelete={removeLesson} onTogglePublish={togglePublish} />
       ) : (
-        <ListView lessons={filtered} onAssign={setAssignFor} />
+        <ListView lessons={filtered} onAssign={setAssignFor} onCopy={copyLesson} onDelete={removeLesson} onTogglePublish={togglePublish} />
       )}
+    </DashboardPageShell>
 
-      <AssignLessonModal
-        open={assignFor !== null}
-        onClose={() => setAssignFor(null)}
-        lesson={assignFor}
-      />
-    </div>
+    <CreateHomeworkModal
+      open={assignFor !== null}
+      onClose={() => setAssignFor(null)}
+      defaultLessonId={assignFor?.id}
+      defaultTitle={assignFor ? `${assignFor.title} — ДЗ` : undefined}
+      onCreated={hw => flashToast(`ДЗ опубліковано: ${hw.title}`)}
+    />
+
+    {toast && (
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-lg bg-primary text-white text-[13px] font-semibold shadow-card-md">
+        {toast}
+      </div>
+    )}
+    </>
   );
 }
 
-function GridView({ lessons, onAssign }: { lessons: LibraryLesson[]; onAssign: (l: LibraryLesson) => void }) {
+interface RowProps {
+  lessons: LibraryLesson[];
+  onAssign: (l: LibraryLesson) => void;
+  onCopy: (l: LibraryLesson) => void;
+  onDelete: (l: LibraryLesson) => void;
+  onTogglePublish: (l: LibraryLesson) => void;
+}
+
+function GridView({ lessons, onAssign, onCopy, onDelete, onTogglePublish }: RowProps) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
       {lessons.map(lesson => (
-        <LessonCard key={lesson.id} lesson={lesson} onAssign={onAssign} />
+        <LessonCard key={lesson.id} lesson={lesson} onAssign={onAssign} onCopy={onCopy} onDelete={onDelete} onTogglePublish={onTogglePublish} />
       ))}
     </div>
   );
 }
 
-function ListView({ lessons, onAssign }: { lessons: LibraryLesson[]; onAssign: (l: LibraryLesson) => void }) {
+function ListView({ lessons, onAssign, onCopy, onDelete, onTogglePublish }: RowProps) {
   return (
-    <div className="ios-card overflow-hidden">
+    <Card variant="surface" padding="none" className="overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full min-w-[640px]">
           <thead>
@@ -146,27 +259,35 @@ function ListView({ lessons, onAssign }: { lessons: LibraryLesson[]; onAssign: (
                   <LevelBadge level={lesson.level} />
                 </td>
                 <td className="px-4 py-3">
-                  <span className="ios-chip">{LESSON_SOURCE_LABELS[lesson.source]}</span>
+                  <div className="inline-flex items-center gap-1.5">
+                    <span className="ios-chip">{LESSON_SOURCE_LABELS[lesson.source]}</span>
+                    {isOwnedLesson(lesson) && !lesson.published && (
+                      <span className="ios-chip bg-surface-muted text-ink-muted">Чернетка</span>
+                    )}
+                  </div>
                 </td>
                 <td className="px-4 py-3 text-[12px] text-ink-muted whitespace-nowrap tabular-nums">{lesson.updatedAt}</td>
                 <td className="px-4 py-3 text-right whitespace-nowrap">
-                  <LessonRowActions lesson={lesson} onAssign={onAssign} />
+                  <LessonRowActions lesson={lesson} onAssign={onAssign} onCopy={onCopy} onDelete={onDelete} onTogglePublish={onTogglePublish} />
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-    </div>
+    </Card>
   );
 }
 
-function LessonCard({ lesson, onAssign }: { lesson: LibraryLesson; onAssign: (l: LibraryLesson) => void }) {
+function LessonCard({ lesson, onAssign, onCopy, onDelete, onTogglePublish }: { lesson: LibraryLesson; onAssign: (l: LibraryLesson) => void; onCopy: (l: LibraryLesson) => void; onDelete: (l: LibraryLesson) => void; onTogglePublish: (l: LibraryLesson) => void }) {
   return (
-    <article className="ios-card p-4 flex flex-col gap-3">
-      <div className="flex items-center gap-1.5">
+    <Card variant="surface" padding="sm" className="flex flex-col gap-3">
+      <div className="flex items-center gap-1.5 flex-wrap">
         <LevelBadge level={lesson.level} />
         <span className="ios-chip">{LESSON_SOURCE_LABELS[lesson.source]}</span>
+        {isOwnedLesson(lesson) && !lesson.published && (
+          <span className="ios-chip bg-surface-muted text-ink-muted">Чернетка</span>
+        )}
       </div>
 
       <div className="min-w-0">
@@ -193,24 +314,65 @@ function LessonCard({ lesson, onAssign }: { lesson: LibraryLesson; onAssign: (l:
 
       <div className="flex items-center justify-between mt-auto pt-3 border-t border-border">
         <span className="text-[11px] text-ink-faint tabular-nums">{lesson.updatedAt}</span>
-        <LessonRowActions lesson={lesson} onAssign={onAssign} />
+        <LessonRowActions lesson={lesson} onAssign={onAssign} onCopy={onCopy} onDelete={onDelete} onTogglePublish={onTogglePublish} />
       </div>
-    </article>
+    </Card>
   );
 }
 
-function LessonRowActions({ lesson, onAssign }: { lesson: LibraryLesson; onAssign: (l: LibraryLesson) => void }) {
-  const isPlatform = lesson.source === 'platform';
+function isOwnedLesson(lesson: LibraryLesson): boolean {
+  return lesson.source === 'own' || lesson.source === 'copy';
+}
+
+function LessonRowActions({
+  lesson,
+  onAssign,
+  onCopy,
+  onDelete,
+  onTogglePublish,
+}: {
+  lesson: LibraryLesson;
+  onAssign: (l: LibraryLesson) => void;
+  onCopy: (l: LibraryLesson) => void;
+  onDelete: (l: LibraryLesson) => void;
+  onTogglePublish: (l: LibraryLesson) => void;
+}) {
+  const isReadOnly = lesson.source === 'platform' || lesson.source === 'template';
   return (
     <div className="inline-flex items-center gap-1.5">
-      {isPlatform && (
-        <button type="button" className="ios-btn ios-btn-sm ios-btn-secondary" title="Копіювати в мою бібліотеку">
+      {isReadOnly && (
+        <Button
+          size="sm"
+          variant="secondary"
+          onClick={() => onCopy(lesson)}
+          title="Копіювати в мою бібліотеку"
+        >
           Копія
-        </button>
+        </Button>
       )}
-      <button type="button" onClick={() => onAssign(lesson)} className="ios-btn ios-btn-sm ios-btn-primary">
+      {!isReadOnly && (
+        <Button
+          size="sm"
+          variant="secondary"
+          onClick={() => onTogglePublish(lesson)}
+          title={lesson.published ? 'Зняти з публікації' : 'Опублікувати'}
+        >
+          {lesson.published ? 'Unpublish' : 'Publish'}
+        </Button>
+      )}
+      <Button size="sm" onClick={() => onAssign(lesson)}>
         Призначити
-      </button>
+      </Button>
+      {!isReadOnly && (
+        <Button
+          size="sm"
+          variant="danger"
+          onClick={() => onDelete(lesson)}
+          title="Видалити урок"
+        >
+          ×
+        </Button>
+      )}
     </div>
   );
 }

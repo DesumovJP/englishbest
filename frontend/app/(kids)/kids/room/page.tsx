@@ -4,7 +4,9 @@ import { useState, useCallback } from "react";
 import Link from "next/link";
 import CharacterAvatar from "@/components/kids/CharacterAvatar";
 import type { CharacterEmotion } from "@/lib/characters";
-import { useKidsState, useCustomRooms } from "@/lib/use-kids-store";
+import { kidsStateStore } from "@/lib/kids-store";
+import { useKidsState, useCustomRooms, useRoomCatalog } from "@/lib/use-kids-store";
+import { LoadingState } from "@/components/ui/LoadingState";
 
 const VOCAB: { en: string; ua: string }[] = [
   { en: "Bed",       ua: "Ліжко"   },
@@ -21,40 +23,55 @@ const VOCAB: { en: string; ua: string }[] = [
   { en: "Pillow",    ua: "Подушка" },
 ];
 
-const BUILTIN_ROOMS = [
-  { id: "bedroom",    nameEn: "Bedroom",    nameUa: "Спальня",        coins: 0,    bg: "url('/kids-room-bg.webp') center center / cover",                                  emoji: "🛏️" },
-  { id: "garden",     nameEn: "Garden",     nameUa: "Садок",          coins: 300,  bg: "linear-gradient(160deg, #a8e063 0%, #56ab2f 100%)",                                emoji: "🌿" },
-  { id: "castle",     nameEn: "Castle",     nameUa: "Замок",          coins: 800,  bg: "linear-gradient(160deg, #8e9eab 0%, #536976 100%)",                                emoji: "🏰" },
-  { id: "space",      nameEn: "Space",      nameUa: "Космос",         coins: 1500, bg: "linear-gradient(160deg, #0f0c29 0%, #302b63 50%, #24243e 100%)",                   emoji: "🚀" },
-  { id: "underwater", nameEn: "Underwater", nameUa: "Підводний світ", coins: 3000, bg: "linear-gradient(160deg, #005c97 0%, #363795 100%)",                                emoji: "🐠" },
-];
-
 const EMOTIONS: CharacterEmotion[] = ["idle", "happy", "celebrate", "thinking", "surprised"];
+
+type RoomRow = {
+  id: string;
+  nameEn: string;
+  nameUa: string;
+  coins: number;
+  bg: string;
+  emoji: string;
+  source: "server" | "custom";
+};
 
 export default function KidsRoomPage() {
   const { state, patch } = useKidsState();
+  const { rooms: serverRooms } = useRoomCatalog();
   const { rooms: customRooms } = useCustomRooms();
 
   const coins        = state.coins ?? 0;
   const activeRoomId = state.activeRoomId ?? "bedroom";
+  const unlockedIds  = state.unlockedRoomIds ?? [];
 
-  const customMapped = customRooms.map(r => ({
+  const serverMapped: RoomRow[] = serverRooms.map(r => ({
+    id: r.slug,
+    nameEn: r.nameEn,
+    nameUa: r.nameUa,
+    coins: r.coinsRequired,
+    bg: r.background,
+    emoji: r.iconEmoji,
+    source: "server",
+  }));
+  const customMapped: RoomRow[] = customRooms.map(r => ({
     id: r.id,
     nameEn: r.nameEn,
     nameUa: r.nameUa,
     coins: r.coinsRequired,
     bg: r.backgroundImage
       ? `url('${r.backgroundImage}') center center / cover`
-      : "linear-gradient(160deg, #f7971e 0%, #ffd200 100%)",
+      : "linear-gradient(160deg, var(--color-accent) 0%, var(--color-yellow) 100%)",
     emoji: "🏠",
+    source: "custom",
   }));
-  const allRooms   = [...BUILTIN_ROOMS, ...customMapped];
+  const allRooms   = [...serverMapped, ...customMapped];
   const activeRoom = allRooms.find(r => r.id === activeRoomId) ?? allRooms[0];
 
   const [vocabIdx,   setVocabIdx]   = useState(0);
   const [showBubble, setShowBubble] = useState(false);
   const [emotion,    setEmotion]    = useState<CharacterEmotion>("idle");
   const [bounceKey,  setBounceKey]  = useState(0);
+  const [unlocking,  setUnlocking]  = useState<string | null>(null);
 
   const handleCharTap = useCallback(() => {
     const next = (vocabIdx + 1) % VOCAB.length;
@@ -65,39 +82,78 @@ export default function KidsRoomPage() {
     setTimeout(() => setShowBubble(false), 2800);
   }, [vocabIdx]);
 
-  const canUnlock  = (roomCoins: number) => coins >= roomCoins;
-  const selectRoom = (roomId: string, roomCoins: number) => {
-    if (!canUnlock(roomCoins)) return;
-    patch({ activeRoomId: roomId });
-  };
+  const selectRoom = useCallback(
+    async (room: RoomRow) => {
+      if (room.id === activeRoomId) return;
+
+      if (room.source === "custom") {
+        if (coins < room.coins) return;
+        await patch({ activeRoomId: room.id });
+        return;
+      }
+
+      if (unlockedIds.includes(room.id)) {
+        await patch({ activeRoomId: room.id });
+        return;
+      }
+      if (coins < room.coins) return;
+      if (unlocking) return;
+
+      setUnlocking(room.id);
+      try {
+        await kidsStateStore.unlockRoom(room.id);
+        await patch({ activeRoomId: room.id });
+      } catch (err) {
+        console.error("[kids/room] unlock failed", err);
+      } finally {
+        setUnlocking(null);
+      }
+    },
+    [activeRoomId, coins, patch, unlockedIds, unlocking],
+  );
+
+  if (!activeRoom) {
+    return (
+      <div className="w-full h-[100dvh] flex items-center justify-center bg-surface-muted">
+        <LoadingState shape="kids" />
+      </div>
+    );
+  }
 
   return (
     <div className="relative w-full h-[100dvh] overflow-hidden select-none" style={{ background: activeRoom.bg }}>
-      {activeRoom.id !== "bedroom" && <div className="absolute inset-0 bg-black/20" />}
+      {activeRoom.id !== "bedroom" && <div className="absolute inset-0 bg-black/20" aria-hidden />}
 
       {/* Top bar */}
-      <div className="absolute z-30 left-0 right-0 flex items-center gap-2 px-4 pt-1 top-[env(safe-area-inset-top,14px)]">
-        <Link href="/kids/dashboard"
-          className="w-11 h-11 rounded-2xl flex items-center justify-center font-black text-xl flex-shrink-0 text-gray-700 bg-white/90 backdrop-blur-md shadow-[0_2px_12px_rgba(0,0,0,0.15)] active:scale-90 transition-transform">
+      <div className="absolute z-sticky left-0 right-0 flex items-center gap-2 px-4 pt-1 top-[env(safe-area-inset-top,14px)]">
+        <Link
+          href="/kids/dashboard"
+          aria-label="Назад"
+          className="w-11 h-11 rounded-2xl flex items-center justify-center font-black text-xl flex-shrink-0 text-ink bg-surface-raised/90 backdrop-blur-md shadow-card active:scale-90 transition-transform"
+        >
           ←
         </Link>
 
-        <div className="flex-1 h-11 rounded-2xl flex items-center px-3 gap-2 bg-white/90 backdrop-blur-md shadow-[0_2px_12px_rgba(0,0,0,0.12)]">
-          <span className="text-lg">{activeRoom.emoji}</span>
+        <div className="flex-1 h-11 rounded-2xl flex items-center px-3 gap-2 bg-surface-raised/90 backdrop-blur-md shadow-card">
+          <span className="text-lg" aria-hidden>{activeRoom.emoji}</span>
           <div className="flex-1 min-w-0">
-            <p className="font-black leading-none truncate text-[13px] text-gray-900">{activeRoom.nameEn}</p>
-            <p className="font-medium leading-none text-[9.5px] text-gray-400">{activeRoom.nameUa}</p>
+            <p className="font-black leading-none truncate text-[13px] text-ink">{activeRoom.nameEn}</p>
+            <p className="font-medium leading-none text-[9.5px] text-ink-faint">{activeRoom.nameUa}</p>
           </div>
           <div className="flex items-center gap-1 flex-shrink-0">
-            <img src="/coin.png" alt="coin" width={14} height={14} className="object-contain" />
-            <span className="font-black text-[13px] text-amber-500">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/coin.png" alt="" aria-hidden width={14} height={14} className="object-contain" />
+            <span className="font-black text-[13px] text-coin tabular-nums">
               {coins > 9999 ? "9999+" : coins}
             </span>
           </div>
         </div>
 
-        <Link href="/kids/shop"
-          className="w-11 h-11 rounded-2xl flex items-center justify-center text-xl flex-shrink-0 bg-white/90 backdrop-blur-md shadow-[0_2px_12px_rgba(0,0,0,0.15)] active:scale-90 transition-transform">
+        <Link
+          href="/kids/shop"
+          aria-label="Магазин"
+          className="w-11 h-11 rounded-2xl flex items-center justify-center text-xl flex-shrink-0 bg-surface-raised/90 backdrop-blur-md shadow-card active:scale-90 transition-transform"
+        >
           🛍️
         </Link>
       </div>
@@ -107,11 +163,11 @@ export default function KidsRoomPage() {
         <button onClick={handleCharTap} className="focus:outline-none flex flex-col items-center">
           <div key={bounceKey} className="animate-bounce-in flex flex-col items-center origin-bottom">
             {showBubble && (
-              <div className="mb-3 px-4 py-2.5 rounded-2xl relative bg-white min-w-[130px] text-center shadow-[0_4px_24px_rgba(0,0,0,0.22)]">
-                <p className="font-black leading-tight text-base text-gray-900">{VOCAB[vocabIdx].en}</p>
-                <p className="font-bold leading-none mt-0.5 text-[11px] text-gray-400">{VOCAB[vocabIdx].ua}</p>
+              <div className="mb-3 px-4 py-2.5 rounded-2xl relative bg-surface-raised min-w-[130px] text-center shadow-card-md">
+                <p className="font-black leading-tight text-base text-ink">{VOCAB[vocabIdx].en}</p>
+                <p className="font-bold leading-none mt-0.5 text-[11px] text-ink-faint">{VOCAB[vocabIdx].ua}</p>
                 <p className="font-black mt-1 text-[10px] text-primary">+1 слово! ✓</p>
-                <div className="absolute left-1/2 -bottom-[7px] -ml-[6px] w-0 h-0 border-x-[6px] border-x-transparent border-t-[7px] border-t-white" />
+                <div className="absolute left-1/2 -bottom-[7px] -ml-[6px] w-0 h-0 border-x-[6px] border-x-transparent border-t-[7px] border-t-[color:var(--color-surface-raised)]" aria-hidden />
               </div>
             )}
 
@@ -126,8 +182,8 @@ export default function KidsRoomPage() {
           </div>
 
           {!showBubble && (
-            <div className="mt-2 px-3 py-1 rounded-full bg-white/75 backdrop-blur-sm">
-              <p className="font-bold text-[10px] text-gray-500">Tap to learn a word</p>
+            <div className="mt-2 px-3 py-1 rounded-full bg-surface-raised/75 backdrop-blur-sm">
+              <p className="font-bold text-[10px] text-ink-muted">Tap to learn a word</p>
             </div>
           )}
         </button>
@@ -139,40 +195,52 @@ export default function KidsRoomPage() {
           Кімнати
         </p>
 
-        <div className="flex gap-3 overflow-x-auto px-5 [scrollbar-width:none] [-ms-overflow-style:none] [&amp;::-webkit-scrollbar]:hidden">
+        <div className="flex gap-3 overflow-x-auto px-5 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
           {allRooms.map(room => {
-            const unlocked = canUnlock(room.coins);
-            const isActive = room.id === activeRoomId;
+            const isUnlocked = room.source === "custom"
+              ? coins >= room.coins
+              : unlockedIds.includes(room.id);
+            const canAfford   = coins >= room.coins;
+            const isActive    = room.id === activeRoomId;
+            const isUnlocking = unlocking === room.id;
+            const isDisabled  = !isUnlocked && !canAfford;
 
             return (
-              <button key={room.id} onClick={() => selectRoom(room.id, room.coins)}
+              <button
+                key={room.id}
+                onClick={() => selectRoom(room)}
+                disabled={isDisabled || isUnlocking}
                 className={[
                   "flex-shrink-0 active:scale-95 transition-transform",
-                  unlocked ? "opacity-100" : "opacity-55",
-                ].join(" ")}>
+                  isUnlocked || canAfford ? "opacity-100" : "opacity-55",
+                ].join(" ")}
+              >
                 <div className={[
-                  "flex flex-col items-center gap-1.5 rounded-2xl px-3 py-2.5 backdrop-blur-lg min-w-[80px]",
+                  "flex flex-col items-center gap-1.5 rounded-2xl px-3 py-2.5 backdrop-blur-lg min-w-[80px] shadow-card",
                   isActive
-                    ? "bg-white/95 border-[2.5px] border-primary shadow-[0_4px_0_rgba(88,204,2,0.4),0_6px_20px_rgba(0,0,0,0.18)]"
-                    : "bg-white/75 border-2 border-white/30 shadow-[0_2px_12px_rgba(0,0,0,0.12)]",
+                    ? "bg-surface-raised/95 border-[2.5px] border-primary"
+                    : "bg-surface-raised/75 border-2 border-white/30",
                 ].join(" ")}>
-                  <span className="text-[26px]">{unlocked ? room.emoji : "🔒"}</span>
+                  <span className="text-[26px]" aria-hidden>
+                    {isUnlocking ? "⏳" : isUnlocked ? room.emoji : "🔒"}
+                  </span>
 
                   <p className={[
                     "font-black leading-none text-center text-[10px] max-w-[72px] whitespace-nowrap overflow-hidden text-ellipsis",
-                    isActive ? "text-gray-900" : "text-gray-700",
+                    isActive ? "text-ink" : "text-ink-muted",
                   ].join(" ")}>
                     {room.nameEn}
                   </p>
 
-                  {!unlocked && (
+                  {!isUnlocked && (
                     <div className="flex items-center gap-0.5">
-                      <img src="/coin.png" alt="coin" width={10} height={10} className="object-contain" />
-                      <span className="font-black text-[9px] text-amber-500">{room.coins}</span>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src="/coin.png" alt="" aria-hidden width={10} height={10} className="object-contain" />
+                      <span className="font-black text-[9px] text-coin tabular-nums">{room.coins}</span>
                     </div>
                   )}
 
-                  {isActive && unlocked && <div className="rounded-full w-1.5 h-1.5 bg-primary" />}
+                  {isActive && isUnlocked && <div className="rounded-full w-1.5 h-1.5 bg-primary" aria-hidden />}
                 </div>
               </button>
             );

@@ -1,10 +1,7 @@
 'use client';
-import { Modal } from '@/components/atoms/Modal';
-import {
-  BLOCK_KIND_LABELS,
-  BLOCK_KIND_ICONS,
-  type BlockKind,
-} from '@/lib/teacher-mocks';
+import { Modal } from '@/components/ui/Modal';
+import { BLOCK_KIND_LABELS, BLOCK_KIND_ICONS } from '@/lib/ui/teacher-labels';
+import type { BlockKind } from '@/lib/types/teacher';
 
 interface BlockPickerProps {
   open: boolean;

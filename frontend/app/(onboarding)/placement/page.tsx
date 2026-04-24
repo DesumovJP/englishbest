@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "@/lib/session-context";
 
 const QUESTIONS = [
   {
@@ -92,14 +93,41 @@ function Header({ progressPct, label }: { progressPct: number; label: string }) 
 
 export default function PlacementPage() {
   const router = useRouter();
+  const { refresh } = useSession();
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<number[]>([]);
   const [selected, setSelected] = useState<number | null>(null);
   const [animating, setAnimating] = useState(false);
   const [skippedEarly, setSkippedEarly] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const savedRef = useRef(false);
 
   const isResult = step >= QUESTIONS.length || skippedEarly;
   const level = isResult ? calcLevel(answers, skippedEarly) : null;
+
+  // Persist the placement result to user-profile.level the first time we
+  // reach the result screen. Failure is surfaced inline but does not block
+  // the learner from entering /kids/dashboard at the default level.
+  useEffect(() => {
+    if (!isResult || !level || savedRef.current) return;
+    savedRef.current = true;
+    setSaveStatus('saving');
+    (async () => {
+      try {
+        const res = await fetch('/api/user-profile/me', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ level }),
+        });
+        if (!res.ok) throw new Error(`save ${res.status}`);
+        await refresh();
+        setSaveStatus('saved');
+      } catch {
+        setSaveStatus('error');
+      }
+    })();
+  }, [isResult, level, refresh]);
 
   function advance(answer: number) {
     const next = [...answers, answer];
@@ -144,13 +172,19 @@ export default function PlacementPage() {
               <p className="text-ink-muted text-sm max-w-xs mx-auto leading-relaxed mt-4">
                 {info.description}
               </p>
+              {saveStatus === 'error' && (
+                <p className="text-xs text-danger-dark mt-3">
+                  Не вдалось зберегти рівень — спробуй ще раз із «Почати».
+                </p>
+              )}
             </div>
 
             <button
               onClick={() => router.push("/kids/dashboard")}
-              className="w-full h-14 rounded-2xl bg-primary shadow-press-primary text-white font-black text-base flex items-center justify-center active:translate-y-1 active:shadow-none transition-transform animate-fade-in-up anim-delay-300"
+              disabled={saveStatus === 'saving'}
+              className="w-full h-14 rounded-2xl bg-primary shadow-press-primary text-white font-black text-base flex items-center justify-center active:translate-y-1 active:shadow-none transition-transform disabled:opacity-60 animate-fade-in-up anim-delay-300"
             >
-              Почати навчання →
+              {saveStatus === 'saving' ? 'Зберігаємо…' : 'Почати навчання →'}
             </button>
           </div>
         </main>

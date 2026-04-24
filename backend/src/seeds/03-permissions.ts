@@ -89,6 +89,13 @@ const GRANTS: Grant[] = [
   { action: 'api::homework.homework.update', roles: STAFF },
   { action: 'api::homework.homework.delete', roles: STAFF },
 
+  // Homework-submission (scoped controller: student own, teacher assignees, parent kids, admin all)
+  { action: 'api::homework-submission.homework-submission.find', roles: AUTH_ALL },
+  { action: 'api::homework-submission.homework-submission.findOne', roles: AUTH_ALL },
+  { action: 'api::homework-submission.homework-submission.update', roles: AUTH_ALL },
+  { action: 'api::homework-submission.homework-submission.create', roles: ADMIN },
+  { action: 'api::homework-submission.homework-submission.delete', roles: ADMIN },
+
   // Mini-task (auth read, teacher write)
   { action: 'api::mini-task.mini-task.find', roles: AUTH_ALL },
   { action: 'api::mini-task.mini-task.findOne', roles: AUTH_ALL },
@@ -96,14 +103,78 @@ const GRANTS: Grant[] = [
   { action: 'api::mini-task.mini-task.update', roles: STAFF },
   { action: 'api::mini-task.mini-task.delete', roles: STAFF },
 
-  // Teacher-profile (public read, self-update via Phase 4 auth flow)
+  // Thread + Message (scoped controllers: participants only)
+  { action: 'api::thread.thread.find', roles: AUTH_ALL },
+  { action: 'api::thread.thread.findOne', roles: AUTH_ALL },
+  { action: 'api::thread.thread.create', roles: STAFF },
+  { action: 'api::thread.thread.update', roles: AUTH_ALL },
+  { action: 'api::thread.thread.delete', roles: ADMIN },
+
+  { action: 'api::message.message.find', roles: AUTH_ALL },
+  { action: 'api::message.message.findOne', roles: AUTH_ALL },
+  { action: 'api::message.message.create', roles: AUTH_ALL },
+  { action: 'api::message.message.update', roles: AUTH_ALL },
+  { action: 'api::message.message.delete', roles: AUTH_ALL },
+  { action: 'api::message.message.broadcast', roles: STAFF },
+
+  // Lesson-payment (scoped controller: teacher reads own; admin writes)
+  { action: 'api::lesson-payment.lesson-payment.find', roles: AUTH_ALL },
+  { action: 'api::lesson-payment.lesson-payment.findOne', roles: AUTH_ALL },
+  { action: 'api::lesson-payment.lesson-payment.create', roles: ADMIN },
+  { action: 'api::lesson-payment.lesson-payment.update', roles: ADMIN },
+  { action: 'api::lesson-payment.lesson-payment.delete', roles: ADMIN },
+
+  // Teacher-payout (scoped controller: teacher reads own; admin writes)
+  { action: 'api::teacher-payout.teacher-payout.find', roles: AUTH_ALL },
+  { action: 'api::teacher-payout.teacher-payout.findOne', roles: AUTH_ALL },
+  { action: 'api::teacher-payout.teacher-payout.create', roles: ADMIN },
+  { action: 'api::teacher-payout.teacher-payout.update', roles: ADMIN },
+  { action: 'api::teacher-payout.teacher-payout.delete', roles: ADMIN },
+
+  // Attendance-record (scoped controller: teacher writes own sessions, parent reads kids, student reads own)
+  { action: 'api::attendance-record.attendance-record.find', roles: AUTH_ALL },
+  { action: 'api::attendance-record.attendance-record.findOne', roles: AUTH_ALL },
+  { action: 'api::attendance-record.attendance-record.create', roles: STAFF },
+  { action: 'api::attendance-record.attendance-record.update', roles: STAFF },
+  { action: 'api::attendance-record.attendance-record.delete', roles: STAFF },
+
+  // Group (scoped controller: teachers own, students members-only read)
+  { action: 'api::group.group.find', roles: AUTH_ALL },
+  { action: 'api::group.group.findOne', roles: AUTH_ALL },
+  { action: 'api::group.group.create', roles: STAFF },
+  { action: 'api::group.group.update', roles: STAFF },
+  { action: 'api::group.group.delete', roles: STAFF },
+
+  // Teacher-profile (public read, self-update via /me — stock update admin-only)
   { action: 'api::teacher-profile.teacher-profile.find', roles: PUBLIC_ALL },
   { action: 'api::teacher-profile.teacher-profile.findOne', roles: PUBLIC_ALL },
-  { action: 'api::teacher-profile.teacher-profile.update', roles: STAFF },
+  { action: 'api::teacher-profile.teacher-profile.update', roles: ADMIN },
+  { action: 'api::teacher-profile.teacher-profile.findMe', roles: AUTH_ALL },
+  { action: 'api::teacher-profile.teacher-profile.updateMe', roles: AUTH_ALL },
 
-  // User-profile (self read/update; admin full)
+  // Analytics (scoping inside controller — teacher sees own, admin sees platform)
+  { action: 'api::analytics.analytics.teacher', roles: AUTH_ALL },
+  { action: 'api::analytics.analytics.admin', roles: AUTH_ALL },
+
+  // Parent /me aggregate (scoping inside controller — parent or admin only)
+  { action: 'api::parent.parent.children', roles: AUTH_ALL },
+  { action: 'api::parent.parent.child', roles: AUTH_ALL },
+
+  // Teacher /me aggregate (scoping inside controller — teacher only)
+  { action: 'api::teacher.teacher.students', roles: AUTH_ALL },
+
+  // Admin platform aggregates (scoping inside controller — admin only)
+  { action: 'api::admin.admin.students', roles: AUTH_ALL },
+
+  // Lesson publish/unpublish (scoping inside controller — teacher owner or admin)
+  { action: 'api::lesson.lesson.publish', roles: AUTH_ALL },
+  { action: 'api::lesson.lesson.unpublish', roles: AUTH_ALL },
+
+  // User-profile (self read/update via /me; admin full via stock)
   { action: 'api::user-profile.user-profile.findOne', roles: AUTH_ALL },
   { action: 'api::user-profile.user-profile.update', roles: AUTH_ALL },
+  { action: 'api::user-profile.user-profile.findMe', roles: AUTH_ALL },
+  { action: 'api::user-profile.user-profile.updateMe', roles: AUTH_ALL },
 
   // Kids-profile /me (custom scoped endpoints — controller 404s if caller isn't a kid)
   { action: 'api::kids-profile.kids-profile.findMe', roles: AUTH_ALL },
@@ -114,6 +185,8 @@ const GRANTS: Grant[] = [
   { action: 'api::user-inventory.user-inventory.updateMe', roles: AUTH_ALL },
   { action: 'api::user-inventory.user-inventory.purchaseCharacter', roles: AUTH_ALL },
   { action: 'api::user-inventory.user-inventory.unlockRoom', roles: AUTH_ALL },
+  { action: 'api::user-inventory.user-inventory.purchaseShopItem', roles: AUTH_ALL },
+  { action: 'api::user-inventory.user-inventory.equipShopItem', roles: AUTH_ALL },
 
   // Organization (auth read, admin write)
   { action: 'api::organization.organization.findOne', roles: AUTH_ALL },

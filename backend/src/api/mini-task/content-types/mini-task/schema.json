@@ -32,6 +32,22 @@
     "topic": {
       "type": "string"
     },
+    "kind": {
+      "type": "enumeration",
+      "enum": [
+        "quiz",
+        "level-quiz",
+        "daily-challenge",
+        "word-of-day",
+        "listening",
+        "sentence-builder"
+      ],
+      "default": "quiz"
+    },
+    "durationMin": {
+      "type": "integer",
+      "default": 5
+    },
     "exercise": {
       "type": "component",
       "repeatable": false,

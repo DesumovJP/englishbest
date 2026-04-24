@@ -73,6 +73,32 @@
     "isFree": {
       "type": "boolean",
       "default": false
+    },
+    "owner": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::teacher-profile.teacher-profile"
+    },
+    "source": {
+      "type": "enumeration",
+      "enum": ["platform", "own", "copy", "template"],
+      "default": "platform",
+      "required": true
+    },
+    "originalLesson": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::lesson.lesson"
+    },
+    "topic": {
+      "type": "string"
+    },
+    "level": {
+      "type": "enumeration",
+      "enum": ["A0", "A1", "A2", "B1", "B2", "C1", "C2"]
+    },
+    "tags": {
+      "type": "json"
     }
   }
 }

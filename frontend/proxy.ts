@@ -14,7 +14,6 @@ const PROTECTED_PREFIXES = [
   '/library',
   '/calendar',
   '/kids',
-  '/auth/profile',
 ];
 
 const AUTH_PREFIXES = [

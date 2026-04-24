@@ -1,7 +1,15 @@
 /**
  * shop-catalog.ts
- * The static Kids-Zone shop catalog, shared between the shop (to list & sell)
- * and the dashboard (to render placed items by id).
+ * In-memory shop-item registry, used for slug → (emoji, slotOffset, name)
+ * lookups by the dashboard's placed-items layer and LessonCharacter's
+ * equipped-overlay. Populated from:
+ *   - a small set of canonical seed-matching rows below (for first paint /
+ *     unauth'd FE builds where the catalog hasn't been fetched yet), and
+ *   - `registerServerShopItem()` calls emitted by `lib/shop-items.ts` once
+ *     the server catalog has been fetched (overrides seed rows by slug).
+ *
+ * Keep this file side-effect-free otherwise — the registry is the
+ * authoritative lookup for all consumers.
  */
 
 import type { Level } from "@/lib/types";
@@ -20,7 +28,7 @@ export interface CatalogShopItem {
   isNew?: boolean;
 }
 
-export const SHOP_ITEMS: CatalogShopItem[] = [
+const SEED_ITEMS: CatalogShopItem[] = [
   { id: "sofa",       emoji: "🛋️", nameEn: "Sofa",           phonetic: "/ˈsoʊfə/",            nameUa: "Диван",           price: 80,  category: "furniture", levelRequired: "A1" },
   { id: "wardrobe",   emoji: "🪞",  nameEn: "Wardrobe",       phonetic: "/ˈwɔːrdrōb/",         nameUa: "Шафа",            price: 120, category: "furniture", levelRequired: "A2", isNew: true },
   { id: "bookshelf",  emoji: "📚", nameEn: "Bookshelf",       phonetic: "/ˈbʊkʃɛlf/",          nameUa: "Книжкова полиця", price: 60,  category: "furniture", levelRequired: "A1" },
@@ -40,15 +48,10 @@ export const SHOP_ITEMS: CatalogShopItem[] = [
   { id: "trophy",     emoji: "🏆", nameEn: "Trophy",          phonetic: "/ˈtroʊfi/",           nameUa: "Кубок",           price: 300, category: "special",   levelRequired: "A2" },
   { id: "rocket",     emoji: "🚀", nameEn: "Rocket",          phonetic: "/ˈrɒkɪt/",            nameUa: "Ракета",          price: 250, category: "special",   levelRequired: "B1" },
   { id: "unicorn",    emoji: "🦄", nameEn: "Unicorn",         phonetic: "/ˈjuːnɪkɔːrn/",       nameUa: "Єдиноріг",        price: 500, category: "special",   levelRequired: "B2" },
-  { id: "dragon_egg", emoji: "🥚", nameEn: "Dragon Egg",      phonetic: "/ˈdræɡən ɛɡ/",        nameUa: "Яйце дракона",    price: 400, category: "special",   levelRequired: "B1" },
+  { id: "dragon-egg", emoji: "🥚", nameEn: "Dragon Egg",      phonetic: "/ˈdræɡən ɛɡ/",        nameUa: "Яйце дракона",    price: 400, category: "special",   levelRequired: "B1" },
 ];
 
-export const SHOP_ITEMS_BY_ID: Record<string, CatalogShopItem> = Object.fromEntries(
-  SHOP_ITEMS.map((i) => [i.id, i])
-);
-
-/** Relative offsets (to character center) for rendering equipped outfit items. */
-export const SLOT_OFFSET: Record<string, { top: string; left: string }> = {
+const SEED_SLOTS: Record<string, { top: string; left: string }> = {
   hat:      { top: "-14%", left: "50%" },
   crown:    { top: "-14%", left: "50%" },
   glasses:  { top: "26%",  left: "50%" },
@@ -57,3 +60,28 @@ export const SLOT_OFFSET: Record<string, { top: string; left: string }> = {
   trophy:   { top: "38%",  left: "-10%" },
   rocket:   { top: "10%",  left: "-10%" },
 };
+
+export const SHOP_ITEMS_BY_ID: Record<string, CatalogShopItem> = Object.fromEntries(
+  SEED_ITEMS.map((i) => [i.id, i]),
+);
+
+/** Relative offsets (to character center) for rendering equipped outfit items. */
+export const SLOT_OFFSET: Record<string, { top: string; left: string }> = { ...SEED_SLOTS };
+
+/** Legacy list export — consumers should prefer the server catalog hook. */
+export const SHOP_ITEMS: CatalogShopItem[] = SEED_ITEMS;
+
+/**
+ * Register a server-sourced item into the in-memory registry. Called by
+ * `lib/shop-items.ts` after the `/api/shop-items` fetch resolves. Replaces
+ * any existing seed row with the same slug.
+ */
+export function registerServerShopItem(
+  item: CatalogShopItem,
+  slotOffset: { top: string; left: string } | null,
+): void {
+  SHOP_ITEMS_BY_ID[item.id] = item;
+  if (slotOffset) {
+    SLOT_OFFSET[item.id] = slotOffset;
+  }
+}

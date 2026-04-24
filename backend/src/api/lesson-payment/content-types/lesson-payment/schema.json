@@ -1,0 +1,57 @@
+{
+  "kind": "collectionType",
+  "collectionName": "lesson_payments",
+  "info": {
+    "singularName": "lesson-payment",
+    "pluralName": "lesson-payments",
+    "displayName": "Lesson Payment",
+    "description": "Per-session earning record for a teacher (gross/net, currency, status)."
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "session": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::session.session"
+    },
+    "teacher": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::teacher-profile.teacher-profile"
+    },
+    "payout": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::teacher-payout.teacher-payout",
+      "inversedBy": "lessonPayments"
+    },
+    "grossAmount": {
+      "type": "decimal",
+      "required": true
+    },
+    "netAmount": {
+      "type": "decimal",
+      "required": true
+    },
+    "currency": {
+      "type": "string",
+      "default": "UAH",
+      "required": true,
+      "maxLength": 8
+    },
+    "status": {
+      "type": "enumeration",
+      "enum": ["pending", "processing", "paid", "cancelled"],
+      "default": "pending",
+      "required": true
+    },
+    "paidAt": {
+      "type": "datetime"
+    },
+    "note": {
+      "type": "text"
+    }
+  }
+}

@@ -22,9 +22,10 @@ interface Props {
   lesson: LessonData;
   nextLessonSlug?: string;
   backUrl?: string;
-  teacherName: string;
-  teacherPhoto: string;
-  callUrl: string;
+  /** Optional teacher-upsell CTA on the success screen. */
+  teacherName?: string;
+  teacherPhoto?: string;
+  callUrl?: string;
 }
 
 export function LessonEngine({ lesson, nextLessonSlug, backUrl = '/kids/school', teacherName, teacherPhoto, callUrl }: Props) {

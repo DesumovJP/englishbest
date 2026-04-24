@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import type { Course } from '@/lib/types';
+import { CourseReviews } from './CourseReviews';
 
 const LEVEL_COLOR: Record<string, string> = {
   A1: 'bg-accent/10 text-accent-dark',
@@ -154,6 +155,8 @@ export function CoursePage({ course }: CoursePageProps) {
               ))}
             </ul>
           </section>
+
+          <CourseReviews courseDocumentId={course.documentId} />
         </div>
 
         {/* Право: вчитель + CTA */}

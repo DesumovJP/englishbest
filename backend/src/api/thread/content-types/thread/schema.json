@@ -1,0 +1,43 @@
+{
+  "kind": "collectionType",
+  "collectionName": "threads",
+  "info": {
+    "singularName": "thread",
+    "pluralName": "threads",
+    "displayName": "Thread",
+    "description": "Chat conversation between user-profiles (student/parent/group)."
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "title": {
+      "type": "string",
+      "required": true
+    },
+    "kind": {
+      "type": "enumeration",
+      "enum": ["student", "parent", "group"],
+      "default": "student",
+      "required": true
+    },
+    "participants": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "api::user-profile.user-profile",
+      "inversedBy": "threads"
+    },
+    "messages": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::message.message",
+      "mappedBy": "thread"
+    },
+    "lastMessageBody": {
+      "type": "text"
+    },
+    "lastMessageAt": {
+      "type": "datetime"
+    }
+  }
+}

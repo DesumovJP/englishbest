@@ -1,0 +1,54 @@
+{
+  "kind": "collectionType",
+  "collectionName": "groups",
+  "info": {
+    "singularName": "group",
+    "pluralName": "groups",
+    "displayName": "Group",
+    "description": "A teacher-owned class/cohort. Students are user-profiles linked via the `members` m2m."
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "level": {
+      "type": "enumeration",
+      "enum": ["A0", "A1", "A2", "B1", "B2", "C1", "C2"],
+      "required": true
+    },
+    "teacher": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::teacher-profile.teacher-profile"
+    },
+    "members": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "api::user-profile.user-profile"
+    },
+    "scheduleRrule": {
+      "type": "string"
+    },
+    "activeFrom": {
+      "type": "date"
+    },
+    "activeTo": {
+      "type": "date"
+    },
+    "meetUrl": {
+      "type": "string"
+    },
+    "avgAttendance": {
+      "type": "decimal",
+      "default": 0
+    },
+    "avgHomework": {
+      "type": "decimal",
+      "default": 0
+    }
+  }
+}

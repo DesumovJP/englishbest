@@ -21,6 +21,16 @@ import {
   PlacedItem,
   DEFAULT_STATE,
 } from "./kids-store";
+import { fetchRooms, ServerRoom } from "./rooms";
+import { fetchCharacters, ServerCharacter } from "./character-catalog";
+import { fetchShopItems, ServerShopItem } from "./shop-items";
+import {
+  fetchAchievements,
+  fetchUserAchievements,
+  ServerAchievement,
+  ServerUserAchievement,
+} from "./achievements";
+import { fetchLibraryItems, LibraryItem } from "./library";
 
 // ─── useCustomItems ───────────────────────────────────────────────────────────
 
@@ -82,6 +92,166 @@ export function useCustomRooms() {
   }, []);
 
   return { rooms, loading, addRoom, removeRoom };
+}
+
+// ─── useRoomCatalog ──────────────────────────────────────────────────────────
+//
+// Fetches the server-managed Room catalog once per page mount. Cached by
+// `fetchRooms()` so repeat mounts don't re-hit the network unless the cache
+// is manually reset.
+
+export function useRoomCatalog() {
+  const [rooms, setRooms] = useState<ServerRoom[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    fetchRooms()
+      .then((r) => {
+        if (!alive) return;
+        setRooms(r);
+        setLoading(false);
+      })
+      .catch((e) => {
+        if (!alive) return;
+        setError(e instanceof Error ? e : new Error(String(e)));
+        setLoading(false);
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  return { rooms, loading, error };
+}
+
+// ─── useCharacterCatalog ─────────────────────────────────────────────────────
+//
+// Fetches the server-managed Character catalog once per page mount. Side
+// effect: emotion maps are registered into `lib/characters.ts` so
+// CharacterAvatar auto-renders admin-added characters.
+
+export function useCharacterCatalog() {
+  const [characters, setCharacters] = useState<ServerCharacter[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    fetchCharacters()
+      .then((c) => {
+        if (!alive) return;
+        setCharacters(c);
+        setLoading(false);
+      })
+      .catch((e) => {
+        if (!alive) return;
+        setError(e instanceof Error ? e : new Error(String(e)));
+        setLoading(false);
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  return { characters, loading, error };
+}
+
+// ─── useShopCatalog ──────────────────────────────────────────────────────────
+//
+// Fetches the server-managed shop catalog once per page mount. Side effect:
+// each item is registered into `lib/shop-catalog.ts` so placed-item and
+// equipped-overlay lookups resolve admin-uploaded items without a redeploy.
+
+export function useShopCatalog() {
+  const [items, setItems] = useState<ServerShopItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    fetchShopItems()
+      .then((i) => {
+        if (!alive) return;
+        setItems(i);
+        setLoading(false);
+      })
+      .catch((e) => {
+        if (!alive) return;
+        setError(e instanceof Error ? e : new Error(String(e)));
+        setLoading(false);
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  return { items, loading, error };
+}
+
+// ─── useLibrary ──────────────────────────────────────────────────────────────
+//
+// Loads the library catalog (books / videos / games / courses) from Strapi.
+// One call per page mount, cached at module level.
+
+export function useLibrary() {
+  const [items, setItems] = useState<LibraryItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    fetchLibraryItems()
+      .then((it) => {
+        if (!alive) return;
+        setItems(it);
+        setLoading(false);
+      })
+      .catch((e) => {
+        if (!alive) return;
+        setError(e instanceof Error ? e : new Error(String(e)));
+        setLoading(false);
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  return { items, loading, error };
+}
+
+// ─── useAchievements ─────────────────────────────────────────────────────────
+//
+// Loads the public achievements catalog AND the caller's earned user-achievements
+// in parallel. The page derives earned/locked state by joining on slug.
+
+export function useAchievements() {
+  const [catalog, setCatalog] = useState<ServerAchievement[]>([]);
+  const [earned, setEarned] = useState<ServerUserAchievement[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    Promise.all([fetchAchievements(), fetchUserAchievements()])
+      .then(([c, e]) => {
+        if (!alive) return;
+        setCatalog(c);
+        setEarned(e);
+        setLoading(false);
+      })
+      .catch((e) => {
+        if (!alive) return;
+        setError(e instanceof Error ? e : new Error(String(e)));
+        setLoading(false);
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  return { catalog, earned, loading, error };
 }
 
 // ─── useCustomCharacters ──────────────────────────────────────────────────────
@@ -163,67 +333,74 @@ export function useKidsState() {
   );
 
   /**
-   * Purchase a shop item: atomically deducts coins and appends to ownedItemIds.
-   * Returns false if the user can't afford it or already owns it.
+   * Purchase a shop item via the server-authoritative endpoint. Server
+   * validates level + balance, appends to ownedShopItems, and debits coins
+   * atomically. Returns true on success, false on any 4xx (insufficient
+   * funds, level gate, already owned).
    */
-  const purchaseItem = useCallback(
-    async (itemId: string, price: number): Promise<boolean> => {
-      const current = await kidsStateStore.get();
-      if (current.ownedItemIds.includes(itemId)) return false;
-      if (current.coins < price) return false;
-      await kidsStateStore.patch({
-        coins: current.coins - price,
-        ownedItemIds: [...current.ownedItemIds, itemId],
-      });
-      emitKidsEvent("kids:state-changed");
-      return true;
+  const purchaseShopItem = useCallback(
+    async (slug: string): Promise<boolean> => {
+      try {
+        await kidsStateStore.purchaseShopItem(slug);
+        emitKidsEvent("kids:state-changed");
+        return true;
+      } catch {
+        emitKidsEvent("kids:state-changed");
+        return false;
+      }
     },
-    []
+    [],
   );
 
-  /** Add a placement for an owned item. Returns the new placement id. */
+  /** Toggle equip state for an owned shop item (server-authoritative). */
+  const equipShopItem = useCallback(
+    async (slug: string, equip: boolean): Promise<boolean> => {
+      try {
+        await kidsStateStore.equipShopItem(slug, equip);
+        emitKidsEvent("kids:state-changed");
+        return true;
+      } catch {
+        emitKidsEvent("kids:state-changed");
+        return false;
+      }
+    },
+    [],
+  );
+
+  /**
+   * Add a placement for an owned item. Returns the new placement id. Cache
+   * updates instantly; the server PATCH is debounced (see kidsStateStore
+   * `updatePlacedItems` / `flushPendingPlacedItems`).
+   */
   const placeItem = useCallback(
     async (itemId: string, pos?: { x?: number; y?: number }): Promise<string> => {
-      const current = await kidsStateStore.get();
       const id = generateId("place");
-      const next: PlacedItem = {
-        id,
-        itemId,
-        x: pos?.x ?? 0.5,
-        y: pos?.y ?? 0.78,
-        scale: 1,
-      };
-      await kidsStateStore.patch({
-        placedItems: [...current.placedItems, next],
-      });
+      await kidsStateStore.updatePlacedItems((prev) => [
+        ...prev,
+        { id, itemId, x: pos?.x ?? 0.5, y: pos?.y ?? 0.78, scale: 1 },
+      ]);
       emitKidsEvent("kids:state-changed");
       return id;
     },
-    []
+    [],
   );
 
   const movePlacement = useCallback(
     async (id: string, x: number, y: number): Promise<void> => {
-      const current = await kidsStateStore.get();
-      await kidsStateStore.patch({
-        placedItems: current.placedItems.map((p) =>
-          p.id === id ? { ...p, x, y } : p
-        ),
-      });
+      await kidsStateStore.updatePlacedItems((prev) =>
+        prev.map((p) => (p.id === id ? { ...p, x, y } : p)),
+      );
       emitKidsEvent("kids:state-changed");
     },
-    []
+    [],
   );
 
   const removePlacement = useCallback(
     async (id: string): Promise<void> => {
-      const current = await kidsStateStore.get();
-      await kidsStateStore.patch({
-        placedItems: current.placedItems.filter((p) => p.id !== id),
-      });
+      await kidsStateStore.updatePlacedItems((prev) => prev.filter((p) => p.id !== id));
       emitKidsEvent("kids:state-changed");
     },
-    []
+    [],
   );
 
   return {
@@ -231,7 +408,8 @@ export function useKidsState() {
     loading,
     patch,
     spendCoins,
-    purchaseItem,
+    purchaseShopItem,
+    equipShopItem,
     placeItem,
     movePlacement,
     removePlacement,

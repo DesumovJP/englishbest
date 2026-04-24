@@ -62,9 +62,12 @@ const LESSON_POPULATE =
 
 // ─── Courses ────────────────────────────────────────────────────────────────
 
-export async function fetchCourses(): Promise<Course[]> {
+export async function fetchCourses(
+  opts: { kind?: 'course' | 'book' | 'video' | 'game' } = {},
+): Promise<Course[]> {
+  const filter = opts.kind ? `filters[kind][$eq]=${opts.kind}&` : '';
   const env = await fetcher<StrapiCollection<any>>(
-    `${BASE()}/api/courses?${COURSE_POPULATE}`,
+    `${BASE()}/api/courses?${filter}${COURSE_POPULATE}`,
   );
   return normalizeCourses(env);
 }

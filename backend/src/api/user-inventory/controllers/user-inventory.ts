@@ -6,6 +6,8 @@
  *   PATCH /api/user-inventory/me                       → partial update
  *   POST  /api/user-inventory/me/purchase-character    → debit coins, add to ownedCharacters
  *   POST  /api/user-inventory/me/unlock-room           → debit coins, add to unlockedRooms
+ *   POST  /api/user-inventory/me/purchase-shop-item    → debit coins, add to ownedShopItems
+ *   POST  /api/user-inventory/me/equip                 → toggle equipped state for an owned item
  *
  * Client-writable fields on PATCH:
  *   outfit, placedItems, equippedItems, ownedShopItems, seedVersion,
@@ -50,6 +52,22 @@ async function callerProfileId(strapi: any, userId: number | string): Promise<st
     limit: 1,
   });
   return profile?.documentId ?? null;
+}
+
+async function callerProfileWithLevel(
+  strapi: any,
+  userId: number | string,
+): Promise<{ documentId: string; level: string | null } | null> {
+  const [profile] = await strapi.documents(PROFILE_UID).findMany({
+    filters: { user: { id: userId } },
+    fields: ['documentId', 'level'],
+    limit: 1,
+  });
+  if (!profile) return null;
+  return {
+    documentId: profile.documentId,
+    level: (profile as any).level ?? null,
+  };
 }
 
 async function callerKidsProfile(strapi: any, profileDocId: string) {
@@ -134,6 +152,22 @@ function toInt(value: unknown): number | null {
     return Math.trunc(Number(value));
   }
   return null;
+}
+
+const LEVEL_ORDER: string[] = ['A0', 'A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
+
+/**
+ * Level gate. A user without an explicit `user-profile.level` is treated as
+ * 'A1' — matches the seed default for most shop items, so new kids can buy
+ * entry-level items without needing a placement test. Higher-tier items
+ * stay gated until the user explicitly levels up.
+ */
+function levelMeets(userLevel: string | null | undefined, required: string | null | undefined): boolean {
+  if (!required) return true;
+  const u = LEVEL_ORDER.indexOf((userLevel && LEVEL_ORDER.includes(userLevel)) ? userLevel : 'A1');
+  const r = LEVEL_ORDER.indexOf(required);
+  if (u < 0 || r < 0) return true;
+  return u >= r;
 }
 
 export default {
@@ -356,6 +390,138 @@ export default {
       });
       throw err;
     }
+
+    const fresh = await strapi.documents(INVENTORY_UID).findOne({
+      documentId: (inventory as any).documentId,
+      populate: POPULATE,
+    });
+    return { data: fresh };
+  },
+
+  /**
+   * Purchase a shop-item for the caller. Validates level gate + coin
+   * balance, then uses the same compensating-cleanup order as character
+   * purchase: append ownership → debit coins → revert ownership on debit
+   * failure. Idempotent at the boundary (already-owned → 409).
+   */
+  async purchaseShopItem(ctx: any) {
+    const user = ctx.state.user;
+    if (!user) return ctx.unauthorized();
+
+    const profile = await callerProfileWithLevel(strapi, user.id);
+    if (!profile) return ctx.forbidden('no user-profile');
+
+    const kp = await callerKidsProfile(strapi, profile.documentId);
+    if (!kp) return ctx.forbidden('not a kid');
+
+    const body = ctx.request.body ?? {};
+    const data = body?.data ?? body;
+    const slug = typeof data?.slug === 'string' ? data.slug : null;
+    if (!slug) return ctx.badRequest('slug required');
+
+    const [item] = await strapi.documents(SHOP_ITEM_UID).findMany({
+      filters: { slug: { $eq: slug } },
+      limit: 1,
+    });
+    if (!item) return ctx.notFound(`shop-item '${slug}' not found`);
+
+    if (!levelMeets(profile.level, (item as any).levelRequired)) {
+      return ctx.badRequest(`level ${profile.level ?? 'A1'} below required ${(item as any).levelRequired}`);
+    }
+
+    const inventory = await getOrCreateInventory(strapi, profile.documentId);
+    const ownedSlugs = ((inventory as any).ownedShopItems ?? []).map((i: any) => i.slug);
+    if (ownedSlugs.includes(slug)) return ctx.conflict('already owned');
+
+    const price = toInt((item as any).price) ?? 0;
+    const balance = toInt((kp as any).totalCoins) ?? 0;
+    if (balance < price) return ctx.badRequest('insufficient coins');
+
+    const prevOwnedDocIds = ((inventory as any).ownedShopItems ?? []).map((i: any) => i.documentId);
+    const nextOwnedDocIds = [...prevOwnedDocIds, (item as any).documentId];
+
+    await strapi.documents(INVENTORY_UID).update({
+      documentId: (inventory as any).documentId,
+      data: { ownedShopItems: nextOwnedDocIds },
+    });
+
+    try {
+      if (price > 0) {
+        await strapi.documents(KIDS_PROFILE_UID).update({
+          documentId: (kp as any).documentId,
+          data: { totalCoins: balance - price },
+        });
+      }
+    } catch (err) {
+      await strapi.documents(INVENTORY_UID).update({
+        documentId: (inventory as any).documentId,
+        data: { ownedShopItems: prevOwnedDocIds },
+      });
+      throw err;
+    }
+
+    const fresh = await strapi.documents(INVENTORY_UID).findOne({
+      documentId: (inventory as any).documentId,
+      populate: POPULATE,
+    });
+    return { data: fresh };
+  },
+
+  /**
+   * Equip or unequip a single shop-item. Body: { slug, equip: boolean }.
+   * Equip requires the item to be in `ownedShopItems`. Idempotent — no-op
+   * if already in the requested state.
+   */
+  async equipShopItem(ctx: any) {
+    const user = ctx.state.user;
+    if (!user) return ctx.unauthorized();
+
+    const profileId = await callerProfileId(strapi, user.id);
+    if (!profileId) return ctx.forbidden('no user-profile');
+
+    const body = ctx.request.body ?? {};
+    const data = body?.data ?? body;
+    const slug = typeof data?.slug === 'string' ? data.slug : null;
+    const equip = typeof data?.equip === 'boolean' ? data.equip : null;
+    if (!slug) return ctx.badRequest('slug required');
+    if (equip === null) return ctx.badRequest('equip (boolean) required');
+
+    const inventory = await getOrCreateInventory(strapi, profileId);
+    const ownedSlugs = ((inventory as any).ownedShopItems ?? []).map((i: any) => i.slug);
+    const currentEquippedDocIds: string[] = ((inventory as any).equippedItems ?? []).map(
+      (i: any) => i.documentId,
+    );
+    const currentEquippedSlugs: string[] = ((inventory as any).equippedItems ?? []).map(
+      (i: any) => i.slug,
+    );
+
+    if (equip && !ownedSlugs.includes(slug)) {
+      return ctx.badRequest(`'${slug}' not in ownedShopItems`);
+    }
+
+    const isCurrentlyEquipped = currentEquippedSlugs.includes(slug);
+    if (equip === isCurrentlyEquipped) {
+      return { data: inventory };
+    }
+
+    let nextEquippedDocIds: string[];
+    if (equip) {
+      const itemDocId = ((inventory as any).ownedShopItems ?? []).find(
+        (i: any) => i.slug === slug,
+      )?.documentId;
+      if (!itemDocId) return ctx.badRequest(`'${slug}' documentId not resolvable`);
+      nextEquippedDocIds = [...currentEquippedDocIds, itemDocId];
+    } else {
+      const targetDocId = ((inventory as any).equippedItems ?? []).find(
+        (i: any) => i.slug === slug,
+      )?.documentId;
+      nextEquippedDocIds = currentEquippedDocIds.filter((id) => id !== targetDocId);
+    }
+
+    await strapi.documents(INVENTORY_UID).update({
+      documentId: (inventory as any).documentId,
+      data: { equippedItems: nextEquippedDocIds },
+    });
 
     const fresh = await strapi.documents(INVENTORY_UID).findOne({
       documentId: (inventory as any).documentId,

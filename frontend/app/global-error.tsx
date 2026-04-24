@@ -2,6 +2,8 @@
 
 import { useEffect } from 'react';
 
+// Global error boundary runs BEFORE the root layout, so Tailwind/globals.css are
+// not applied. All styling here is intentionally inline-hex and not tokenized.
 export default function GlobalError({
   error,
   reset,

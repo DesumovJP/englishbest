@@ -264,6 +264,7 @@ export function normalizeReview(raw: any): Review {
     title: raw?.title ?? undefined,
     body: raw?.body ?? undefined,
     verified: raw?.verified ?? undefined,
+    authorId: raw?.author?.documentId ?? undefined,
     authorName: reviewAuthorName(raw?.author),
     createdAt: raw?.createdAt ?? '',
   };

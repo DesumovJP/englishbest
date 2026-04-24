@@ -2,19 +2,24 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
+import { useSession } from '@/lib/session-context';
 
-function getSavedRole(): Role {
-  if (typeof window === 'undefined') return 'student';
-  const demo = localStorage.getItem('demo_role');
-  if (demo === 'teacher') return 'teacher';
-  if (demo === 'admin')   return 'admin';
-  if (demo === 'parent')  return 'parent';
-  const saved = localStorage.getItem('sidebar_role');
-  if (saved === 'student' || saved === 'teacher' || saved === 'admin' || saved === 'parent') return saved;
+type Role = 'student' | 'teacher' | 'admin' | 'parent';
+
+type SessionRole = 'kids' | 'adult' | 'teacher' | 'parent' | 'admin';
+
+function mapRole(r: SessionRole | undefined | null): Role {
+  if (r === 'teacher' || r === 'admin' || r === 'parent') return r;
   return 'student';
 }
 
-type Role = 'student' | 'teacher' | 'admin' | 'parent';
+function initialsOf(name: string | undefined): string {
+  if (!name) return '?';
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  const first = parts[0]?.[0] ?? '';
+  const last = parts.length > 1 ? parts[parts.length - 1][0] : '';
+  return (first + last).toUpperCase() || '?';
+}
 
 interface NavItem {
   label: string;
@@ -62,7 +67,13 @@ const NAV_FLAT: Record<'student' | 'parent' | 'admin', NavItem[]> = {
     { label: 'Дитячий модуль', href: '/kids/dashboard',    icon: I.kid },
   ],
   parent: [],
-  admin: [],
+  admin: [
+    { label: 'Дашборд',    href: '/dashboard/admin',     icon: I.home },
+    { label: 'Аналітика',  href: '/dashboard/analytics', icon: I.analytics },
+    { label: 'Учні',       href: '/dashboard/students',  icon: I.users },
+    { label: 'Бібліотека', href: '/library',             icon: I.book },
+    { label: 'Календар',   href: '/calendar',            icon: I.calendar },
+  ],
 };
 
 const TEACHER_NAV: NavSection[] = [
@@ -105,11 +116,6 @@ const ROLE_LABELS: Record<Role, string> = {
   parent:  'Батьки',
 };
 
-const MOCK_USER = {
-  name: 'Олексій К.',
-  photo: 'https://randomuser.me/api/portraits/men/32.jpg',
-};
-
 function NavLink({ item, pathname, onClick }: { item: NavItem; pathname: string; onClick: () => void }) {
   const active =
     pathname === item.href ||
@@ -136,7 +142,13 @@ function NavLink({ item, pathname, onClick }: { item: NavItem; pathname: string;
 
 export function Sidebar() {
   const pathname = usePathname();
-  const [role] = useState<Role>(getSavedRole);
+  const { session } = useSession();
+  const role = mapRole(session?.profile?.role as SessionRole | undefined);
+  const name =
+    session?.profile?.firstName ??
+    session?.profile?.displayName ??
+    session?.user?.email ??
+    '';
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const close = () => setMobileOpen(false);
@@ -211,14 +223,14 @@ export function Sidebar() {
             onClick={close}
             className="flex items-center gap-2.5 px-2 py-2 rounded-md hover:bg-surface-muted transition-colors group"
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={MOCK_USER.photo}
-              alt={MOCK_USER.name}
-              className="w-7 h-7 rounded-full object-cover flex-shrink-0"
-            />
+            <div
+              aria-hidden
+              className="w-7 h-7 rounded-full bg-surface-muted text-ink-muted flex items-center justify-center text-[11px] font-semibold flex-shrink-0"
+            >
+              {initialsOf(name)}
+            </div>
             <div className="flex-1 min-w-0">
-              <p className="text-[13px] font-semibold text-ink truncate leading-tight">{MOCK_USER.name}</p>
+              <p className="text-[13px] font-semibold text-ink truncate leading-tight">{name || '—'}</p>
               <p className="text-[11px] text-ink-muted leading-tight">{ROLE_LABELS[role]}</p>
             </div>
             <svg className="w-3.5 h-3.5 text-ink-faint flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" aria-hidden>

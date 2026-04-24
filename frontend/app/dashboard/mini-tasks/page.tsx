@@ -1,20 +1,34 @@
+/**
+ * /dashboard/mini-tasks — teacher/admin template library.
+ *
+ * Live composition:
+ *   fetchMiniTasks()  — backend scopes: teacher sees own + public, admin all
+ *   createMiniTask()  — forced-author on BE for teachers
+ *   deleteMiniTask()  — author-only on BE (admin bypass)
+ *
+ * Non-teacher/admin roles: empty state (authoring is teacher+admin only).
+ */
 'use client';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useSession } from '@/lib/session-context';
 import {
-  MINI_TASK_LABELS,
-  MOCK_MINI_TASKS,
+  deleteMiniTask,
+  fetchMiniTasks,
+  KIND_LABEL,
+  type MiniTask,
   type MiniTaskKind,
-} from '@/lib/teacher-mocks';
+} from '@/lib/mini-tasks';
 import {
   CoinTag,
-  EmptyState,
   FilterChips,
   LevelBadge,
-  PageHeader,
   SearchInput,
   type FilterChipOption,
 } from '@/components/teacher/ui';
 import { MiniTaskBuilder } from '@/components/teacher/MiniTaskBuilder';
+import { DashboardPageShell } from '@/components/ui/shells';
+import { Card } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
 
 type KindFilter = MiniTaskKind | 'all';
 
@@ -29,116 +43,207 @@ const KIND_FILTERS: ReadonlyArray<FilterChipOption<KindFilter>> = [
 ];
 
 export default function MiniTasksPage() {
-  const [query, setQuery] = useState('');
-  const [kindFilter, setKindFilter] = useState<KindFilter>('all');
+  const { session, status: sessionStatus } = useSession();
+  const role = session?.profile?.role ?? null;
+  const canAuthor = role === 'teacher' || role === 'admin';
+
+  const [tasks, setTasks]       = useState<MiniTask[]>([]);
+  const [loading, setLoading]   = useState(false);
+  const [error, setError]       = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
+
+  const [query, setQuery]             = useState('');
+  const [kindFilter, setKindFilter]   = useState<KindFilter>('all');
   const [builderOpen, setBuilderOpen] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
+  const [editingTask, setEditingTask] = useState<MiniTask | null>(null);
+  const [deletingId, setDeletingId]   = useState<string | null>(null);
+
+  const myAuthorId = session?.profile?.teacherProfile?.documentId as string | undefined;
+
+  useEffect(() => {
+    if (!canAuthor) return;
+    let alive = true;
+    setLoading(true);
+    setError(null);
+    fetchMiniTasks()
+      .then(rows => { if (alive) setTasks(rows); })
+      .catch(e => { if (alive) setError(e instanceof Error ? e.message : 'failed'); })
+      .finally(() => { if (alive) setLoading(false); });
+    return () => { alive = false; };
+  }, [canAuthor, reloadKey]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return MOCK_MINI_TASKS
+    return tasks
       .filter(t => kindFilter === 'all' || t.kind === kindFilter)
-      .filter(t => q === '' || t.title.toLowerCase().includes(q) || t.topic.toLowerCase().includes(q))
-      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  }, [query, kindFilter]);
+      .filter(t =>
+        q === '' ||
+        t.title.toLowerCase().includes(q) ||
+        t.topic.toLowerCase().includes(q),
+      );
+  }, [tasks, query, kindFilter]);
 
-  function flashToast(msg: string) {
-    setToast(msg);
-    window.setTimeout(() => setToast(null), 1500);
+  async function handleDelete(id: string) {
+    if (!confirm('Видалити міні-завдання назавжди?')) return;
+    setDeletingId(id);
+    try {
+      await deleteMiniTask(id);
+      setTasks(ts => ts.filter(t => t.documentId !== id));
+    } catch (e: any) {
+      alert(e?.message ?? 'Не вдалось видалити');
+    } finally {
+      setDeletingId(null);
+    }
   }
 
-  return (
-    <div className="flex flex-col gap-5">
-      <PageHeader
+  function handleSaved(task: MiniTask) {
+    setTasks((ts) => {
+      const idx = ts.findIndex((t) => t.documentId === task.documentId);
+      if (idx === -1) return [task, ...ts];
+      const next = ts.slice();
+      next[idx] = task;
+      return next;
+    });
+  }
+
+  function handleEdit(task: MiniTask) {
+    setEditingTask(task);
+    setBuilderOpen(true);
+  }
+
+  function handleCreateNew() {
+    setEditingTask(null);
+    setBuilderOpen(true);
+  }
+
+  function handleBuilderClose() {
+    setBuilderOpen(false);
+    setEditingTask(null);
+  }
+
+  if (sessionStatus === 'loading') {
+    return <DashboardPageShell title="Міні-завдання" subtitle="Завантаження…" status="loading" loadingShape="card" />;
+  }
+
+  if (!canAuthor) {
+    return (
+      <DashboardPageShell
         title="Міні-завдання"
-        subtitle={`${MOCK_MINI_TASKS.length} шаблонів`}
-        action={
-          <button type="button" onClick={() => setBuilderOpen(true)} className="ios-btn ios-btn-primary">
-            + Створити
-          </button>
-        }
+        status="empty"
+        empty={{
+          title: 'Розділ для авторів',
+          description: 'Створення та керування шаблонами міні-завдань доступне лише вчителям і адміністраторам.',
+        }}
       />
+    );
+  }
 
-      <div className="flex flex-col gap-3">
-        <FilterChips value={kindFilter} onChange={setKindFilter} options={KIND_FILTERS} />
-        <SearchInput
-          value={query}
-          onChange={e => setQuery(e.target.value)}
-          placeholder="Пошук за назвою або темою…"
-          containerClassName="w-full sm:w-72"
-        />
-      </div>
+  const shellStatus: 'loading' | 'error' | 'empty' | 'ready' =
+    error ? 'error'
+    : loading && tasks.length === 0 ? 'loading'
+    : filtered.length === 0 ? 'empty'
+    : 'ready';
 
-      {filtered.length === 0 ? (
-        <EmptyState title="Нічого не знайдено" subtitle="Спробуй інший фільтр або запит" />
-      ) : (
+  return (
+    <>
+      <DashboardPageShell
+        title="Міні-завдання"
+        subtitle={loading ? 'Завантаження…' : `${tasks.length} шаблонів`}
+        actions={<Button onClick={handleCreateNew}>+ Створити</Button>}
+        toolbar={
+          <div className="flex flex-col gap-3 w-full">
+            <FilterChips value={kindFilter} onChange={setKindFilter} options={KIND_FILTERS} />
+            <SearchInput
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              placeholder="Пошук за назвою або темою…"
+              containerClassName="w-full sm:w-72"
+            />
+          </div>
+        }
+        status={shellStatus}
+        error={error ?? undefined}
+        onRetry={() => setReloadKey(k => k + 1)}
+        loadingShape="card"
+        empty={{
+          title: tasks.length === 0 ? 'Ще немає шаблонів' : 'Нічого не знайдено',
+          description:
+            tasks.length === 0
+              ? 'Створіть перший шаблон міні-завдання'
+              : 'Спробуй інший фільтр або запит',
+          action:
+            tasks.length === 0
+              ? <Button onClick={handleCreateNew}>+ Створити шаблон</Button>
+              : undefined,
+        }}
+      >
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
           {filtered.map(task => {
-            const scoreTone =
-              task.avgScore === undefined ? '' :
-              task.avgScore >= 0.8 ? 'text-ink' :
-              task.avgScore >= 0.6 ? 'text-ink-muted' : 'text-danger-dark';
+            const isMine = role === 'admin' || (myAuthorId ? task.authorId === myAuthorId : false);
+            const deleting = deletingId === task.documentId;
             return (
-              <article key={task.id} className="ios-card p-4 flex flex-col gap-3">
+              <Card key={task.documentId} variant="surface" padding="sm" className="flex flex-col gap-3">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex flex-col gap-1">
                     <p className="text-[10px] font-semibold text-ink-faint uppercase tracking-wider">
-                      {MINI_TASK_LABELS[task.kind]}
+                      {KIND_LABEL[task.kind]}
                     </p>
-                    <p className="text-[14px] font-semibold text-ink leading-snug">{task.title}</p>
+                    <p className="text-[14px] font-semibold text-ink leading-snug">
+                      {task.title}
+                    </p>
                   </div>
-                  <LevelBadge level={task.level} />
+                  {task.level && <LevelBadge level={task.level} />}
                 </div>
 
                 <div className="flex flex-wrap gap-1.5 text-[11px] text-ink-muted tabular-nums">
-                  <span className="ios-chip">{task.topic}</span>
+                  {task.topic && <span className="ios-chip">{task.topic}</span>}
                   <span className="ios-chip">{task.durationMin} хв</span>
-                  <span className="ios-chip">{task.questionsCount} питань</span>
+                  {task.isPublic && <span className="ios-chip">Публічне</span>}
                 </div>
 
                 <div className="flex items-center justify-between gap-2 pt-1">
-                  <div className="flex items-center gap-3">
-                    <CoinTag amount={task.coins} />
-                    <span className="text-[11px] text-ink-muted tabular-nums">
-                      Призначено: <span className="font-semibold text-ink">{task.assignedCount}</span>
-                    </span>
-                  </div>
-                  {task.avgScore !== undefined && (
-                    <span className={`text-[12px] font-semibold tabular-nums ${scoreTone}`}>
-                      {Math.round(task.avgScore * 100)}%
+                  <CoinTag amount={task.coinReward} />
+                  {task.exercise && (
+                    <span className="text-[10px] text-ink-faint uppercase tracking-wider">
+                      {task.exercise.type}
                     </span>
                   )}
                 </div>
 
-                <div className="flex gap-2 pt-3 border-t border-border">
-                  <button
-                    type="button"
-                    onClick={() => flashToast(`Призначаю: ${task.title}`)}
-                    className="ios-btn ios-btn-sm ios-btn-primary flex-1"
-                  >
-                    Призначити
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => flashToast(`Перегляд: ${task.title}`)}
-                    className="ios-btn ios-btn-sm ios-btn-secondary"
-                  >
-                    Перегляд
-                  </button>
-                </div>
-              </article>
+                {isMine && (
+                  <div className="flex gap-2 pt-3 border-t border-border">
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      fullWidth
+                      disabled={deleting}
+                      onClick={() => handleEdit(task)}
+                    >
+                      Редагувати
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="danger"
+                      fullWidth
+                      loading={deleting}
+                      onClick={() => handleDelete(task.documentId)}
+                    >
+                      {deleting ? 'Видалення…' : 'Видалити'}
+                    </Button>
+                  </div>
+                )}
+              </Card>
             );
           })}
         </div>
-      )}
+      </DashboardPageShell>
 
-      <MiniTaskBuilder open={builderOpen} onClose={() => setBuilderOpen(false)} />
-
-      {toast && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-lg bg-primary text-white text-[13px] font-semibold shadow-card-md">
-          {toast}
-        </div>
-      )}
-    </div>
+      <MiniTaskBuilder
+        open={builderOpen}
+        onClose={handleBuilderClose}
+        onSaved={handleSaved}
+        initialTask={editingTask}
+      />
+    </>
   );
 }

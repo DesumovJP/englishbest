@@ -1,0 +1,72 @@
+{
+  "kind": "collectionType",
+  "collectionName": "teacher_payouts",
+  "info": {
+    "singularName": "teacher-payout",
+    "pluralName": "teacher-payouts",
+    "displayName": "Teacher Payout",
+    "description": "Monthly payout aggregate for a teacher — rolls up lesson-payments for a given period."
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "teacher": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::teacher-profile.teacher-profile"
+    },
+    "periodYear": {
+      "type": "integer",
+      "required": true,
+      "min": 2020,
+      "max": 2100
+    },
+    "periodMonth": {
+      "type": "integer",
+      "required": true,
+      "min": 1,
+      "max": 12
+    },
+    "lessonsCount": {
+      "type": "integer",
+      "default": 0,
+      "required": true,
+      "min": 0
+    },
+    "ratePerLesson": {
+      "type": "decimal",
+      "default": 0,
+      "required": true
+    },
+    "total": {
+      "type": "decimal",
+      "default": 0,
+      "required": true
+    },
+    "currency": {
+      "type": "string",
+      "default": "UAH",
+      "required": true,
+      "maxLength": 8
+    },
+    "status": {
+      "type": "enumeration",
+      "enum": ["pending", "processing", "paid", "cancelled"],
+      "default": "pending",
+      "required": true
+    },
+    "paidAt": {
+      "type": "datetime"
+    },
+    "note": {
+      "type": "text"
+    },
+    "lessonPayments": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::lesson-payment.lesson-payment",
+      "mappedBy": "payout"
+    }
+  }
+}

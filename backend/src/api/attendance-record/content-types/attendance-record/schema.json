@@ -1,0 +1,42 @@
+{
+  "kind": "collectionType",
+  "collectionName": "attendance_records",
+  "info": {
+    "singularName": "attendance-record",
+    "pluralName": "attendance-records",
+    "displayName": "Attendance Record",
+    "description": "Per-session attendance mark (present/absent/late/excused) for a student."
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "session": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::session.session"
+    },
+    "student": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::user-profile.user-profile"
+    },
+    "status": {
+      "type": "enumeration",
+      "enum": ["present", "absent", "late", "excused"],
+      "default": "present",
+      "required": true
+    },
+    "note": {
+      "type": "text"
+    },
+    "recordedAt": {
+      "type": "datetime"
+    },
+    "recordedBy": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::teacher-profile.teacher-profile"
+    }
+  }
+}

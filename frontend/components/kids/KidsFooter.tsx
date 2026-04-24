@@ -2,12 +2,15 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import { useKidsState } from "@/lib/use-kids-store";
+import { fetchSubmissions } from "@/lib/homework";
 
 const TABS = [
-  { href: "/kids/dashboard", icon: "🏠",  label: "Home"   },
-  { href: "/kids/school",    icon: "📚",  label: "School" },
-  { href: "/kids/shop",      icon: "🛍️", label: "Shop"   },
+  { href: "/kids/dashboard", icon: "🏠", label: "Home"     },
+  { href: "/kids/school",    icon: "📚", label: "School"   },
+  { href: "/kids/homework",  icon: "📝", label: "Homework" },
+  { href: "/kids/shop",      icon: "🛍️", label: "Shop"    },
 ];
 
 export default function KidsFooter() {
@@ -15,9 +18,26 @@ export default function KidsFooter() {
   const { state } = useKidsState();
   const coins = state.coins ?? 0;
 
+  const [pending, setPending] = useState(0);
+
+  useEffect(() => {
+    let alive = true;
+    fetchSubmissions()
+      .then((rows) => {
+        if (!alive) return;
+        const n = rows.filter(
+          (s) => s.status === "notStarted" || s.status === "inProgress" || s.status === "returned" || s.status === "overdue",
+        ).length;
+        setPending(n);
+      })
+      .catch(() => { /* silent — footer is non-critical */ });
+    return () => { alive = false; };
+  }, [pathname]);
+
   function isActive(href: string) {
-    if (href === "/kids/school") return pathname.startsWith("/kids/school") || pathname.startsWith("/kids/lessons");
-    if (href === "/kids/shop")   return pathname === "/kids/shop";
+    if (href === "/kids/school")   return pathname.startsWith("/kids/school") || pathname.startsWith("/kids/lessons");
+    if (href === "/kids/homework") return pathname.startsWith("/kids/homework");
+    if (href === "/kids/shop")     return pathname === "/kids/shop";
     return pathname === href;
   }
 
@@ -30,6 +50,7 @@ export default function KidsFooter() {
         {TABS.map(tab => {
           const active = isActive(tab.href);
           const isShop = tab.href === "/kids/shop";
+          const isHomework = tab.href === "/kids/homework";
           return (
             <li key={tab.href} className="flex-1">
               <Link
@@ -62,6 +83,16 @@ export default function KidsFooter() {
                       <img src="/coin.png" alt="" aria-hidden width={8} height={8} className="object-contain" />
                       <span className="font-black text-white leading-none text-[8.5px]">
                         {coins > 999 ? "999+" : coins}
+                      </span>
+                    </span>
+                  )}
+                  {isHomework && pending > 0 && (
+                    <span
+                      className="absolute -top-1 -right-1 inline-flex items-center justify-center h-[15px] min-w-[15px] px-1 rounded-full bg-danger ring-2 ring-white"
+                      aria-label={`${pending} завдань чекають`}
+                    >
+                      <span className="font-black text-white leading-none text-[8.5px]">
+                        {pending > 9 ? "9+" : pending}
                       </span>
                     </span>
                   )}

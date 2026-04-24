@@ -2,18 +2,17 @@
  * Kids-identity derivation hook.
  *
  * Single client-side seam between the real session (`useSession()`) and the
- * Kids Zone UI's need for a display name + CEFR learning level. The session
- * exposes `profile.kidsProfile` as an untyped record (the Strapi component
- * has no TS counterpart yet), so this hook is the one place that narrows it
- * and applies conservative fallbacks.
+ * Kids Zone UI's need for a display name + CEFR learning level.
  *
- * Phase B/E will replace this with a typed `kidsProfile` + user-inventory
- * derivation. Until then:
- *   - `name` ← `firstName ?? displayName ?? 'друже'`
- *   - `level` ← `kidsProfile.currentLevel ?? 'A1'`
+ * Level source-of-truth is `user-profile.level` (written by the onboarding
+ * placement quiz via PATCH `/api/user-profile/me`). The `kidsProfile` record
+ * carries gamification state only.
  *
- * The fallbacks are intentionally permissive so anon/preview renders still
- * make sense; gated content simply shows at A1 until a real profile loads.
+ *   - `name`  ← `firstName ?? displayName ?? 'друже'`
+ *   - `level` ← `profile.level ?? 'A1'`
+ *
+ * Fallback to A1 keeps anon/preview renders sensible; the moment a placement
+ * completes, the session refresh updates the level everywhere.
  */
 'use client';
 
@@ -25,14 +24,20 @@ export type KidsIdentity = {
   level: Level;
 };
 
+const LEVELS: readonly Level[] = ['A0', 'A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
+
+function asLevel(v: unknown): Level | null {
+  return typeof v === 'string' && (LEVELS as readonly string[]).includes(v)
+    ? (v as Level)
+    : null;
+}
+
 export function useKidsIdentity(): KidsIdentity {
   const { session } = useSession();
-  const profile = session?.profile;
-  const name = profile?.firstName ?? profile?.displayName ?? 'друже';
-  const kidsProfile = profile?.kidsProfile as
-    | { currentLevel?: Level }
-    | null
+  const profile = session?.profile as
+    | { firstName?: string; displayName?: string; level?: string }
     | undefined;
-  const level = kidsProfile?.currentLevel ?? 'A1';
+  const name = profile?.firstName ?? profile?.displayName ?? 'друже';
+  const level = asLevel(profile?.level) ?? 'A1';
   return { name, level };
 }

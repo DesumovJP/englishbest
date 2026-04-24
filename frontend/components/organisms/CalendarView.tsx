@@ -1,8 +1,8 @@
 'use client';
 import { useState } from 'react';
-import { Badge } from '@/components/atoms/Badge';
-import { Button } from '@/components/atoms/Button';
-import { Modal } from '@/components/atoms/Modal';
+import { Badge } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
+import { Modal } from '@/components/ui/Modal';
 import type { CalendarSession } from '@/lib/types';
 
 interface CalendarViewProps {

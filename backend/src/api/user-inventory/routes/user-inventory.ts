@@ -30,5 +30,17 @@ export default {
       handler: 'api::user-inventory.user-inventory.unlockRoom',
       config: { policies: ['global::is-authenticated'] },
     },
+    {
+      method: 'POST',
+      path: '/user-inventory/me/purchase-shop-item',
+      handler: 'api::user-inventory.user-inventory.purchaseShopItem',
+      config: { policies: ['global::is-authenticated'] },
+    },
+    {
+      method: 'POST',
+      path: '/user-inventory/me/equip',
+      handler: 'api::user-inventory.user-inventory.equipShopItem',
+      config: { policies: ['global::is-authenticated'] },
+    },
   ],
 };

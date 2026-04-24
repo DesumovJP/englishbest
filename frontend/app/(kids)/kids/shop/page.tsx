@@ -1,13 +1,19 @@
 "use client";
 
-import { useState, useRef, Suspense, type CSSProperties } from "react";
+import { useMemo, useState, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import type { Level } from "@/lib/types";
 import { useKidsIdentity } from "@/lib/use-kids-identity";
 import { LootBoxModal, BoxCard } from "@/components/kids/LootBox";
 import type { BoxRarity, LootItem } from "@/components/kids/LootBox";
 import AddCustomModal from "@/components/kids/AddCustomModal";
-import { useCustomItems, useKidsState } from "@/lib/use-kids-store";
+import {
+  useCharacterCatalog,
+  useCustomItems,
+  useKidsState,
+  useShopCatalog,
+} from "@/lib/use-kids-store";
+import type { ServerShopItem } from "@/lib/shop-items";
 import CharacterAvatar from "@/components/kids/CharacterAvatar";
 import { CHARACTERS, type CharacterEmotion } from "@/lib/characters";
 import { InventoryMobile } from "@/components/kids/shop/InventoryMobile";
@@ -28,33 +34,24 @@ interface ShopItem {
   customImageIdle?: string;
 }
 
-const LEVEL_ORDER: Level[] = ["A1", "A2", "B1", "B2", "C1"];
+const LEVEL_ORDER: Level[] = ["A0", "A1", "A2", "B1", "B2", "C1", "C2"];
 function canUnlock(userLevel: Level, req: Level) {
   return LEVEL_ORDER.indexOf(userLevel) >= LEVEL_ORDER.indexOf(req);
 }
 
-const ITEMS: ShopItem[] = [
-  { id: "sofa",       emoji: "🛋️", nameEn: "Sofa",          phonetic: "/ˈsoʊfə/",            nameUa: "Диван",           price: 80,  tab: "furniture", levelRequired: "A1" },
-  { id: "wardrobe",   emoji: "🪞",  nameEn: "Wardrobe",      phonetic: "/ˈwɔːrdrōb/",         nameUa: "Шафа",            price: 120, tab: "furniture", levelRequired: "A2", isNew: true },
-  { id: "bookshelf",  emoji: "📚", nameEn: "Bookshelf",      phonetic: "/ˈbʊkʃɛlf/",          nameUa: "Книжкова полиця", price: 60,  tab: "furniture", levelRequired: "A1" },
-  { id: "armchair",   emoji: "🪑", nameEn: "Armchair",       phonetic: "/ˈɑːrmtʃɛr/",         nameUa: "Крісло",          price: 90,  tab: "furniture", levelRequired: "A1" },
-  { id: "desk",       emoji: "🖥️", nameEn: "Desk",           phonetic: "/dɛsk/",              nameUa: "Письмовий стіл",  price: 110, tab: "furniture", levelRequired: "A1" },
-  { id: "lamp",       emoji: "🪔", nameEn: "Floor Lamp",     phonetic: "/flɔːr læmp/",        nameUa: "Торшер",          price: 45,  tab: "furniture", levelRequired: "A1" },
-  { id: "globe",      emoji: "🌍", nameEn: "Globe",          phonetic: "/ɡloʊb/",             nameUa: "Глобус",          price: 40,  tab: "decor",     levelRequired: "A1" },
-  { id: "aquarium",   emoji: "🐠", nameEn: "Aquarium",       phonetic: "/əˈkwɛriəm/",         nameUa: "Акваріум",        price: 150, tab: "decor",     levelRequired: "A2", isNew: true },
-  { id: "rainbow",    emoji: "🌈", nameEn: "Rainbow Poster", phonetic: "/ˈreɪnboʊ ˈpoʊstər/", nameUa: "Постер-веселка",  price: 30,  tab: "decor",     levelRequired: "A1" },
-  { id: "clock",      emoji: "⏰", nameEn: "Clock",          phonetic: "/klɒk/",              nameUa: "Годинник",        price: 50,  tab: "decor",     levelRequired: "A1" },
-  { id: "plant",      emoji: "🪴", nameEn: "Plant",          phonetic: "/plænt/",             nameUa: "Рослина",         price: 35,  tab: "decor",     levelRequired: "A1" },
-  { id: "hat",        emoji: "🎩", nameEn: "Top Hat",        phonetic: "/tɒp hæt/",           nameUa: "Циліндр",         price: 70,  tab: "outfit",    levelRequired: "A1" },
-  { id: "scarf",      emoji: "🧣", nameEn: "Scarf",          phonetic: "/skɑːrf/",            nameUa: "Шарф",            price: 45,  tab: "outfit",    levelRequired: "A1" },
-  { id: "glasses",    emoji: "🕶️", nameEn: "Sunglasses",     phonetic: "/ˈsʌnɡlæsɪz/",       nameUa: "Окуляри",         price: 55,  tab: "outfit",    levelRequired: "A2", isNew: true },
-  { id: "crown",      emoji: "👑", nameEn: "Crown",          phonetic: "/kraʊn/",             nameUa: "Корона",          price: 200, tab: "outfit",    levelRequired: "B1" },
-  { id: "backpack",   emoji: "🎒", nameEn: "Backpack",       phonetic: "/ˈbækpæk/",          nameUa: "Рюкзак",          price: 65,  tab: "outfit",    levelRequired: "A1" },
-  { id: "trophy",     emoji: "🏆", nameEn: "Trophy",         phonetic: "/ˈtroʊfi/",           nameUa: "Кубок",           price: 300, tab: "special",   levelRequired: "A2" },
-  { id: "rocket",     emoji: "🚀", nameEn: "Rocket",         phonetic: "/ˈrɒkɪt/",            nameUa: "Ракета",          price: 250, tab: "special",   levelRequired: "B1" },
-  { id: "unicorn",    emoji: "🦄", nameEn: "Unicorn",        phonetic: "/ˈjuːnɪkɔːrn/",       nameUa: "Єдиноріг",        price: 500, tab: "special",   levelRequired: "B2" },
-  { id: "dragon_egg", emoji: "🥚", nameEn: "Dragon Egg",     phonetic: "/ˈdræɡən ɛɡ/",        nameUa: "Яйце дракона",    price: 400, tab: "special",   levelRequired: "B1" },
-];
+function toShopItem(s: ServerShopItem): ShopItem {
+  return {
+    id: s.slug,
+    emoji: s.emoji,
+    nameEn: s.nameEn,
+    phonetic: s.phonetic,
+    nameUa: s.nameUa,
+    price: s.price,
+    tab: s.category,
+    levelRequired: s.levelRequired,
+    isNew: s.isNew,
+  };
+}
 
 const BOX_TYPES: BoxRarity[] = ["common", "silver", "gold", "legendary"];
 
@@ -105,33 +102,33 @@ function BuyModal({ item, onSuccess, onClose }: {
     <>
       <div className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm" onClick={onClose} />
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div className="w-full max-w-xs bg-white rounded-2xl overflow-hidden shadow-[0_24px_64px_rgba(0,0,0,0.2)]">
-          <div className="relative flex flex-col items-center px-6 pt-6 pb-4 text-center border-b border-gray-100">
+        <div className="w-full max-w-xs bg-surface-raised rounded-2xl overflow-hidden shadow-overlay">
+          <div className="relative flex flex-col items-center px-6 pt-6 pb-4 text-center border-b border-border">
             <button onClick={onClose}
-              className="absolute right-4 top-4 w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-500">✕</button>
+              className="absolute right-4 top-4 w-8 h-8 flex items-center justify-center rounded-full bg-surface-muted text-ink-muted">✕</button>
             <div className="text-5xl mb-3">{item.emoji}</div>
-            <p className="font-black text-[22px] text-gray-900 -tracking-[0.02em]">{item.nameEn}</p>
-            <p className="font-medium italic text-[13px] text-gray-400">{item.phonetic}</p>
-            <p className="font-medium text-[13px] text-gray-500">{item.nameUa}</p>
+            <p className="font-black text-[22px] text-ink -tracking-[0.02em]">{item.nameEn}</p>
+            <p className="font-medium italic text-[13px] text-ink-faint">{item.phonetic}</p>
+            <p className="font-medium text-[13px] text-ink-muted">{item.nameUa}</p>
           </div>
 
           <div className="px-5 py-4 flex flex-col gap-3">
-            <p className="text-center font-medium text-xs text-gray-400">Type the English word to unlock</p>
+            <p className="text-center font-medium text-xs text-ink-faint">Type the English word to unlock</p>
             <div className={shake ? "animate-shake" : ""}>
               <input ref={inputRef} autoFocus type="text" value={value}
                 onChange={e => setValue(e.target.value)}
                 onKeyDown={e => e.key === "Enter" && value.trim() && check()}
                 placeholder={`Type "${item.nameEn}"…`}
                 className={[
-                  "w-full px-4 h-12 rounded-xl font-medium focus:outline-none text-[15px] text-gray-900 border-[1.5px]",
-                  wrong ? "border-red-500 bg-rose-50" : "border-gray-200 bg-gray-50",
+                  "w-full px-4 h-12 rounded-xl font-medium focus:outline-none text-[15px] text-ink border-[1.5px]",
+                  wrong ? "border-danger bg-danger-soft" : "border-border bg-surface-muted",
                 ].join(" ")} />
             </div>
-            {wrong && <p className="text-center font-bold text-xs text-red-500">Not quite — try again!</p>}
+            {wrong && <p className="text-center font-bold text-xs text-danger-dark">Not quite — try again!</p>}
 
-            <div className="flex items-center justify-between rounded-xl px-4 py-3 bg-gray-50 border border-gray-100">
-              <span className="font-medium text-[13px] text-gray-500">Cost</span>
-              <span className="font-black flex items-center gap-1.5 text-[15px] text-gray-900">
+            <div className="flex items-center justify-between rounded-xl px-4 py-3 bg-surface-muted border border-border">
+              <span className="font-medium text-[13px] text-ink-muted">Cost</span>
+              <span className="font-black flex items-center gap-1.5 text-[15px] text-ink">
                 <img src="/coin.png" alt="coin" width={18} height={18} className="object-contain" />
                 {item.price}
               </span>
@@ -139,11 +136,11 @@ function BuyModal({ item, onSuccess, onClose }: {
 
             <div className="flex gap-2">
               <button onClick={onClose}
-                className="flex-1 rounded-xl font-bold py-3 text-sm bg-gray-100 text-gray-500">
+                className="flex-1 rounded-xl font-bold py-3 text-sm bg-surface-muted text-ink-muted">
                 Cancel
               </button>
               <button onClick={check} disabled={!value.trim()}
-                className="flex-1 rounded-xl font-black text-white py-3 text-sm bg-gray-900 active:scale-95 transition-transform disabled:opacity-40">
+                className="flex-1 rounded-xl font-black text-white py-3 text-sm bg-primary shadow-press-primary active:scale-95 transition-transform disabled:opacity-40">
                 Unlock ✓
               </button>
             </div>
@@ -162,10 +159,10 @@ function ProductCard({ item, isBought, isLocked, canAfford, onBuyClick }: {
     <div className={["group flex flex-col", isLocked ? "opacity-50" : "opacity-100"].join(" ")}>
       <div className={[
         "relative w-full rounded-xl overflow-hidden flex items-center justify-center aspect-square border-[1.5px]",
-        isBought ? "bg-green-50 border-green-200" : "bg-gray-100 border-transparent",
+        isBought ? "bg-success/10 border-success/30" : "bg-surface-muted border-transparent",
       ].join(" ")}>
         {item.isNew && !isBought && !isLocked && (
-          <div className="absolute top-2 left-2 rounded-full px-2 py-0.5 bg-gray-900">
+          <div className="absolute top-2 left-2 rounded-full px-2 py-0.5 bg-primary">
             <span className="font-black text-white text-[8px] tracking-[0.08em]">NEW</span>
           </div>
         )}
@@ -180,7 +177,7 @@ function ProductCard({ item, isBought, isLocked, canAfford, onBuyClick }: {
         )}
 
         {isBought && (
-          <div className="absolute top-2 right-2 w-5 h-5 rounded-full flex items-center justify-center bg-green-500">
+          <div className="absolute top-2 right-2 w-5 h-5 rounded-full flex items-center justify-center bg-success">
             <span className="font-black text-white text-[10px]">✓</span>
           </div>
         )}
@@ -188,7 +185,7 @@ function ProductCard({ item, isBought, isLocked, canAfford, onBuyClick }: {
         {!isBought && !isLocked && canAfford && (
           <button
             onClick={onBuyClick}
-            className="absolute bottom-2 right-2 w-8 h-8 rounded-full flex items-center justify-center text-[15px] bg-white/95 shadow-[0_2px_8px_rgba(0,0,0,0.12)] opacity-100 sm:opacity-0 sm:group-hover:opacity-100 active:scale-90 transition-all"
+            className="absolute bottom-2 right-2 w-8 h-8 rounded-full flex items-center justify-center text-[15px] bg-surface-raised/95 shadow-card opacity-100 sm:opacity-0 sm:group-hover:opacity-100 active:scale-90 transition-all"
             aria-label={`Add ${item.nameEn} to cart`}
           >
             🛒
@@ -197,16 +194,16 @@ function ProductCard({ item, isBought, isLocked, canAfford, onBuyClick }: {
       </div>
 
       <div className="mt-2 flex flex-col gap-0.5">
-        <p className="font-black leading-tight text-[14px] sm:text-[clamp(11px,1.4vw,14px)] text-gray-900 -tracking-[0.01em]">
+        <p className="font-black leading-tight text-[14px] sm:text-[clamp(11px,1.4vw,14px)] text-ink -tracking-[0.01em]">
           {item.nameEn}
         </p>
-        <p className="font-medium italic leading-none text-[11px] sm:text-[clamp(9px,1.1vw,11px)] text-gray-400">{item.phonetic}</p>
-        <p className="font-medium leading-none text-[11px] sm:text-[clamp(9px,1.1vw,11px)] text-gray-500">{item.nameUa}</p>
+        <p className="font-medium italic leading-none text-[11px] sm:text-[clamp(9px,1.1vw,11px)] text-ink-faint">{item.phonetic}</p>
+        <p className="font-medium leading-none text-[11px] sm:text-[clamp(9px,1.1vw,11px)] text-ink-muted">{item.nameUa}</p>
 
         <div className="flex items-center justify-between mt-1.5">
           <span className={[
             "font-black flex items-center gap-1 text-[clamp(10px,1.2vw,13px)]",
-            isLocked ? "text-gray-400" : "text-gray-900",
+            isLocked ? "text-ink-faint" : "text-ink",
           ].join(" ")}>
             {isLocked
               ? `🔒 ${item.levelRequired}`
@@ -216,7 +213,7 @@ function ProductCard({ item, isBought, isLocked, canAfford, onBuyClick }: {
           {!isBought && !isLocked && canAfford && (
             <button
               onClick={onBuyClick}
-              className="sm:hidden w-7 h-7 rounded-full flex items-center justify-center text-sm bg-gray-100 active:scale-90 transition-transform"
+              className="sm:hidden w-7 h-7 rounded-full flex items-center justify-center text-sm bg-surface-muted active:scale-90 transition-transform"
             >
               🛒
             </button>
@@ -236,13 +233,13 @@ function BgCard({ item, isActive, canAfford, onBuy }: {
         className={[
           "relative w-full rounded-2xl overflow-hidden aspect-video border-2",
           isActive
-            ? "border-[2.5px] border-green-500 shadow-[0_0_0_3px_rgba(34,197,94,0.2)]"
-            : "border-transparent shadow-[0_2px_8px_rgba(0,0,0,0.10)]",
+            ? "border-[2.5px] border-success shadow-card-md"
+            : "border-transparent shadow-card",
         ].join(" ")}
         style={{ background: item.bgValue }}
       >
         {isActive && (
-          <div className="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center bg-green-500">
+          <div className="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center bg-success">
             <span className="font-black text-white text-[11px]">✓</span>
           </div>
         )}
@@ -255,12 +252,12 @@ function BgCard({ item, isActive, canAfford, onBuy }: {
 
       <div className="flex items-center justify-between">
         <div className="flex flex-col gap-0.5">
-          <span className="font-black text-[13px] text-gray-900 -tracking-[0.01em]">{item.nameEn}</span>
-          <span className="font-medium text-[11px] text-gray-500">{item.nameUa}</span>
+          <span className="font-black text-[13px] text-ink -tracking-[0.01em]">{item.nameEn}</span>
+          <span className="font-medium text-[11px] text-ink-muted">{item.nameUa}</span>
         </div>
 
         {isActive ? (
-          <span className="font-bold text-[11px] text-green-500">Active</span>
+          <span className="font-bold text-[11px] text-success-dark">Active</span>
         ) : (
           <button
             onClick={onBuy}
@@ -268,8 +265,8 @@ function BgCard({ item, isActive, canAfford, onBuy }: {
             className={[
               "rounded-xl px-3 py-1.5 font-black text-white text-xs active:scale-95 transition-transform disabled:opacity-40",
               item.price === 0
-                ? "bg-green-500 shadow-[0_3px_0_#16A34A]"
-                : "bg-gray-900 shadow-[0_3px_0_#0F0F1A]",
+                ? "bg-success shadow-press-success"
+                : "bg-primary shadow-press-primary",
             ].join(" ")}
           >
             {item.price === 0
@@ -303,35 +300,29 @@ const EMOTION_META: { key: CharacterEmotion; label: string; emoji: string }[] = 
   { key: 'angry',     label: 'Злюсь',   emoji: '😠' },
 ];
 
-type Rarity = 'common' | 'uncommon' | 'rare' | 'legendary';
+type Rarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
 type PickerChar = {
   id: string; nameEn: string; nameUa: string;
   rarity: Rarity; howToGet: string; unlocked: boolean;
 };
 
-const DRESS_CHARS: PickerChar[] = [
-  { id: 'fox',     nameEn: 'Rusty', nameUa: 'Рустік', rarity: 'common',    howToGet: 'Starter',       unlocked: true  },
-  { id: 'raccoon', nameEn: 'Rocky', nameUa: 'Роккі',  rarity: 'rare',      howToGet: '30-day streak', unlocked: true  },
-  { id: 'cat',     nameEn: 'Luna',  nameUa: 'Луна',   rarity: 'uncommon',  howToGet: 'Silver Box',    unlocked: false },
-  { id: 'rabbit',  nameEn: 'Pearl', nameUa: 'Перлина',rarity: 'rare',      howToGet: 'Gold Box',      unlocked: false },
-  { id: 'dragon',  nameEn: 'Blaze', nameUa: 'Блейз',  rarity: 'legendary', howToGet: 'Legendary Box', unlocked: false },
-];
-
 const RARITY: Record<Rarity, { text: string; bg: string; border: string }> = {
-  common:    { text: "text-gray-400",  bg: "bg-gray-50",   border: "border-gray-400"  },
-  uncommon:  { text: "text-green-500", bg: "bg-green-50",  border: "border-green-500" },
-  rare:      { text: "text-blue-500",  bg: "bg-blue-50",   border: "border-blue-500"  },
-  legendary: { text: "text-amber-500", bg: "bg-amber-50",  border: "border-amber-500" },
+  common:    { text: "text-ink-muted",    bg: "bg-surface-muted", border: "border-ink-muted"    },
+  uncommon:  { text: "text-success-dark", bg: "bg-success/10",    border: "border-success"      },
+  rare:      { text: "text-secondary",    bg: "bg-secondary/10",  border: "border-secondary"    },
+  epic:      { text: "text-purple-dark",  bg: "bg-purple/10",     border: "border-purple"       },
+  legendary: { text: "text-coin",         bg: "bg-coin-bg",       border: "border-coin"         },
 };
 
-function CharacterDressRoom({ allItems, ownedIds, balance, onBuyItem, onPlaceItem }: {
+function CharacterDressRoom({ allItems, ownedIds, balance, dressChars, onBuyItem, onPlaceItem }: {
   allItems: ShopItem[];
   ownedIds: Set<string>;
   balance: number;
+  dressChars: PickerChar[];
   onBuyItem: (item: ShopItem) => void;
   onPlaceItem: (itemId: string) => void;
 }) {
-  const { state, patch } = useKidsState();
+  const { state, patch, equipShopItem } = useKidsState();
   const { level: kidsLevel } = useKidsIdentity();
   const characterId = state.activeCharacterId ?? 'fox';
   const equippedIds = state.equippedItemIds ?? [];
@@ -348,10 +339,8 @@ function CharacterDressRoom({ allItems, ownedIds, balance, onBuyItem, onPlaceIte
     : EMOTION_META;
 
   function toggleEquip(id: string) {
-    const next = equippedIds.includes(id)
-      ? equippedIds.filter((x) => x !== id)
-      : [...equippedIds, id];
-    patch({ equippedItemIds: next });
+    const equip = !equippedIds.includes(id);
+    equipShopItem(id, equip);
   }
 
   function selectCharacter(id: string) {
@@ -361,12 +350,12 @@ function CharacterDressRoom({ allItems, ownedIds, balance, onBuyItem, onPlaceIte
   }
 
   return (
-    <div className="flex flex-col md:flex-row flex-1 overflow-hidden bg-white">
+    <div className="flex flex-col md:flex-row flex-1 overflow-hidden bg-surface-raised">
       {/* Character preview panel */}
-      <div className="flex flex-col items-center gap-5 px-6 py-6 md:w-80 flex-shrink-0 overflow-y-auto border-b md:border-b-0 md:border-r border-gray-100 bg-gray-50">
+      <div className="flex flex-col items-center gap-5 px-6 py-6 md:w-80 flex-shrink-0 overflow-y-auto border-b md:border-b-0 md:border-r border-border bg-surface-muted">
         <div className="text-center">
-          <p className="font-black text-[17px] -tracking-[0.02em] text-gray-900">My Character</p>
-          <p className="font-bold uppercase tracking-widest text-[9.5px] text-gray-400 mt-0.5">
+          <p className="font-black text-[17px] -tracking-[0.02em] text-ink">My Character</p>
+          <p className="font-bold uppercase tracking-widest text-[9.5px] text-ink-faint mt-0.5">
             {characterId} · Level {kidsLevel}
           </p>
         </div>
@@ -396,21 +385,21 @@ function CharacterDressRoom({ allItems, ownedIds, balance, onBuyItem, onPlaceIte
               return item ? (
                 <button key={id} onClick={() => toggleEquip(id)}
                   title={`Remove ${item.nameEn}`}
-                  className="bg-gray-100 border border-gray-200 rounded-[14px] px-2.5 py-1 text-[22px] active:scale-90 transition-transform">
+                  className="bg-surface-muted border border-border rounded-[14px] px-2.5 py-1 text-[22px] active:scale-90 transition-transform">
                   {item.emoji}
                 </button>
               ) : null;
             })}
           </div>
         ) : (
-          <p className="text-xs text-gray-400 font-semibold text-center">Tap an item below to equip</p>
+          <p className="text-xs text-ink-faint font-semibold text-center">Tap an item below to equip</p>
         )}
 
         {/* Character picker */}
-        <div className="w-full flex flex-col gap-2 pt-3 border-t border-gray-100">
-          <p className="font-black uppercase tracking-widest text-[9.5px] text-gray-400">Персонаж</p>
+        <div className="w-full flex flex-col gap-2 pt-3 border-t border-border">
+          <p className="font-black uppercase tracking-widest text-[9.5px] text-ink-faint">Персонаж</p>
           <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {DRESS_CHARS.map(char => {
+            {dressChars.map(char => {
               const isActive = characterId === char.id;
               const rarity = RARITY[char.rarity];
               return (
@@ -421,13 +410,13 @@ function CharacterDressRoom({ allItems, ownedIds, balance, onBuyItem, onPlaceIte
                   title={char.unlocked ? char.nameEn : `🔒 ${char.howToGet}`}
                   className={[
                     "flex-shrink-0 flex flex-col items-center gap-1 rounded-xl p-1.5 active:scale-95 transition-all w-16 border-2",
-                    isActive ? `${rarity.bg} ${rarity.border}` : "bg-white border-gray-100",
+                    isActive ? `${rarity.bg} ${rarity.border}` : "bg-surface-raised border-border",
                     char.unlocked ? "opacity-100" : "opacity-45",
                   ].join(" ")}
                 >
                   <div className={[
                     "w-12 h-12 rounded-xl flex items-center justify-center overflow-hidden",
-                    char.unlocked ? rarity.bg : "bg-gray-100 grayscale",
+                    char.unlocked ? rarity.bg : "bg-surface-muted grayscale",
                   ].join(" ")}>
                     {char.unlocked
                       ? <CharacterAvatar characterId={char.id} emotion="idle" size={44} animate={false} />
@@ -436,7 +425,7 @@ function CharacterDressRoom({ allItems, ownedIds, balance, onBuyItem, onPlaceIte
                   </div>
                   <span className={[
                     "font-black text-[9.5px]",
-                    isActive ? rarity.text : "text-gray-500",
+                    isActive ? rarity.text : "text-ink-muted",
                   ].join(" ")}>
                     {char.nameEn}
                   </span>
@@ -447,10 +436,10 @@ function CharacterDressRoom({ allItems, ownedIds, balance, onBuyItem, onPlaceIte
         </div>
 
         {/* Emotion preview */}
-        <div className="w-full flex flex-col gap-2 pt-3 border-t border-gray-100">
+        <div className="w-full flex flex-col gap-2 pt-3 border-t border-border">
           <div className="flex items-center justify-between">
-            <p className="font-black uppercase tracking-widest text-[9.5px] text-gray-400">Емоції</p>
-            <span className="font-bold text-[10px] text-gray-400">{availableEmotions.length} шт.</span>
+            <p className="font-black uppercase tracking-widest text-[9.5px] text-ink-faint">Емоції</p>
+            <span className="font-bold text-[10px] text-ink-faint">{availableEmotions.length} шт.</span>
           </div>
           <div className="grid grid-cols-4 gap-1.5">
             {availableEmotions.map(em => {
@@ -461,13 +450,13 @@ function CharacterDressRoom({ allItems, ownedIds, balance, onBuyItem, onPlaceIte
                   onClick={() => setPreviewEmotion(isActive ? 'idle' : em.key)}
                   className={[
                     "flex flex-col items-center gap-0.5 rounded-lg py-1.5 active:scale-90 transition-all border-[1.5px]",
-                    isActive ? "bg-blue-50 border-secondary shadow-[0_0_0_2px_rgba(79,156,249,0.18)]" : "bg-white border-gray-100",
+                    isActive ? "bg-secondary/10 border-secondary shadow-card" : "bg-surface-raised border-border",
                   ].join(" ")}
                 >
                   <span className="text-sm leading-none">{em.emoji}</span>
                   <span className={[
                     "font-bold text-[8.5px]",
-                    isActive ? "text-secondary" : "text-gray-500",
+                    isActive ? "text-secondary" : "text-ink-muted",
                   ].join(" ")}>
                     {em.label}
                   </span>
@@ -480,18 +469,18 @@ function CharacterDressRoom({ allItems, ownedIds, balance, onBuyItem, onPlaceIte
 
       {/* Items grid */}
       <div className="flex-1 overflow-y-auto p-5 pb-24">
-        <div className="flex gap-2 mb-5 p-1 rounded-2xl bg-gray-100">
+        <div className="flex gap-2 mb-5 p-1 rounded-2xl bg-surface-muted">
           <button
             onClick={() => setInvSubTab("character")}
             className={[
               "flex-1 flex items-center justify-center gap-1.5 rounded-xl py-2 transition-all active:scale-95",
-              invSubTab === "character" ? "bg-white shadow-[0_1px_3px_rgba(0,0,0,0.08)]" : "bg-transparent",
+              invSubTab === "character" ? "bg-surface-raised shadow-card" : "bg-transparent",
             ].join(" ")}
           >
             <span className="text-sm">👤</span>
             <span className={[
               "font-black text-[11px]",
-              invSubTab === "character" ? "text-gray-900" : "text-gray-400",
+              invSubTab === "character" ? "text-ink" : "text-ink-faint",
             ].join(" ")}>
               Персонаж ({outfitItems.filter(i => ownedIds.has(i.id)).length})
             </span>
@@ -500,13 +489,13 @@ function CharacterDressRoom({ allItems, ownedIds, balance, onBuyItem, onPlaceIte
             onClick={() => setInvSubTab("room")}
             className={[
               "flex-1 flex items-center justify-center gap-1.5 rounded-xl py-2 transition-all active:scale-95",
-              invSubTab === "room" ? "bg-white shadow-[0_1px_3px_rgba(0,0,0,0.08)]" : "bg-transparent",
+              invSubTab === "room" ? "bg-surface-raised shadow-card" : "bg-transparent",
             ].join(" ")}
           >
             <span className="text-sm">🏠</span>
             <span className={[
               "font-black text-[11px]",
-              invSubTab === "room" ? "text-gray-900" : "text-gray-400",
+              invSubTab === "room" ? "text-ink" : "text-ink-faint",
             ].join(" ")}>
               Кімната ({roomItems.length})
             </span>
@@ -515,12 +504,12 @@ function CharacterDressRoom({ allItems, ownedIds, balance, onBuyItem, onPlaceIte
 
         {invSubTab === "room" ? (
           <>
-            <p className="font-black uppercase tracking-widest mb-4 text-[10px] text-gray-400">Для домівки</p>
+            <p className="font-black uppercase tracking-widest mb-4 text-[10px] text-ink-faint">Для домівки</p>
             {roomItems.length === 0 ? (
               <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
                 <span className="text-5xl opacity-50">🛋️</span>
-                <p className="font-bold text-sm text-gray-500">Поки нічого для домівки</p>
-                <p className="text-xs text-gray-400">Купи меблі, декор або спеціальні предмети в магазині</p>
+                <p className="font-bold text-sm text-ink-muted">Поки нічого для домівки</p>
+                <p className="text-xs text-ink-faint">Купи меблі, декор або спеціальні предмети в магазині</p>
               </div>
             ) : (
               <div className="grid gap-3 grid-cols-[repeat(auto-fill,minmax(100px,1fr))]">
@@ -535,7 +524,7 @@ function CharacterDressRoom({ allItems, ownedIds, balance, onBuyItem, onPlaceIte
                     ) : (
                       <span className="text-[34px] leading-none">{item.emoji}</span>
                     )}
-                    <p className="font-black leading-tight text-[10px] text-gray-900">{item.nameEn}</p>
+                    <p className="font-black leading-tight text-[10px] text-ink">{item.nameEn}</p>
                     <span className="font-black text-[9px] text-primary-dark bg-primary/10 rounded-full px-2 py-0.5">
                       На домівку →
                     </span>
@@ -546,7 +535,7 @@ function CharacterDressRoom({ allItems, ownedIds, balance, onBuyItem, onPlaceIte
           </>
         ) : (
           <>
-            <p className="font-black uppercase tracking-widest mb-4 text-[10px] text-gray-400">Outfit &amp; Accessories</p>
+            <p className="font-black uppercase tracking-widest mb-4 text-[10px] text-ink-faint">Outfit &amp; Accessories</p>
 
             <div className="grid gap-3 grid-cols-[repeat(auto-fill,minmax(88px,1fr))]">
               {outfitItems.map(item => {
@@ -560,10 +549,10 @@ function CharacterDressRoom({ allItems, ownedIds, balance, onBuyItem, onPlaceIte
                     className={[
                       "flex flex-col items-center gap-2 rounded-2xl p-3 cursor-pointer active:scale-95 transition-all select-none border-[1.5px]",
                       isEquipped
-                        ? "bg-green-50 border-primary shadow-[0_0_12px_rgba(88,204,2,0.18)]"
+                        ? "bg-success/10 border-primary shadow-card"
                         : isOwned
-                          ? "bg-gray-50 border-green-200"
-                          : "bg-gray-50 border-gray-100",
+                          ? "bg-surface-muted border-success/30"
+                          : "bg-surface-muted border-border",
                       isLocked ? "opacity-40" : "opacity-100",
                     ].join(" ")}
                     onClick={() => {
@@ -575,23 +564,23 @@ function CharacterDressRoom({ allItems, ownedIds, balance, onBuyItem, onPlaceIte
                     <span className={["text-[30px]", isLocked && "grayscale"].filter(Boolean).join(" ")}>{item.emoji}</span>
                     <p className={[
                       "font-black text-center leading-tight text-[10px] -tracking-[0.01em]",
-                      isEquipped ? "text-green-600" : "text-gray-700",
+                      isEquipped ? "text-success-dark" : "text-ink",
                     ].join(" ")}>
                       {item.nameEn}
                     </p>
                     {isEquipped && (
-                      <span className="text-[7.5px] text-green-600 font-extrabold tracking-[0.06em]">EQUIPPED</span>
+                      <span className="text-[7.5px] text-success-dark font-extrabold tracking-[0.06em]">EQUIPPED</span>
                     )}
                     {!isOwned && !isLocked && (
                       <div className="flex items-center gap-0.5">
                         <img src="/coin.png" alt="coin" width={10} height={10} className="object-contain" />
-                        <span className={["text-[9px] font-bold", canAfford ? "text-amber-500" : "text-red-500"].join(" ")}>
+                        <span className={["text-[9px] font-bold", canAfford ? "text-coin" : "text-danger-dark"].join(" ")}>
                           {item.price}
                         </span>
                       </div>
                     )}
                     {isLocked && (
-                      <span className="text-[9px] text-gray-400 font-bold">🔒 {item.levelRequired}</span>
+                      <span className="text-[9px] text-ink-faint font-bold">🔒 {item.levelRequired}</span>
                     )}
                   </div>
                 );
@@ -608,12 +597,35 @@ function ShopPageInner() {
   const {
     state: kidsState,
     patch: patchState,
-    purchaseItem,
+    purchaseShopItem,
+    equipShopItem,
     placeItem,
   } = useKidsState();
   const { items: customItems } = useCustomItems();
+  const { items: serverItems } = useShopCatalog();
+  const { characters: serverCharacters } = useCharacterCatalog();
   const { level: kidsLevel } = useKidsIdentity();
   const searchParams = useSearchParams();
+
+  const ownedCharacterIds = kidsState.ownedCharacterIds ?? [];
+  const dressChars: PickerChar[] = useMemo(
+    () => serverCharacters.map((c) => {
+      const unlocked = ownedCharacterIds.includes(c.slug) || c.priceCoins === 0;
+      const rarity: Rarity = c.rarity as Rarity;
+      const howToGet = c.priceCoins === 0
+        ? 'Starter'
+        : `Купити за ${c.priceCoins} 🪙`;
+      return {
+        id: c.slug,
+        nameEn: c.nameEn,
+        nameUa: c.nameUa,
+        rarity,
+        howToGet,
+        unlocked,
+      };
+    }),
+    [serverCharacters, ownedCharacterIds.join(',')],
+  );
 
   const balance = kidsState.coins ?? 0;
   const bought  = new Set(kidsState.ownedItemIds);
@@ -627,7 +639,7 @@ function ShopPageInner() {
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   const allItems: ShopItem[] = [
-    ...ITEMS,
+    ...serverItems.map(toShopItem),
     ...customItems.map(ci => ({
       id: ci.id, emoji: ci.emojiFallback,
       nameEn: ci.nameEn, phonetic: "", nameUa: ci.nameUa,
@@ -665,8 +677,14 @@ function ShopPageInner() {
 
   async function handleSuccess() {
     if (!buyItem) return;
-    const ok = await purchaseItem(buyItem.id, buyItem.price);
-    setToast(ok ? `"${buyItem.nameEn}" — додано в інвентар!` : "Not enough coins");
+    if (buyItem.isCustom) {
+      setToast("Custom items live only on your device — покупка не потрібна");
+      setTimeout(() => setToast(null), 3000);
+      setBuyItem(null);
+      return;
+    }
+    const ok = await purchaseShopItem(buyItem.id);
+    setToast(ok ? `"${buyItem.nameEn}" — додано в інвентар!` : "Не вдалося купити — перевір баланс або рівень");
     setTimeout(() => setToast(null), 3000);
     setBuyItem(null);
   }
@@ -684,21 +702,21 @@ function ShopPageInner() {
   }
 
   return (
-    <div className="flex flex-col h-[100dvh] bg-white">
+    <div className="flex flex-col h-[100dvh] bg-surface-raised">
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar — desktop */}
-        <div className="hidden md:flex flex-col flex-shrink-0 overflow-y-auto w-[200px] border-r border-gray-100">
-          <div className="flex items-center gap-2 mx-4 mt-4 mb-2 rounded-xl px-3 py-2.5 bg-amber-50 border-[1.5px] border-amber-200">
+        <div className="hidden md:flex flex-col flex-shrink-0 overflow-y-auto w-[200px] border-r border-border">
+          <div className="flex items-center gap-2 mx-4 mt-4 mb-2 rounded-xl px-3 py-2.5 bg-coin-bg border-[1.5px] border-coin">
             <img src="/coin.png" alt="coin" width={20} height={20} className="object-contain" />
             <div className="flex flex-col leading-none">
-              <span className="text-[7.5px] text-amber-600 font-bold uppercase tracking-[0.07em]">Balance</span>
-              <span className="font-black text-sm text-amber-800">{balance}</span>
+              <span className="text-[7.5px] text-coin font-bold uppercase tracking-[0.07em]">Balance</span>
+              <span className="font-black text-sm text-coin">{balance}</span>
             </div>
             <button onClick={() => setShowAdd(true)}
-              className="ml-auto w-7 h-7 rounded-lg flex items-center justify-center font-black text-base bg-gray-100 text-gray-700 active:scale-90 transition-transform">+</button>
+              className="ml-auto w-7 h-7 rounded-lg flex items-center justify-center font-black text-base bg-surface-muted text-ink active:scale-90 transition-transform">+</button>
           </div>
 
-          <p className="px-5 mt-3 mb-2 font-black uppercase tracking-widest text-[10px] text-gray-400">Category</p>
+          <p className="px-5 mt-3 mb-2 font-black uppercase tracking-widest text-[10px] text-ink-faint">Category</p>
 
           {CATEGORIES.map(cat => {
             const isActive = activeTab === cat.id;
@@ -707,46 +725,46 @@ function ShopPageInner() {
                 onClick={() => setActiveTab(cat.id)}
                 className={[
                   "flex items-center gap-2.5 px-5 py-2.5 text-left transition-colors active:scale-95 border-l-[3px]",
-                  isActive ? "bg-gray-100 border-gray-900" : "bg-transparent border-transparent",
+                  isActive ? "bg-surface-muted border-primary" : "bg-transparent border-transparent",
                 ].join(" ")}>
                 <span className="text-base">{cat.emoji}</span>
                 <span className={[
                   "flex-1 text-[13px]",
-                  isActive ? "text-gray-900 font-extrabold" : "text-gray-500 font-medium",
+                  isActive ? "text-ink font-extrabold" : "text-ink-muted font-medium",
                 ].join(" ")}>
                   {cat.label}
                 </span>
-                <span className="font-medium text-[11px] text-gray-400">{counts[cat.id]}</span>
+                <span className="font-medium text-[11px] text-ink-faint">{counts[cat.id]}</span>
               </button>
             );
           })}
 
-          <div className="mx-5 mt-3 pt-3 border-t border-gray-100">
-            <p className="font-black uppercase tracking-widest mb-2 text-[10px] text-gray-400">Моє</p>
+          <div className="mx-5 mt-3 pt-3 border-t border-border">
+            <p className="font-black uppercase tracking-widest mb-2 text-[10px] text-ink-faint">Моє</p>
             <button
               onClick={() => setActiveTab("character")}
               className={[
                 "flex items-center gap-2.5 w-full rounded-xl px-3 py-2.5 text-left transition-all active:scale-95 border-[1.5px]",
-                activeTab === "character" ? "bg-purple-50 border-purple-200" : "bg-gray-50 border-gray-100",
+                activeTab === "character" ? "bg-purple/10 border-purple/30" : "bg-surface-muted border-border",
               ].join(" ")}>
               <span className="text-lg">🎒</span>
               <span className={[
                 "flex-1 text-[13px]",
-                activeTab === "character" ? "text-purple-600 font-extrabold" : "text-gray-500 font-medium",
+                activeTab === "character" ? "text-purple-dark font-extrabold" : "text-ink-muted font-medium",
               ].join(" ")}>
                 Інвентар
               </span>
-              <span className="font-medium text-[11px] text-gray-400">{bought.size}</span>
+              <span className="font-medium text-[11px] text-ink-faint">{bought.size}</span>
             </button>
           </div>
 
-          <div className="mx-5 mt-4 pt-4 border-t border-gray-100">
-            <p className="font-black uppercase tracking-widest mb-3 text-[10px] text-gray-400">Filter</p>
+          <div className="mx-5 mt-4 pt-4 border-t border-border">
+            <p className="font-black uppercase tracking-widest mb-3 text-[10px] text-ink-faint">Filter</p>
             <label className="flex items-center gap-2 cursor-pointer">
               <input type="checkbox" checked={onlyAffordable}
                 onChange={e => setOnlyAffordable(e.target.checked)}
                 className="w-4 h-4 rounded" />
-              <span className="font-medium text-[13px] text-gray-700">Can afford</span>
+              <span className="font-medium text-[13px] text-ink">Can afford</span>
             </label>
           </div>
         </div>
@@ -754,28 +772,28 @@ function ShopPageInner() {
         {/* Main */}
         <div className="flex flex-col flex-1 overflow-hidden">
           {/* Mobile header */}
-          <div className="md:hidden border-b border-gray-100 bg-white">
+          <div className="md:hidden border-b border-border bg-surface-raised">
             <div
               className="flex items-center gap-2.5 px-4 py-2.5"
               style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 10px)' }}
             >
               <div className="flex items-center gap-2">
                 <span className="text-xl" aria-hidden>🛍️</span>
-                <h1 className="font-black text-[17px] text-gray-900 tracking-tight">Магазин</h1>
+                <h1 className="font-black text-[17px] text-ink tracking-tight">Магазин</h1>
               </div>
 
               <div className="flex-1" />
 
-              <div className="flex items-center gap-2 rounded-xl px-2.5 py-1.5 bg-amber-50 border-[1.5px] border-amber-200">
+              <div className="flex items-center gap-2 rounded-xl px-2.5 py-1.5 bg-coin-bg border-[1.5px] border-coin">
                 <img src="/coin.png" alt="coin" width={18} height={18} className="object-contain" />
                 <div className="flex flex-col leading-none">
-                  <span className="text-[7.5px] text-amber-600 font-bold uppercase tracking-[0.07em]">Balance</span>
-                  <span className="font-black text-[13px] text-amber-800 mt-0.5">{balance}</span>
+                  <span className="text-[7.5px] text-coin font-bold uppercase tracking-[0.07em]">Balance</span>
+                  <span className="font-black text-[13px] text-coin mt-0.5">{balance}</span>
                 </div>
                 <button
                   onClick={() => setShowAdd(true)}
                   aria-label="Поповнити"
-                  className="w-6 h-6 rounded-lg flex items-center justify-center font-black text-sm bg-amber-200/70 text-amber-800 active:scale-90 transition-transform ml-1"
+                  className="w-6 h-6 rounded-lg flex items-center justify-center font-black text-sm bg-coin-border text-coin active:scale-90 transition-transform ml-1"
                 >
                   +
                 </button>
@@ -789,14 +807,14 @@ function ShopPageInner() {
                 <span className="text-base">
                   {activeTab === "character" ? "🎒" : (CATEGORIES.find(c => c.id === activeTab)?.emoji ?? "🛍️")}
                 </span>
-                <span className="font-black text-[14px] text-gray-900 truncate">
+                <span className="font-black text-[14px] text-ink truncate">
                   {activeTab === "character" ? "Інвентар" : (CATEGORIES.find(c => c.id === activeTab)?.label ?? "Все")}
                 </span>
-                <span className="font-bold text-[11px] text-gray-400">
+                <span className="font-bold text-[11px] text-ink-faint">
                   {activeTab === "character" ? bought.size : counts[activeTab]}
                 </span>
               </span>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden className="flex-shrink-0 text-gray-500">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden className="flex-shrink-0 text-ink-muted">
                 <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </button>
@@ -806,16 +824,16 @@ function ShopPageInner() {
           {drawerOpen && (
             <div className="md:hidden fixed inset-0 z-[60] flex items-end">
               <div
-                className="absolute inset-0 bg-slate-900/55 backdrop-blur-[4px]"
+                className="absolute inset-0 bg-black/55 backdrop-blur-[4px]"
                 onClick={() => setDrawerOpen(false)}
                 aria-hidden
               />
-              <div className="relative w-full max-h-[85dvh] flex flex-col rounded-t-3xl bg-white shadow-[0_-10px_40px_rgba(15,23,42,0.15)] animate-[slide-up_220ms_ease-out]">
+              <div className="relative w-full max-h-[85dvh] flex flex-col rounded-t-3xl bg-surface-raised shadow-overlay animate-[slide-up_220ms_ease-out]">
                 <div className="flex-shrink-0 flex justify-center pt-2.5 pb-2">
-                  <span className="h-1 w-10 rounded-full bg-gray-300" aria-hidden />
+                  <span className="h-1 w-10 rounded-full bg-border" aria-hidden />
                 </div>
                 <div className="flex-1 overflow-y-auto overscroll-contain pb-[env(safe-area-inset-bottom,16px)]">
-                  <p className="px-5 pb-2 font-black uppercase tracking-widest text-[10px] text-gray-400">Category</p>
+                  <p className="px-5 pb-2 font-black uppercase tracking-widest text-[10px] text-ink-faint">Category</p>
                   <div className="px-2">
                     {CATEGORIES.map(cat => {
                       const isActive = activeTab === cat.id;
@@ -825,28 +843,28 @@ function ShopPageInner() {
                           onClick={() => { setActiveTab(cat.id); setDrawerOpen(false); }}
                           className={[
                             "w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-colors",
-                            isActive ? "bg-gray-900 text-white" : "bg-transparent text-gray-700 active:bg-gray-100",
+                            isActive ? "bg-primary text-white" : "bg-transparent text-ink active:bg-surface-muted",
                           ].join(" ")}
                         >
                           <span className="text-lg">{cat.emoji}</span>
                           <span className="flex-1 text-left font-extrabold text-[15px]">{cat.label}</span>
-                          <span className={["font-bold text-[12px]", isActive ? "text-white/70" : "text-gray-400"].join(" ")}>{counts[cat.id]}</span>
+                          <span className={["font-bold text-[12px]", isActive ? "text-white/70" : "text-ink-faint"].join(" ")}>{counts[cat.id]}</span>
                         </button>
                       );
                     })}
                   </div>
-                  <div className="mx-5 mt-3 pt-3 border-t border-gray-100">
-                    <p className="font-black uppercase tracking-widest mb-2 text-[10px] text-gray-400">Моє</p>
+                  <div className="mx-5 mt-3 pt-3 border-t border-border">
+                    <p className="font-black uppercase tracking-widest mb-2 text-[10px] text-ink-faint">Моє</p>
                     <button
                       onClick={() => { setActiveTab("character"); setDrawerOpen(false); }}
                       className={[
                         "w-full flex items-center gap-3 rounded-xl px-3 py-3 text-left transition-colors border-[1.5px]",
-                        activeTab === "character" ? "bg-purple-600 border-purple-600 text-white" : "bg-purple-50 border-purple-100 text-purple-700 active:bg-purple-100",
+                        activeTab === "character" ? "bg-purple border-purple text-white" : "bg-purple/10 border-purple/25 text-purple-dark active:bg-purple/20",
                       ].join(" ")}
                     >
                       <span className="text-lg">🎒</span>
                       <span className="flex-1 font-extrabold text-[15px]">Інвентар</span>
-                      <span className={["font-bold text-[12px]", activeTab === "character" ? "text-white/70" : "text-purple-500"].join(" ")}>{bought.size}</span>
+                      <span className={["font-bold text-[12px]", activeTab === "character" ? "text-white/70" : "text-purple-dark"].join(" ")}>{bought.size}</span>
                     </button>
                   </div>
                 </div>
@@ -855,15 +873,15 @@ function ShopPageInner() {
           )}
 
           {/* Results bar */}
-          <div className={`${activeTab === "character" ? "hidden md:flex" : "flex"} items-center justify-between px-4 py-2.5 border-b border-gray-100`}>
-            <p className="font-medium text-xs text-gray-400">
+          <div className={`${activeTab === "character" ? "hidden md:flex" : "flex"} items-center justify-between px-4 py-2.5 border-b border-border`}>
+            <p className="font-medium text-xs text-ink-faint">
               {activeTab === "boxes" ? "Mystery Boxes" : activeTab === "backgrounds" ? `${BACKGROUNDS.length} backgrounds` : `${visible.length} items`}
             </p>
             <label className="md:hidden flex items-center gap-1.5 cursor-pointer">
               <input type="checkbox" checked={onlyAffordable}
                 onChange={e => setOnlyAffordable(e.target.checked)}
                 className="w-3.5 h-3.5" />
-              <span className="font-medium text-[11px] text-gray-500">Can afford</span>
+              <span className="font-medium text-[11px] text-ink-muted">Can afford</span>
             </label>
           </div>
 
@@ -881,13 +899,12 @@ function ShopPageInner() {
                     userLevel={kidsLevel}
                     slotOffset={SLOT_OFFSET}
                     emotionMeta={EMOTION_META}
-                    dressChars={DRESS_CHARS}
+                    dressChars={dressChars}
                     rarityMap={RARITY}
                     canUnlock={(lvl, req) => canUnlock(lvl as Level, req as Level)}
                     onToggleEquip={(id) => {
                       const cur = kidsState.equippedItemIds ?? [];
-                      const next = cur.includes(id) ? cur.filter(x => x !== id) : [...cur, id];
-                      patchState({ equippedItemIds: next });
+                      equipShopItem(id, !cur.includes(id));
                     }}
                     onSelectCharacter={(id) => patchState({ activeCharacterId: id })}
                     onBuy={(item) => setBuyItem(item as ShopItem)}
@@ -899,6 +916,7 @@ function ShopPageInner() {
                     allItems={allItems}
                     ownedIds={bought}
                     balance={balance}
+                    dressChars={dressChars}
                     onBuyItem={item => setBuyItem(item)}
                     onPlaceItem={handlePlaceFromInventory}
                   />
@@ -906,9 +924,9 @@ function ShopPageInner() {
               </>
             ) : activeTab === "backgrounds" ? (
               <div className="flex flex-col gap-5">
-                <div className="inline-flex items-center gap-2.5 rounded-2xl px-4 py-2.5 self-start bg-green-50 border-[1.5px] border-green-200">
+                <div className="inline-flex items-center gap-2.5 rounded-2xl px-4 py-2.5 self-start bg-success/10 border-[1.5px] border-success/30">
                   <span className="text-lg">🖼️</span>
-                  <p className="font-medium text-[13px] text-gray-700">
+                  <p className="font-medium text-[13px] text-ink">
                     Обери фон — він одразу зміниться на головному екрані
                   </p>
                 </div>
@@ -941,8 +959,8 @@ function ShopPageInner() {
             ) : visible.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-24 gap-3">
                 <span className="text-5xl">🎉</span>
-                <p className="font-black text-base text-gray-900">All owned!</p>
-                <p className="font-medium text-[13px] text-gray-400">You have everything in this category.</p>
+                <p className="font-black text-base text-ink">All owned!</p>
+                <p className="font-medium text-[13px] text-ink-faint">You have everything in this category.</p>
               </div>
             ) : (
               <div className="grid gap-x-4 gap-y-6 grid-cols-[repeat(auto-fill,minmax(min(120px,45%),1fr))]">
@@ -968,7 +986,7 @@ function ShopPageInner() {
 
       {toast && (
         <div className="fixed bottom-28 left-1/2 -translate-x-1/2 z-50 animate-fade-in-up">
-          <div className="rounded-2xl px-5 py-3 font-bold text-white text-[13px] whitespace-nowrap bg-gray-900/90 backdrop-blur-md">
+          <div className="rounded-2xl px-5 py-3 font-bold text-white text-[13px] whitespace-nowrap bg-ink/90 backdrop-blur-md">
             {toast}
           </div>
         </div>

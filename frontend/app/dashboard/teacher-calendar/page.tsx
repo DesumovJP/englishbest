@@ -1,420 +1,410 @@
+/**
+ * /dashboard/teacher-calendar — teacher's own calendar, live.
+ *
+ * Week-at-a-glance grid keyed by day. Sessions come from `fetchSessions()`;
+ * the `api::session.session` controller scopes by role (teacher sees own).
+ * Click a session → LessonActionSheet (update/cancel/delete in place).
+ * "+ Урок" → CreateLessonModal with the clicked day/time as defaults.
+ */
 'use client';
-import { useMemo, useState } from 'react';
-import { CalendarGrid } from '@/components/molecules/CalendarGrid';
-import {
-  LESSON_STATUS_STYLES,
-  MOCK_SCHEDULE,
-  MOCK_TODAY,
-  getGroup,
-  getStudent,
-  type ScheduledLesson,
-} from '@/lib/teacher-mocks';
-import {
-  LevelBadge,
-  PageHeader,
-  SegmentedControl,
-  type SegmentedControlOption,
-} from '@/components/teacher/ui';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { DashboardPageShell } from '@/components/ui/shells';
+import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
+import { SegmentedControl, type SegmentedControlOption } from '@/components/teacher/ui';
 import { CreateLessonModal } from '@/components/teacher/CreateLessonModal';
 import { LessonActionSheet } from '@/components/teacher/LessonActionSheet';
+import {
+  fetchSessions,
+  splitStartAt,
+  type Session,
+  type SessionStatus,
+} from '@/lib/sessions';
 
-type View = 'day' | 'week' | 'month';
+type View = 'week' | 'day';
 
 const VIEW_OPTIONS: ReadonlyArray<SegmentedControlOption<View>> = [
-  { value: 'day',   label: 'День' },
-  { value: 'week',  label: 'Тиждень' },
-  { value: 'month', label: 'Місяць' },
+  { value: 'week', label: 'Тиждень' },
+  { value: 'day',  label: 'День' },
 ];
 
-const HOURS = Array.from({ length: 15 }, (_, i) => i + 8); // 08-22
-
-const MODE_LABEL: Record<ScheduledLesson['mode'], string> = {
-  individual:      'Індивід.',
-  pair:            'Парний',
-  group:           'Груповий',
-  'speaking-club': 'Speaking',
+const STATUS_DOT: Record<SessionStatus, string> = {
+  scheduled: 'bg-primary',
+  live:      'bg-success',
+  completed: 'bg-ink-muted',
+  cancelled: 'bg-danger',
+  'no-show': 'bg-warning',
 };
-const WEEKDAYS_SHORT = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'];
-const MONTHS_UA = ['січня', 'лютого', 'березня', 'квітня', 'травня', 'червня', 'липня', 'серпня', 'вересня', 'жовтня', 'листопада', 'грудня'];
 
-function parseDate(s: string) {
-  return new Date(`${s}T00:00:00`);
-}
-function fmtDate(d: Date) {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
-function addDays(d: Date, delta: number) {
+function startOfDay(d: Date): Date {
   const out = new Date(d);
-  out.setDate(out.getDate() + delta);
+  out.setHours(0, 0, 0, 0);
   return out;
 }
-function startOfWeek(d: Date) {
-  const day = d.getDay();
-  const mondayOffset = day === 0 ? -6 : 1 - day;
-  return addDays(d, mondayOffset);
+
+function startOfWeek(d: Date): Date {
+  const out = startOfDay(d);
+  const day = out.getDay();
+  const diff = (day + 6) % 7; // Monday as first day
+  out.setDate(out.getDate() - diff);
+  return out;
 }
 
-function subjectName(l: ScheduledLesson) {
-  return l.studentId
-    ? getStudent(l.studentId)?.name ?? '—'
-    : l.groupId
-      ? getGroup(l.groupId)?.name ?? '—'
-      : '—';
+function addDays(d: Date, n: number): Date {
+  const out = new Date(d);
+  out.setDate(out.getDate() + n);
+  return out;
+}
+
+function toIsoDate(d: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+const DAY_LABELS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'];
+
+function formatRangeLabel(start: Date, end: Date): string {
+  const s = start.toLocaleDateString('uk-UA', { day: 'numeric', month: 'short' });
+  const e = end.toLocaleDateString('uk-UA', { day: 'numeric', month: 'short', year: 'numeric' });
+  return `${s} — ${e}`;
+}
+
+function formatDayLabel(d: Date): string {
+  return d.toLocaleDateString('uk-UA', { weekday: 'long', day: 'numeric', month: 'long' });
 }
 
 export default function TeacherCalendarPage() {
-  const [view, setView] = useState<View>('day');
-  const [anchor, setAnchor] = useState(MOCK_TODAY);
-  const [creating, setCreating] = useState<{ open: boolean; date?: string; time?: string }>({ open: false });
-  const [active, setActive] = useState<ScheduledLesson | null>(null);
+  const [view, setView] = useState<View>('week');
+  const [anchor, setAnchor] = useState<Date>(() => startOfDay(new Date()));
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createDefaults, setCreateDefaults] = useState<{ date?: string; time?: string }>({});
+  const [selectedSession, setSelectedSession] = useState<Session | null>(null);
 
-  const anchorDate = parseDate(anchor);
-  const weekStart = startOfWeek(anchorDate);
+  const range = useMemo(() => {
+    if (view === 'day') {
+      const start = startOfDay(anchor);
+      const end = addDays(start, 1);
+      return { start, end };
+    }
+    const start = startOfWeek(anchor);
+    const end = addDays(start, 7);
+    return { start, end };
+  }, [anchor, view]);
 
-  const lessonsByDate = useMemo(() => {
-    const map = new Map<string, ScheduledLesson[]>();
-    MOCK_SCHEDULE.forEach(l => {
-      if (!map.has(l.date)) map.set(l.date, []);
-      map.get(l.date)!.push(l);
-    });
-    map.forEach(arr => arr.sort((a, b) => a.time.localeCompare(b.time)));
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const rows = await fetchSessions({
+        fromISO: range.start.toISOString(),
+        toISO: range.end.toISOString(),
+      });
+      setSessions(rows);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'failed');
+    } finally {
+      setLoading(false);
+    }
+  }, [range.start, range.end]);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const rows = await fetchSessions({
+          fromISO: range.start.toISOString(),
+          toISO: range.end.toISOString(),
+        });
+        if (!alive) return;
+        setSessions(rows);
+        setError(null);
+      } catch (e) {
+        if (!alive) return;
+        setError(e instanceof Error ? e.message : 'failed');
+      } finally {
+        if (alive) setLoading(false);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [range.start, range.end]);
+
+  const days = useMemo(() => {
+    const count = view === 'day' ? 1 : 7;
+    return Array.from({ length: count }, (_, i) => addDays(range.start, i));
+  }, [range.start, view]);
+
+  const sessionsByDay = useMemo(() => {
+    const map = new Map<string, Session[]>();
+    for (const d of days) map.set(toIsoDate(d), []);
+    for (const s of sessions) {
+      const d = new Date(s.startAt);
+      if (Number.isNaN(d.getTime())) continue;
+      const key = toIsoDate(d);
+      const bucket = map.get(key);
+      if (bucket) bucket.push(s);
+    }
+    for (const bucket of map.values()) {
+      bucket.sort((a, b) => a.startAt.localeCompare(b.startAt));
+    }
     return map;
-  }, []);
+  }, [days, sessions]);
 
-  function shiftAnchor(delta: number) {
-    const step = view === 'day' ? 1 : view === 'week' ? 7 : 30;
-    setAnchor(fmtDate(addDays(anchorDate, delta * step)));
+  function shiftRange(direction: -1 | 1) {
+    const step = view === 'day' ? 1 : 7;
+    setAnchor(prev => addDays(prev, step * direction));
   }
 
-  const headerLabel =
+  function goToday() {
+    setAnchor(startOfDay(new Date()));
+  }
+
+  function openCreate(date?: Date, time?: string) {
+    setCreateDefaults({
+      date: date ? toIsoDate(date) : toIsoDate(anchor),
+      time: time ?? '16:00',
+    });
+    setCreateOpen(true);
+  }
+
+  function handleCreated() {
+    setCreateOpen(false);
+    load();
+  }
+
+  function handleSessionChanged(next: Session) {
+    setSessions(prev => prev.map(s => (s.documentId === next.documentId ? next : s)));
+    setSelectedSession(next);
+  }
+
+  function handleSessionDeleted(documentId: string) {
+    setSessions(prev => prev.filter(s => s.documentId !== documentId));
+    setSelectedSession(null);
+  }
+
+  const rangeLabel =
     view === 'day'
-      ? `${anchorDate.getDate()} ${MONTHS_UA[anchorDate.getMonth()]}`
-      : view === 'week'
-        ? `${weekStart.getDate()} ${MONTHS_UA[weekStart.getMonth()]} – ${addDays(weekStart, 6).getDate()} ${MONTHS_UA[addDays(weekStart, 6).getMonth()]}`
-        : `${MONTHS_UA[anchorDate.getMonth()]} ${anchorDate.getFullYear()}`;
+      ? formatDayLabel(range.start)
+      : formatRangeLabel(range.start, addDays(range.start, 6));
+
+  const shellStatus: 'loading' | 'error' | 'empty' | 'ready' =
+    error ? 'error'
+    : loading ? 'loading'
+    : sessions.length === 0 ? 'empty'
+    : 'ready';
 
   return (
-    <div className="flex flex-col gap-5">
-      <PageHeader
-        title="Розклад"
-        subtitle={`${MOCK_SCHEDULE.length} уроків у плані`}
-        action={
-          <button
-            type="button"
-            onClick={() => setCreating({ open: true, date: anchor })}
-            className="ios-btn ios-btn-primary"
-          >
-            + Урок
-          </button>
+    <>
+      <DashboardPageShell
+        title="Розклад вчителя"
+        subtitle={rangeLabel}
+        actions={
+          <Button onClick={() => openCreate()}>+ Урок</Button>
         }
-      />
-
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => shiftAnchor(-1)}
-            aria-label="Назад"
-            className="ios-btn ios-btn-secondary w-9 p-0"
-          >
-            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M15 18l-6-6 6-6" /></svg>
-          </button>
-          <button type="button" onClick={() => setAnchor(MOCK_TODAY)} className="ios-btn ios-btn-secondary">
-            Сьогодні
-          </button>
-          <button
-            type="button"
-            onClick={() => shiftAnchor(+1)}
-            aria-label="Вперед"
-            className="ios-btn ios-btn-secondary w-9 p-0"
-          >
-            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M9 18l6-6-6-6" /></svg>
-          </button>
-          <h2 className="ml-2 text-[15px] font-semibold text-ink tracking-tight">{headerLabel}</h2>
-        </div>
-
-        <SegmentedControl value={view} onChange={setView} options={VIEW_OPTIONS} label="Вид" />
-      </div>
-
-      {view === 'day' && (
-        <DayView
-          date={anchor}
-          lessons={lessonsByDate.get(anchor) ?? []}
-          onPickSlot={time => setCreating({ open: true, date: anchor, time })}
-          onPickLesson={setActive}
-        />
-      )}
-
-      {view === 'week' && (
-        <WeekView
-          weekStart={weekStart}
-          lessonsByDate={lessonsByDate}
-          onPickSlot={(date, time) => setCreating({ open: true, date, time })}
-          onPickLesson={setActive}
-        />
-      )}
-
-      {view === 'month' && (
-        <CalendarGrid
-          initialYear={anchorDate.getFullYear()}
-          initialMonth={anchorDate.getMonth()}
-          onDayClick={dateStr => {
-            const list = lessonsByDate.get(dateStr);
-            if (list && list.length > 0) {
-              setActive(list[0]);
-            } else {
-              setCreating({ open: true, date: dateStr });
-            }
-          }}
-          renderDay={({ dateStr }) => {
-            const list = lessonsByDate.get(dateStr) ?? [];
-            return (
-              <>
-                {list.slice(0, 3).map(l => (
-                  <div key={l.id} className="flex items-center gap-1 text-[10px] text-ink-muted leading-tight">
-                    <span className="ios-dot" />
-                    <span className="truncate tabular-nums">{l.time} · {subjectName(l).split(' ')[0]}</span>
-                  </div>
-                ))}
-                {list.length > 3 && (
-                  <span className="text-[10px] text-ink-faint font-semibold">+{list.length - 3}</span>
-                )}
-              </>
-            );
-          }}
-        />
-      )}
+        toolbar={
+          <div className="flex flex-wrap items-center gap-3 w-full">
+            <SegmentedControl value={view} onChange={setView} options={VIEW_OPTIONS} label="Режим" />
+            <div className="inline-flex items-center gap-1.5">
+              <Button variant="secondary" size="sm" onClick={() => shiftRange(-1)}>‹</Button>
+              <Button variant="secondary" size="sm" onClick={goToday}>Сьогодні</Button>
+              <Button variant="secondary" size="sm" onClick={() => shiftRange(1)}>›</Button>
+            </div>
+            <span className="ml-auto text-[12px] text-ink-muted tabular-nums">
+              {sessions.length} уроків у періоді
+            </span>
+          </div>
+        }
+        status={shellStatus}
+        error={error ?? undefined}
+        onRetry={load}
+        loadingShape="card"
+        empty={{
+          title: 'Немає уроків',
+          description: 'Додайте перший урок — він з’явиться у сітці',
+        }}
+      >
+        {view === 'week' ? (
+          <WeekGrid
+            days={days}
+            sessionsByDay={sessionsByDay}
+            onSessionClick={setSelectedSession}
+            onCreateAt={(date, time) => openCreate(date, time)}
+          />
+        ) : (
+          <DayList
+            day={days[0]}
+            sessions={sessionsByDay.get(toIsoDate(days[0])) ?? []}
+            onSessionClick={setSelectedSession}
+            onCreateAt={time => openCreate(days[0], time)}
+          />
+        )}
+      </DashboardPageShell>
 
       <CreateLessonModal
-        open={creating.open}
-        onClose={() => setCreating({ open: false })}
-        defaultDate={creating.date}
-        defaultTime={creating.time}
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        onCreated={handleCreated}
+        defaultDate={createDefaults.date}
+        defaultTime={createDefaults.time}
       />
 
-      {active && <LessonActionSheet lesson={active} onClose={() => setActive(null)} />}
-    </div>
+      <LessonActionSheet
+        session={selectedSession}
+        onClose={() => setSelectedSession(null)}
+        onChanged={handleSessionChanged}
+        onDeleted={handleSessionDeleted}
+      />
+    </>
   );
 }
 
-function DayView({
-  date,
-  lessons,
-  onPickSlot,
-  onPickLesson,
-}: {
-  date: string;
-  lessons: ScheduledLesson[];
-  onPickSlot: (time: string) => void;
-  onPickLesson: (l: ScheduledLesson) => void;
-}) {
-  const d = parseDate(date);
-  const weekdayIdx = d.getDay() === 0 ? 6 : d.getDay() - 1;
-  const isToday = date === MOCK_TODAY;
+interface WeekGridProps {
+  days: Date[];
+  sessionsByDay: Map<string, Session[]>;
+  onSessionClick: (s: Session) => void;
+  onCreateAt: (date: Date, time: string) => void;
+}
 
+function WeekGrid({ days, sessionsByDay, onSessionClick, onCreateAt }: WeekGridProps) {
+  const today = toIsoDate(new Date());
   return (
-    <div className="ios-card overflow-hidden">
-      <div className="grid grid-cols-[56px_1fr] border-b border-border">
-        <div />
-        <div className="px-2 py-2.5 text-center border-l border-border">
-          <p className="text-[10px] font-semibold text-ink-faint uppercase tracking-wide">{WEEKDAYS_SHORT[weekdayIdx]}</p>
-          <p className={`text-[14px] font-semibold mt-0.5 tabular-nums ${isToday ? 'text-ink' : 'text-ink-muted'}`}>
-            {d.getDate()}
-            {isToday && <span className="block w-1 h-1 rounded-full bg-primary mx-auto mt-1" aria-hidden />}
-          </p>
-        </div>
-      </div>
-
-      {HOURS.map(h => {
-        const timeLabel = `${String(h).padStart(2, '0')}:00`;
-        const slotLessons = lessons.filter(l => Number(l.time.slice(0, 2)) === h);
-        return (
-          <div key={h} className="grid grid-cols-[56px_1fr] border-b border-border last:border-b-0 min-h-14">
-            <div className="px-2 py-1 text-[10px] font-semibold text-ink-faint tabular-nums">
-              {timeLabel}
-            </div>
-            <div className="border-l border-border p-1.5 flex flex-col gap-1.5">
-              {slotLessons.length === 0 ? (
+    <Card variant="surface" padding="none" className="overflow-hidden">
+      <div className="grid grid-cols-1 md:grid-cols-7 border-t border-border">
+        {days.map((d, i) => {
+          const key = toIsoDate(d);
+          const rows = sessionsByDay.get(key) ?? [];
+          const isToday = key === today;
+          return (
+            <div
+              key={key}
+              className={`border-b md:border-b-0 md:border-r last:border-r-0 border-border min-h-40 ${
+                isToday ? 'bg-primary/5' : ''
+              }`}
+            >
+              <div className="px-3 py-2 flex items-center justify-between border-b border-border">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-ink-faint">
+                  {DAY_LABELS[i]} · {d.getDate()}
+                </span>
                 <button
                   type="button"
-                  onClick={() => onPickSlot(timeLabel)}
-                  className="w-full text-left px-2 py-1.5 rounded-lg text-[11px] text-ink-faint hover:bg-surface-muted hover:text-ink-muted transition-colors"
-                  aria-label={`Створити урок о ${timeLabel}`}
+                  onClick={() => onCreateAt(d, '16:00')}
+                  className="text-[11px] font-semibold text-primary hover:underline"
                 >
-                  + Урок
+                  +
                 </button>
-              ) : (
-                slotLessons.map(l => (
-                  <LessonRow key={l.id} lesson={l} onClick={() => onPickLesson(l)} />
-                ))
-              )}
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-function LessonRow({ lesson, onClick }: { lesson: ScheduledLesson; onClick: () => void }) {
-  const status = LESSON_STATUS_STYLES[lesson.status];
-  const isActive = lesson.status === 'in-progress';
-  const student = lesson.studentId ? getStudent(lesson.studentId) : null;
-  const group = lesson.groupId ? getGroup(lesson.groupId) : null;
-  const name = student?.name ?? group?.name ?? '—';
-  const photo = student?.photo;
-  const initials = name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
-  const endHour = Math.floor((Number(lesson.time.slice(0, 2)) * 60 + Number(lesson.time.slice(3, 5)) + lesson.duration) / 60);
-  const endMin = (Number(lesson.time.slice(0, 2)) * 60 + Number(lesson.time.slice(3, 5)) + lesson.duration) % 60;
-  const endLabel = `${String(endHour).padStart(2, '0')}:${String(endMin).padStart(2, '0')}`;
-
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`w-full text-left rounded-lg px-3 py-2.5 border transition-colors flex items-center gap-3 ${
-        isActive
-          ? 'border-primary bg-primary/[0.06] hover:bg-primary/[0.09]'
-          : 'border-border bg-white hover:border-primary/30 hover:bg-surface-muted/40'
-      }`}
-    >
-      {photo ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={photo} alt="" className="w-9 h-9 rounded-full object-cover flex-shrink-0" />
-      ) : (
-        <div className="w-9 h-9 rounded-full bg-surface-muted flex items-center justify-center flex-shrink-0 text-[11px] font-semibold text-ink-muted">
-          {initials || '—'}
-        </div>
-      )}
-
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <p className="text-[13px] font-semibold text-ink truncate">{name}</p>
-          <LevelBadge level={lesson.level} />
-        </div>
-        <p className="text-[11px] text-ink-muted truncate mt-0.5">{lesson.topic}</p>
-      </div>
-
-      <div className="hidden md:flex items-center gap-3 flex-shrink-0 text-[11px] tabular-nums">
-        <span className="text-ink-muted">
-          {lesson.time}–{endLabel}
-        </span>
-        <span className="w-px h-3 bg-border" aria-hidden />
-        <span className="text-ink-faint">{MODE_LABEL[lesson.mode]}</span>
-      </div>
-
-      <span className="flex items-center gap-1.5 flex-shrink-0 text-[11px] font-semibold text-ink-muted">
-        <span className={`w-1.5 h-1.5 rounded-full ${status.dot}`} aria-hidden />
-        <span className="hidden sm:inline">{status.label}</span>
-      </span>
-
-      <svg className="w-3.5 h-3.5 text-ink-faint flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" aria-hidden>
-        <path d="M9 18l6-6-6-6" />
-      </svg>
-    </button>
-  );
-}
-
-function WeekView({
-  weekStart,
-  lessonsByDate,
-  onPickSlot,
-  onPickLesson,
-}: {
-  weekStart: Date;
-  lessonsByDate: Map<string, ScheduledLesson[]>;
-  onPickSlot: (date: string, time: string) => void;
-  onPickLesson: (l: ScheduledLesson) => void;
-}) {
-  const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
-
-  return (
-    <div className="ios-card overflow-x-auto">
-      <div className="min-w-[880px]">
-        <div className="grid grid-cols-[56px_repeat(7,minmax(0,1fr))] border-b border-border">
-          <div />
-          {days.map((d, i) => {
-            const dateStr = fmtDate(d);
-            const isToday = dateStr === MOCK_TODAY;
-            return (
-              <div key={i} className="px-2 py-2.5 text-center border-l border-border">
-                <p className="text-[10px] font-semibold text-ink-faint uppercase tracking-wide">{WEEKDAYS_SHORT[i]}</p>
-                <p className={`text-[14px] font-semibold mt-0.5 tabular-nums ${isToday ? 'text-ink' : 'text-ink-muted'}`}>
-                  {d.getDate()}
-                  {isToday && <span className="block w-1 h-1 rounded-full bg-primary mx-auto mt-1" aria-hidden />}
-                </p>
               </div>
-            );
-          })}
-        </div>
-
-        {HOURS.map(h => {
-          const timeLabel = `${String(h).padStart(2, '0')}:00`;
-          return (
-            <div key={h} className="grid grid-cols-[56px_repeat(7,minmax(0,1fr))] border-b border-border last:border-b-0 min-h-14">
-              <div className="px-2 py-1 text-[10px] font-semibold text-ink-faint tabular-nums">
-                {timeLabel}
-              </div>
-              {days.map((d, i) => {
-                const dateStr = fmtDate(d);
-                const cellLessons = (lessonsByDate.get(dateStr) ?? []).filter(
-                  l => Number(l.time.slice(0, 2)) === h,
-                );
-                return (
-                  <button
-                    key={i}
-                    type="button"
-                    onClick={() => cellLessons.length === 0 && onPickSlot(dateStr, timeLabel)}
-                    className={`border-l border-border text-left px-1.5 py-1.5 flex flex-col gap-1 transition-colors ${
-                      cellLessons.length === 0 ? 'hover:bg-surface-muted/70' : ''
-                    }`}
-                  >
-                    {cellLessons.map(l => (
-                      <LessonPill key={l.id} lesson={l} compact onClick={() => onPickLesson(l)} />
-                    ))}
-                  </button>
-                );
-              })}
+              <ul className="flex flex-col">
+                {rows.length === 0 ? (
+                  <li className="px-3 py-3 text-[12px] text-ink-faint">—</li>
+                ) : (
+                  rows.map(s => (
+                    <li key={s.documentId} className="border-t border-border first:border-t-0">
+                      <button
+                        type="button"
+                        onClick={() => onSessionClick(s)}
+                        className="w-full text-left px-3 py-2 hover:bg-surface-muted/50 transition-colors"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className={`w-1.5 h-1.5 rounded-full ${STATUS_DOT[s.status]}`} />
+                          <span className="text-[12px] font-semibold text-ink tabular-nums">
+                            {splitStartAt(s.startAt).time}
+                          </span>
+                        </div>
+                        <p className="text-[12px] text-ink truncate mt-0.5">{s.title || '—'}</p>
+                        <p className="text-[11px] text-ink-muted truncate">
+                          {s.attendees.length === 1
+                            ? s.attendees[0].displayName
+                            : `${s.attendees.length} учнів`}
+                        </p>
+                      </button>
+                    </li>
+                  ))
+                )}
+              </ul>
             </div>
           );
         })}
       </div>
-    </div>
+    </Card>
   );
 }
 
-function LessonPill({
-  lesson,
-  compact,
-  onClick,
-}: {
-  lesson: ScheduledLesson;
-  compact?: boolean;
-  onClick: () => void;
-}) {
-  const status = LESSON_STATUS_STYLES[lesson.status];
-  const isActive = lesson.status === 'in-progress';
+interface DayListProps {
+  day: Date;
+  sessions: Session[];
+  onSessionClick: (s: Session) => void;
+  onCreateAt: (time: string) => void;
+}
+
+function DayList({ day, sessions, onSessionClick, onCreateAt }: DayListProps) {
+  const hours = useMemo(() => Array.from({ length: 14 }, (_, i) => i + 8), []); // 08..21
+  const byHour = useMemo(() => {
+    const map = new Map<number, Session[]>();
+    for (const h of hours) map.set(h, []);
+    for (const s of sessions) {
+      const d = new Date(s.startAt);
+      if (Number.isNaN(d.getTime())) continue;
+      const h = d.getHours();
+      const bucket = map.get(h) ?? [];
+      bucket.push(s);
+      map.set(h, bucket);
+    }
+    return map;
+  }, [hours, sessions]);
+
   return (
-    <button
-      type="button"
-      onClick={e => {
-        e.stopPropagation();
-        onClick();
-      }}
-      className={`w-full text-left rounded-lg px-2 py-1.5 border transition-colors ${
-        isActive
-          ? 'border-primary bg-primary text-white'
-          : 'border-border bg-white hover:border-primary/30'
-      }`}
-    >
-      <div className="flex items-center gap-1.5">
-        <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${status.dot}`} />
-        <span className={`text-[10px] font-semibold tabular-nums ${isActive ? 'text-white/90' : 'text-ink-muted'}`}>{lesson.time}</span>
+    <Card variant="surface" padding="none" className="overflow-hidden">
+      <div className="px-4 py-3 border-b border-border">
+        <p className="text-[13px] font-semibold text-ink">{formatDayLabel(day)}</p>
       </div>
-      <p className={`font-semibold truncate mt-0.5 ${compact ? 'text-[11px]' : 'text-[12px]'} ${isActive ? 'text-white' : 'text-ink'}`}>
-        {subjectName(lesson)}
-      </p>
-      {!compact && <p className={`text-[11px] truncate ${isActive ? 'text-white/70' : 'text-ink-muted'}`}>{lesson.topic}</p>}
-    </button>
+      <ul>
+        {hours.map(h => {
+          const rows = byHour.get(h) ?? [];
+          const timeLabel = `${String(h).padStart(2, '0')}:00`;
+          return (
+            <li key={h} className="grid grid-cols-[80px_1fr] border-t border-border first:border-t-0">
+              <div className="px-3 py-3 text-[12px] text-ink-muted tabular-nums">{timeLabel}</div>
+              <div className="px-2 py-2 flex flex-wrap gap-2">
+                {rows.length === 0 ? (
+                  <button
+                    type="button"
+                    onClick={() => onCreateAt(timeLabel)}
+                    className="text-[11px] text-ink-faint hover:text-primary px-2 py-1 rounded-md hover:bg-primary/5 transition-colors"
+                  >
+                    + урок
+                  </button>
+                ) : (
+                  rows.map(s => (
+                    <button
+                      type="button"
+                      key={s.documentId}
+                      onClick={() => onSessionClick(s)}
+                      className="text-left px-3 py-2 rounded-lg border border-border bg-surface hover:border-primary/40 transition-colors"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className={`w-1.5 h-1.5 rounded-full ${STATUS_DOT[s.status]}`} />
+                        <span className="text-[12px] font-semibold text-ink tabular-nums">
+                          {splitStartAt(s.startAt).time} · {s.durationMin} хв
+                        </span>
+                      </div>
+                      <p className="text-[13px] font-semibold text-ink mt-0.5">{s.title || '—'}</p>
+                      <p className="text-[11px] text-ink-muted">
+                        {s.attendees.length === 1
+                          ? s.attendees[0].displayName
+                          : `${s.attendees.length} учнів`}
+                      </p>
+                    </button>
+                  ))
+                )}
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    </Card>
   );
 }

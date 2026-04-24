@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
-import { BLOCK_KIND_ICONS, type LessonBlock } from '@/lib/teacher-mocks';
+import { BLOCK_KIND_ICONS } from '@/lib/ui/teacher-labels';
+import type { LessonBlock } from '@/lib/types/teacher';
 
 interface LessonBlockPreviewProps {
   block: LessonBlock;

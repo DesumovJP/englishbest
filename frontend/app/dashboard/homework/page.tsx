@@ -1,236 +1,328 @@
 'use client';
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
-  HOMEWORK_KIND_LABELS,
-  HOMEWORK_STATUS_STYLES,
-  MOCK_GROUPS,
-  MOCK_HOMEWORK,
-  MOCK_STUDENTS,
-  MOCK_TODAY,
-  type HomeworkStatus,
-  type HomeworkTask,
-} from '@/lib/teacher-mocks';
+  fetchSubmissions,
+  type Submission,
+  type SubmissionStatus,
+} from '@/lib/homework';
 import {
-  CoinTag,
-  PageHeader,
   SearchInput,
   SegmentedControl,
   StatusPill,
   type SegmentedControlOption,
 } from '@/components/teacher/ui';
 import { CreateHomeworkModal } from '@/components/teacher/CreateHomeworkModal';
+import { ManageHomeworksModal } from '@/components/teacher/ManageHomeworksModal';
+import { DashboardPageShell } from '@/components/ui/shells';
+import { Card } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
+import { Avatar } from '@/components/ui/Avatar';
 
-type Tab = 'all' | 'submitted' | 'reviewed' | 'returned' | 'overdue';
+type Tab = 'all' | 'submitted' | 'reviewed' | 'returned' | 'overdue' | 'notStarted';
 
 const TAB_OPTIONS: ReadonlyArray<SegmentedControlOption<Tab>> = [
-  { value: 'all',       label: 'Всі' },
-  { value: 'submitted', label: 'Перевірка' },
-  { value: 'reviewed',  label: 'Готово' },
-  { value: 'returned',  label: 'Повернуто' },
-  { value: 'overdue',   label: 'Прострочено' },
+  { value: 'all',        label: 'Всі' },
+  { value: 'submitted',  label: 'Перевірка' },
+  { value: 'reviewed',   label: 'Готово' },
+  { value: 'returned',   label: 'Повернуто' },
+  { value: 'overdue',    label: 'Прострочено' },
+  { value: 'notStarted', label: 'Не розпочато' },
 ];
 
-function targetInfo(task: HomeworkTask): { name: string; photo?: string; sub: string } {
-  if (task.assignedTo.type === 'student') {
-    const s = MOCK_STUDENTS.find(x => x.id === task.assignedTo.id);
-    return { name: s?.name ?? '—', photo: s?.photo, sub: `Учень · ${s?.level ?? ''}` };
+const STATUS_DISPLAY: Record<SubmissionStatus, { label: string; cls: string }> = {
+  notStarted: { label: 'Не розпочато', cls: 'bg-surface-muted text-ink-muted' },
+  inProgress: { label: 'В процесі',    cls: 'bg-surface-muted text-ink' },
+  submitted:  { label: 'На перевірці', cls: 'bg-primary text-white' },
+  reviewed:   { label: 'Перевірено',   cls: 'bg-surface-muted text-ink-muted' },
+  returned:   { label: 'Повернуто',    cls: 'bg-surface-muted text-danger-dark' },
+  overdue:    { label: 'Прострочено',  cls: 'bg-danger/10 text-danger-dark' },
+};
+
+function deadlineLabel(
+  dueAt: string | null,
+  status: SubmissionStatus,
+): { text: string; tone: 'muted' | 'warn' | 'danger' } {
+  if (!dueAt) return { text: '—', tone: 'muted' };
+  if (status === 'reviewed' || status === 'returned') {
+    return { text: formatDate(dueAt), tone: 'muted' };
   }
-  const g = MOCK_GROUPS.find(x => x.id === task.assignedTo.id);
-  return { name: g?.name ?? '—', sub: `Група · ${g?.level ?? ''}` };
-}
-
-function daysUntil(deadline: string): number {
-  const d = new Date(deadline).getTime();
-  const t = new Date(MOCK_TODAY).getTime();
-  return Math.round((d - t) / 86_400_000);
-}
-
-function deadlineLabel(deadline: string, status: HomeworkStatus): { text: string; tone: 'muted' | 'warn' | 'danger' } {
-  const days = daysUntil(deadline);
-  if (status === 'reviewed' || status === 'returned') return { text: deadline, tone: 'muted' };
-  if (status === 'overdue' || days < 0) return { text: `Прострочено · ${Math.abs(days)} дн`, tone: 'danger' };
+  const due = new Date(dueAt).getTime();
+  const now = Date.now();
+  const days = Math.round((due - now) / 86_400_000);
+  if (status === 'overdue' || days < 0) {
+    return { text: `Прострочено · ${Math.abs(days)} дн`, tone: 'danger' };
+  }
   if (days === 0) return { text: 'Сьогодні', tone: 'warn' };
   if (days <= 2) return { text: `Через ${days} дн`, tone: 'warn' };
-  return { text: deadline, tone: 'muted' };
+  return { text: formatDate(dueAt), tone: 'muted' };
+}
+
+function formatDate(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toISOString().slice(0, 10);
 }
 
 export default function HomeworkPage() {
   const [tab, setTab] = useState<Tab>('submitted');
   const [query, setQuery] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
+  const [manageOpen, setManageOpen] = useState(false);
+  const [submissions, setSubmissions] = useState<Submission[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const rows = await fetchSubmissions();
+        if (!alive) return;
+        setSubmissions(rows);
+        setError(null);
+      } catch (e) {
+        if (!alive) return;
+        setError(e instanceof Error ? e.message : 'failed');
+      } finally {
+        if (alive) setLoading(false);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [reloadKey]);
 
   const counts = useMemo(() => {
-    const base: Record<Tab, number> = { all: MOCK_HOMEWORK.length, submitted: 0, reviewed: 0, returned: 0, overdue: 0 };
-    MOCK_HOMEWORK.forEach(h => {
-      if (h.status === 'submitted') base.submitted++;
-      if (h.status === 'reviewed')  base.reviewed++;
-      if (h.status === 'returned')  base.returned++;
-      if (h.status === 'overdue')   base.overdue++;
+    const base: Record<Tab, number> = {
+      all: submissions.length,
+      submitted: 0,
+      reviewed: 0,
+      returned: 0,
+      overdue: 0,
+      notStarted: 0,
+    };
+    submissions.forEach((s) => {
+      if (s.status in base) base[s.status as Tab]++;
     });
     return base;
-  }, []);
+  }, [submissions]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return MOCK_HOMEWORK
-      .filter(h => (tab === 'all' ? true : h.status === tab))
-      .filter(h => {
+    return submissions
+      .filter((s) => (tab === 'all' ? true : s.status === tab))
+      .filter((s) => {
         if (q === '') return true;
-        const { name } = targetInfo(h);
-        return h.title.toLowerCase().includes(q) || name.toLowerCase().includes(q);
+        const title = s.homework?.title ?? '';
+        const name = s.student?.displayName ?? '';
+        return title.toLowerCase().includes(q) || name.toLowerCase().includes(q);
       })
-      .sort((a, b) => a.deadline.localeCompare(b.deadline));
-  }, [tab, query]);
+      .sort((a, b) => {
+        const ad = a.homework?.dueAt ?? '';
+        const bd = b.homework?.dueAt ?? '';
+        return ad.localeCompare(bd);
+      });
+  }, [submissions, tab, query]);
+
+  const shellStatus: 'loading' | 'error' | 'empty' | 'ready' =
+    error ? 'error'
+    : loading ? 'loading'
+    : filtered.length === 0 ? 'empty'
+    : 'ready';
 
   return (
-    <div className="flex flex-col gap-5">
-      <PageHeader
-        title="Домашні завдання"
-        subtitle={`${MOCK_HOMEWORK.length} завдань · ${counts.submitted} очікують перевірки`}
-        action={
-          <button type="button" onClick={() => setCreateOpen(true)} className="ios-btn ios-btn-primary">
-            + Створити
-          </button>
-        }
+    <>
+    <DashboardPageShell
+      title="Домашні завдання"
+      subtitle={
+        loading
+          ? 'Завантаження…'
+          : `${submissions.length} здач · ${counts.submitted} на перевірці`
+      }
+      actions={
+        <div className="flex gap-2">
+          <Button variant="secondary" onClick={() => setManageOpen(true)}>Керувати</Button>
+          <Button onClick={() => setCreateOpen(true)}>+ Створити</Button>
+        </div>
+      }
+      toolbar={
+        <div className="flex flex-wrap items-center gap-3 w-full">
+          <SegmentedControl value={tab} onChange={setTab} options={TAB_OPTIONS} label="Статус ДЗ" />
+          <SearchInput
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Пошук за назвою або учнем…"
+            containerClassName="w-full sm:w-72 sm:ml-auto"
+          />
+        </div>
+      }
+      status={shellStatus}
+      error={error ?? undefined}
+      loadingShape="table"
+      empty={{
+        title: 'Нічого не знайдено',
+        description:
+          submissions.length === 0
+            ? 'Коли ви опублікуєте ДЗ, здачі учнів з’являться тут'
+            : 'Спробуй інший запит або фільтр',
+      }}
+    >
+      <Card variant="surface" padding="none" className="overflow-hidden">
+        <div className="hidden md:block overflow-x-auto">
+          <table className="w-full min-w-[720px]">
+            <thead>
+              <tr className="border-b border-border">
+                <th className="text-left px-5 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-faint">Учень</th>
+                <th className="text-left px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-faint">Завдання</th>
+                <th className="text-left px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-faint">Дедлайн</th>
+                <th className="text-left px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-faint">Статус</th>
+                <th className="px-4 py-2.5" />
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((s) => (
+                <SubmissionRow key={s.documentId} submission={s} />
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <ul className="md:hidden">
+          {filtered.map((s) => (
+            <SubmissionCard key={s.documentId} submission={s} />
+          ))}
+        </ul>
+
+        <div className="px-5 py-2.5 border-t border-border bg-surface-muted/50 flex items-center justify-between text-[11px] text-ink-muted tabular-nums">
+          <span>Показано {filtered.length} з {submissions.length}</span>
+        </div>
+      </Card>
+    </DashboardPageShell>
+
+    <CreateHomeworkModal
+      open={createOpen}
+      onClose={() => setCreateOpen(false)}
+      onCreated={() => setReloadKey(k => k + 1)}
+    />
+
+    <ManageHomeworksModal
+      open={manageOpen}
+      onClose={() => setManageOpen(false)}
+      onMutated={() => setReloadKey(k => k + 1)}
+    />
+    </>
+  );
+}
+
+function SubmissionRow({ submission }: { submission: Submission }) {
+  const status = STATUS_DISPLAY[submission.status];
+  const deadline = deadlineLabel(submission.homework?.dueAt ?? null, submission.status);
+  const deadlineCls =
+    deadline.tone === 'danger'
+      ? 'text-danger-dark font-semibold'
+      : deadline.tone === 'warn'
+        ? 'text-ink font-semibold'
+        : 'text-ink-muted';
+  const canReview =
+    submission.status === 'submitted' ||
+    submission.status === 'reviewed' ||
+    submission.status === 'returned';
+
+  return (
+    <tr className="border-t border-border hover:bg-surface-muted/50 transition-colors">
+      <td className="px-5 py-3">
+        <div className="flex items-center gap-3">
+          <Avatar
+            name={submission.student?.displayName ?? '—'}
+            src={submission.student?.avatarUrl ?? null}
+            size="sm"
+            className="bg-surface-muted text-ink-muted"
+          />
+          <div className="min-w-0">
+            <p className="text-[13px] font-semibold text-ink truncate">
+              {submission.student?.displayName ?? '—'}
+            </p>
+            <p className="text-[11px] text-ink-muted">
+              Учень · {submission.student?.level ?? ''}
+            </p>
+          </div>
+        </div>
+      </td>
+      <td className="px-4 py-3">
+        <p className="text-[13px] font-semibold text-ink truncate">
+          {submission.homework?.title ?? '—'}
+        </p>
+      </td>
+      <td className={`px-4 py-3 text-[13px] whitespace-nowrap tabular-nums ${deadlineCls}`}>
+        {deadline.text}
+      </td>
+      <td className="px-4 py-3">
+        <StatusPill label={status.label} cls={status.cls} />
+      </td>
+      <td className="px-4 py-3 text-right">
+        {canReview ? (
+          <Link
+            href={`/dashboard/homework/${submission.documentId}/review`}
+            className="ios-btn ios-btn-sm ios-btn-secondary"
+          >
+            {submission.status === 'submitted' ? 'Перевірити' : 'Відкрити'}
+          </Link>
+        ) : (
+          <span className="text-[12px] text-ink-faint">—</span>
+        )}
+      </td>
+    </tr>
+  );
+}
+
+function SubmissionCard({ submission }: { submission: Submission }) {
+  const status = STATUS_DISPLAY[submission.status];
+  const deadline = deadlineLabel(submission.homework?.dueAt ?? null, submission.status);
+  const deadlineCls =
+    deadline.tone === 'danger'
+      ? 'text-danger-dark'
+      : deadline.tone === 'warn'
+        ? 'text-ink font-semibold'
+        : 'text-ink-muted';
+  const canReview =
+    submission.status === 'submitted' ||
+    submission.status === 'reviewed' ||
+    submission.status === 'returned';
+
+  return (
+    <li className="border-t border-border first:border-t-0 px-4 py-3 flex gap-3">
+      <Avatar
+        name={submission.student?.displayName ?? '—'}
+        src={submission.student?.avatarUrl ?? null}
+        size="sm"
+        className="bg-surface-muted text-ink-muted"
       />
-
-      <div className="flex flex-wrap items-center gap-3">
-        <SegmentedControl value={tab} onChange={setTab} options={TAB_OPTIONS} label="Статус ДЗ" />
-        <SearchInput
-          value={query}
-          onChange={e => setQuery(e.target.value)}
-          placeholder="Пошук за назвою або учнем…"
-          containerClassName="w-full sm:w-72 sm:ml-auto"
-        />
+      <div className="flex-1 min-w-0">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <p className="text-[13px] font-semibold text-ink truncate">
+              {submission.homework?.title ?? '—'}
+            </p>
+            <p className="text-[12px] text-ink-muted truncate">
+              {submission.student?.displayName ?? '—'}
+            </p>
+          </div>
+          <StatusPill label={status.label} cls={status.cls} className="flex-shrink-0" />
+        </div>
+        <div className="flex items-center justify-between gap-2 mt-2">
+          <span className={`text-[11px] tabular-nums ${deadlineCls}`}>{deadline.text}</span>
+          {canReview && (
+            <Link
+              href={`/dashboard/homework/${submission.documentId}/review`}
+              className="ios-btn ios-btn-sm ios-btn-secondary"
+            >
+              {submission.status === 'submitted' ? 'Перевірити' : 'Відкрити'}
+            </Link>
+          )}
+        </div>
       </div>
-
-      {filtered.length === 0 ? (
-        <div className="ios-card py-16 text-center">
-          <p className="text-[14px] font-semibold text-ink">Нічого не знайдено</p>
-          <p className="text-[13px] text-ink-muted mt-1">Спробуй інший запит або фільтр</p>
-        </div>
-      ) : (
-        <div className="ios-card overflow-hidden">
-          {/* Desktop table */}
-          <div className="hidden md:block overflow-x-auto">
-            <table className="w-full min-w-[720px]">
-              <thead>
-                <tr className="border-b border-border">
-                  <th className="text-left px-5 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-faint">Учень / Група</th>
-                  <th className="text-left px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-faint">Завдання</th>
-                  <th className="text-left px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-faint">Дедлайн</th>
-                  <th className="text-left px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-faint">Статус</th>
-                  <th className="text-left px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-faint">Монети</th>
-                  <th className="px-4 py-2.5" />
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map(h => {
-                  const who = targetInfo(h);
-                  const status = HOMEWORK_STATUS_STYLES[h.status];
-                  const deadline = deadlineLabel(h.deadline, h.status);
-                  const deadlineCls =
-                    deadline.tone === 'danger' ? 'text-danger-dark font-semibold' :
-                    deadline.tone === 'warn'   ? 'text-ink font-semibold' :
-                                                  'text-ink-muted';
-                  return (
-                    <tr key={h.id} className="border-t border-border hover:bg-surface-muted/50 transition-colors">
-                      <td className="px-5 py-3">
-                        <div className="flex items-center gap-3">
-                          {who.photo ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img src={who.photo} alt={who.name} className="w-7 h-7 rounded-full object-cover flex-shrink-0" />
-                          ) : (
-                            <span className="w-7 h-7 rounded-full bg-surface-muted text-ink-muted text-[10px] font-semibold flex items-center justify-center flex-shrink-0">
-                              Гр.
-                            </span>
-                          )}
-                          <div className="min-w-0">
-                            <p className="text-[13px] font-semibold text-ink truncate">{who.name}</p>
-                            <p className="text-[11px] text-ink-muted">{who.sub}</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <p className="text-[13px] font-semibold text-ink truncate">{h.title}</p>
-                        <p className="text-[11px] text-ink-muted">{HOMEWORK_KIND_LABELS[h.kind]}</p>
-                      </td>
-                      <td className={`px-4 py-3 text-[13px] whitespace-nowrap tabular-nums ${deadlineCls}`}>
-                        {deadline.text}
-                      </td>
-                      <td className="px-4 py-3">
-                        <StatusPill label={status.label} cls={status.cls} />
-                      </td>
-                      <td className="px-4 py-3">
-                        <CoinTag amount={h.coins} bonus={h.bonusCoins} />
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        {h.status === 'submitted' || h.status === 'reviewed' || h.status === 'returned' ? (
-                          <Link href={`/dashboard/homework/${h.id}/review`} className="ios-btn ios-btn-sm ios-btn-secondary">
-                            {h.status === 'submitted' ? 'Перевірити' : 'Відкрити'}
-                          </Link>
-                        ) : (
-                          <span className="text-[12px] text-ink-faint">—</span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Mobile list */}
-          <ul className="md:hidden">
-            {filtered.map(h => {
-              const who = targetInfo(h);
-              const status = HOMEWORK_STATUS_STYLES[h.status];
-              const deadline = deadlineLabel(h.deadline, h.status);
-              const deadlineCls =
-                deadline.tone === 'danger' ? 'text-danger-dark' :
-                deadline.tone === 'warn'   ? 'text-ink font-semibold' :
-                                              'text-ink-muted';
-              return (
-                <li key={h.id} className="border-t border-border first:border-t-0 px-4 py-3 flex gap-3">
-                  {who.photo ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={who.photo} alt={who.name} className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
-                  ) : (
-                    <span className="w-8 h-8 rounded-full bg-surface-muted text-ink-muted text-[11px] font-semibold flex items-center justify-center flex-shrink-0">
-                      Гр.
-                    </span>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <p className="text-[13px] font-semibold text-ink truncate">{h.title}</p>
-                        <p className="text-[12px] text-ink-muted truncate">{who.name}</p>
-                      </div>
-                      <StatusPill label={status.label} cls={status.cls} className="flex-shrink-0" />
-                    </div>
-                    <div className="flex items-center justify-between gap-2 mt-2">
-                      <span className={`text-[11px] tabular-nums ${deadlineCls}`}>{deadline.text}</span>
-                      {(h.status === 'submitted' || h.status === 'reviewed' || h.status === 'returned') && (
-                        <Link href={`/dashboard/homework/${h.id}/review`} className="ios-btn ios-btn-sm ios-btn-secondary">
-                          {h.status === 'submitted' ? 'Перевірити' : 'Відкрити'}
-                        </Link>
-                      )}
-                    </div>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-
-          <div className="px-5 py-2.5 border-t border-border bg-surface-muted/50 flex items-center justify-between text-[11px] text-ink-muted tabular-nums">
-            <span>Показано {filtered.length} з {MOCK_HOMEWORK.length}</span>
-            <span>Оновлено: {MOCK_TODAY}</span>
-          </div>
-        </div>
-      )}
-
-      <CreateHomeworkModal open={createOpen} onClose={() => setCreateOpen(false)} />
-    </div>
+    </li>
   );
 }

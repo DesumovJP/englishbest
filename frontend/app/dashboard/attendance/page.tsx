@@ -1,42 +1,56 @@
 'use client';
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useSession } from '@/lib/session-context';
 import {
-  MOCK_GROUPS,
-  MOCK_SCHEDULE,
-  MOCK_STUDENTS,
-  type Student,
-} from '@/lib/teacher-mocks';
-import {
-  LevelBadge,
-  PageHeader,
-  SegmentedControl,
-  type SegmentedControlOption,
-} from '@/components/teacher/ui';
+  fetchTeacherMonthSessions,
+  fetchMonthAttendance,
+  upsertAttendance,
+  deleteAttendance,
+  type AttendanceRecord,
+  type AttendanceStatus,
+  type AttendanceStudent,
+  type SessionLite,
+} from '@/lib/attendance';
+import { LevelBadge } from '@/components/teacher/ui';
+import { DashboardPageShell } from '@/components/ui/shells';
+import { Card } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
+import type { Level } from '@/lib/types';
 
-type Scope = 'students' | 'groups';
-type Mark = 'present' | 'late' | 'absent' | null;
+const LEVELS = new Set<Level>(['A0', 'A1', 'A2', 'B1', 'B2', 'C1', 'C2']);
+function asLevel(v: string | null): Level | null {
+  return v && LEVELS.has(v as Level) ? (v as Level) : null;
+}
 
-const SCOPE_OPTIONS: ReadonlyArray<SegmentedControlOption<Scope>> = [
-  { value: 'students', label: 'Учні' },
-  { value: 'groups',   label: 'Групи' },
-];
+type DisplayMark = 'present' | 'late' | 'absent' | 'excused' | null;
 
 const MONTHS_UA = [
   'Січень', 'Лютий', 'Березень', 'Квітень', 'Травень', 'Червень',
   'Липень', 'Серпень', 'Вересень', 'Жовтень', 'Листопад', 'Грудень',
 ];
 
-const MARK_CFG: Record<Exclude<Mark, null>, { label: string }> = {
+const MARK_CFG: Record<Exclude<DisplayMark, null>, { label: string }> = {
   present: { label: 'Присутній' },
   late:    { label: 'Запізнився' },
   absent:  { label: 'Відсутній' },
+  excused: { label: 'Поважна причина' },
 };
 
-function MarkGlyph({ mark, size = 'sm' }: { mark: Exclude<Mark, null>; size?: 'sm' | 'md' }) {
+// Cycle: (no lesson → no-op) | no-record → present → late → absent → excused → (delete record = null) → present …
+const CYCLE_NEXT: Record<string, DisplayMark> = {
+  'null': 'present',
+  'present': 'late',
+  'late': 'absent',
+  'absent': 'excused',
+  'excused': null,
+};
+
+function MarkGlyph({ mark, size = 'sm' }: { mark: Exclude<DisplayMark, null>; size?: 'sm' | 'md' }) {
   const dot = size === 'sm' ? 'w-2 h-2' : 'w-2.5 h-2.5';
   const cross = size === 'sm' ? 'w-2.5 h-2.5' : 'w-3 h-3';
   if (mark === 'present') return <span className={`${dot} rounded-full bg-primary block`} aria-hidden />;
   if (mark === 'late')    return <span className={`${dot} rounded-full border-[1.5px] border-primary block`} aria-hidden />;
+  if (mark === 'excused') return <span className={`${dot} rounded-full bg-ink-faint/50 block`} aria-hidden />;
   return (
     <svg className={`${cross} text-danger`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" aria-hidden>
       <path d="M6 6l12 12M18 6L6 18" />
@@ -48,51 +62,169 @@ function daysInMonth(y: number, m: number) {
   return new Date(y, m + 1, 0).getDate();
 }
 
-function seedMark(student: Student, dateStr: string): Mark {
-  const lesson = MOCK_SCHEDULE.find(
-    l => l.date === dateStr && (l.studentId === student.id || (l.groupId && student.groupId === l.groupId)),
-  );
-  if (!lesson) return null;
-  if (lesson.status === 'cancelled') return null;
-  if (lesson.status === 'done') {
-    const hash = (student.id.charCodeAt(1) + Number(dateStr.slice(-2))) % 10;
-    if (hash < student.homeworkCompletionRate * 10) return 'present';
-    if (hash < 9) return 'late';
-    return 'absent';
-  }
-  return null;
+function dateKey(year: number, month: number, day: number): string {
+  return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+}
+
+function sessionDateKey(session: SessionLite): string {
+  const d = new Date(session.startAt);
+  return dateKey(d.getFullYear(), d.getMonth(), d.getDate());
 }
 
 export default function AttendancePage() {
-  const [scope, setScope] = useState<Scope>('students');
-  const today = new Date('2026-04-19');
+  const { session, status } = useSession();
+  const teacherId =
+    session?.profile.role === 'teacher'
+      ? ((session.profile.teacherProfile as { documentId?: string } | null | undefined)?.documentId ?? null)
+      : null;
+
+  const today = useMemo(() => new Date(), []);
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth());
-  const [groupId, setGroupId] = useState<string>(MOCK_GROUPS[0]?.id ?? '');
-  const [overrides, setOverrides] = useState<Record<string, Mark>>({});
+
+  const [sessions, setSessions] = useState<SessionLite[]>([]);
+  const [records, setRecords] = useState<AttendanceRecord[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const days = daysInMonth(year, month);
-  const todayStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  const todayStr = dateKey(today.getFullYear(), today.getMonth(), today.getDate());
 
-  const visibleStudents = useMemo(() => {
-    if (scope === 'students') return MOCK_STUDENTS;
-    return MOCK_STUDENTS.filter(s => s.groupId === groupId);
-  }, [scope, groupId]);
+  const loadData = useCallback(async () => {
+    if (!teacherId) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const [ss, rs] = await Promise.all([
+        fetchTeacherMonthSessions(teacherId, year, month),
+        fetchMonthAttendance(year, month),
+      ]);
+      setSessions(ss);
+      setRecords(rs);
+    } catch (e: any) {
+      setError(e?.message ?? 'Не вдалось завантажити дані');
+    } finally {
+      setLoading(false);
+    }
+  }, [teacherId, year, month]);
 
-  function getMark(studentId: string, day: number): Mark {
-    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    const key = `${studentId}:${dateStr}`;
-    if (key in overrides) return overrides[key];
-    const student = MOCK_STUDENTS.find(s => s.id === studentId);
-    if (!student) return null;
-    return seedMark(student, dateStr);
+  useEffect(() => {
+    let alive = true;
+    if (!teacherId) return;
+    setLoading(true);
+    setError(null);
+    Promise.all([
+      fetchTeacherMonthSessions(teacherId, year, month),
+      fetchMonthAttendance(year, month),
+    ])
+      .then(([ss, rs]) => {
+        if (!alive) return;
+        setSessions(ss);
+        setRecords(rs);
+      })
+      .catch((e) => {
+        if (!alive) return;
+        setError(e?.message ?? 'Не вдалось завантажити дані');
+      })
+      .finally(() => {
+        if (alive) setLoading(false);
+      });
+    return () => { alive = false; };
+  }, [teacherId, year, month]);
+
+  // Build student list from unique attendees across all month sessions.
+  const students = useMemo<AttendanceStudent[]>(() => {
+    const seen = new Map<string, AttendanceStudent>();
+    for (const s of sessions) {
+      for (const a of s.attendees) {
+        if (!seen.has(a.documentId)) seen.set(a.documentId, a);
+      }
+    }
+    return Array.from(seen.values()).sort((a, b) =>
+      a.displayName.localeCompare(b.displayName, 'uk'),
+    );
+  }, [sessions]);
+
+  // Build day → sessions-on-that-day map and session → Set<studentId of attendees>.
+  const sessionsByDay = useMemo(() => {
+    const m = new Map<string, SessionLite[]>();
+    for (const s of sessions) {
+      const k = sessionDateKey(s);
+      const arr = m.get(k);
+      if (arr) arr.push(s);
+      else m.set(k, [s]);
+    }
+    return m;
+  }, [sessions]);
+
+  // (sessionId, studentId) → record
+  const recordIndex = useMemo(() => {
+    const m = new Map<string, AttendanceRecord>();
+    for (const r of records) m.set(`${r.sessionId}::${r.studentId}`, r);
+    return m;
+  }, [records]);
+
+  function findSessionForCell(studentId: string, day: number): SessionLite | null {
+    const k = dateKey(year, month, day);
+    const list = sessionsByDay.get(k);
+    if (!list) return null;
+    return list.find(s => s.attendees.some(a => a.documentId === studentId)) ?? null;
   }
 
-  function cycleMark(studentId: string, day: number) {
-    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    const cur = getMark(studentId, day);
-    const next: Mark = cur === null ? 'present' : cur === 'present' ? 'late' : cur === 'late' ? 'absent' : null;
-    setOverrides(prev => ({ ...prev, [`${studentId}:${dateStr}`]: next }));
+  function getMark(studentId: string, day: number): { mark: DisplayMark; session: SessionLite | null } {
+    const sess = findSessionForCell(studentId, day);
+    if (!sess) return { mark: null, session: null };
+    const rec = recordIndex.get(`${sess.documentId}::${studentId}`);
+    return { mark: rec ? rec.status : null, session: sess };
+  }
+
+  async function cycleMark(studentId: string, day: number) {
+    const { mark, session: sess } = getMark(studentId, day);
+    if (!sess) return;
+    const cur = mark ?? 'null';
+    const next = CYCLE_NEXT[cur] ?? 'present';
+    const key = `${sess.documentId}::${studentId}`;
+    const existing = recordIndex.get(key);
+
+    // Optimistic update.
+    if (next === null) {
+      if (!existing) return;
+      setRecords(prev => prev.filter(r => r.documentId !== existing.documentId));
+      try {
+        await deleteAttendance(existing.documentId);
+      } catch (e: any) {
+        setError(e?.message ?? 'Не вдалось видалити відмітку');
+        await loadData();
+      }
+      return;
+    }
+
+    const tempId = existing?.documentId ?? `temp-${Date.now()}`;
+    const optimistic: AttendanceRecord = {
+      documentId: tempId,
+      status: next,
+      note: existing?.note ?? null,
+      recordedAt: new Date().toISOString(),
+      sessionId: sess.documentId,
+      studentId,
+    };
+    setRecords(prev => {
+      if (existing) return prev.map(r => (r.documentId === existing.documentId ? optimistic : r));
+      return [...prev, optimistic];
+    });
+    try {
+      const saved = await upsertAttendance({
+        sessionId: sess.documentId,
+        studentId,
+        status: next,
+      });
+      setRecords(prev =>
+        prev.map(r => (r.documentId === tempId ? saved : r)),
+      );
+    } catch (e: any) {
+      setError(e?.message ?? 'Не вдалось зберегти відмітку');
+      await loadData();
+    }
   }
 
   function shiftMonth(delta: number) {
@@ -103,133 +235,196 @@ export default function AttendancePage() {
   }
 
   const stats = useMemo(() => {
-    let present = 0, late = 0, absent = 0, total = 0;
-    visibleStudents.forEach(s => {
-      for (let d = 1; d <= days; d++) {
-        const m = getMark(s.id, d);
-        if (m === null) continue;
-        total += 1;
-        if (m === 'present') present += 1;
-        else if (m === 'late') late += 1;
-        else absent += 1;
-      }
-    });
-    const pct = total === 0 ? 0 : Math.round(((present + late * 0.5) / total) * 100);
-    return { present, late, absent, total, pct };
-  }, [visibleStudents, overrides, year, month, days]);
+    let present = 0, late = 0, absent = 0, excused = 0, total = 0;
+    for (const r of records) {
+      total += 1;
+      if (r.status === 'present') present += 1;
+      else if (r.status === 'late') late += 1;
+      else if (r.status === 'absent') absent += 1;
+      else if (r.status === 'excused') excused += 1;
+    }
+    const pct = total === 0 ? 0 : Math.round(((present + late * 0.5 + excused * 0.5) / total) * 100);
+    return { present, late, absent, excused, total, pct };
+  }, [records]);
 
-  function exportMock(kind: 'xlsx' | 'pdf') {
-    window.alert(`Експорт ${kind.toUpperCase()} — буде додано з бекендом.`);
+  function buildMatrix() {
+    const header = [
+      'Учень',
+      ...Array.from({ length: days }, (_, i) => String(i + 1)),
+      '%',
+    ];
+    const rows = students.map(s => {
+      let sPresent = 0, sLate = 0, sExcused = 0, sTotal = 0;
+      const cells: string[] = [];
+      for (let d = 1; d <= days; d++) {
+        const cell = getMark(s.documentId, d);
+        if (!cell.session) { cells.push(''); continue; }
+        if (cell.mark === null) { cells.push('·'); continue; }
+        sTotal += 1;
+        if (cell.mark === 'present') { sPresent += 1; cells.push('✓'); }
+        else if (cell.mark === 'late') { sLate += 1; cells.push('П'); }
+        else if (cell.mark === 'absent') { cells.push('✗'); }
+        else { sExcused += 1; cells.push('У'); }
+      }
+      const pct = sTotal === 0 ? 0 : Math.round(((sPresent + sLate * 0.5 + sExcused * 0.5) / sTotal) * 100);
+      return [s.displayName, ...cells, `${pct}%`];
+    });
+    return { header, rows };
+  }
+
+  function exportCsv() {
+    const { header, rows } = buildMatrix();
+    const lines = [header, ...rows].map(row =>
+      row.map(cell => /[",\n]/.test(cell) ? `"${cell.replace(/"/g, '""')}"` : cell).join(','),
+    );
+    const csv = '\uFEFF' + lines.join('\r\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `attendance-${year}-${String(month + 1).padStart(2, '0')}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function exportPrint() {
+    window.print();
+  }
+
+  if (status === 'loading') {
+    return <DashboardPageShell title="Відвідуваність" subtitle="Завантаження…" status="loading" loadingShape="table" />;
+  }
+  if (status === 'anonymous') {
+    return (
+      <DashboardPageShell
+        title="Відвідуваність"
+        status="empty"
+        empty={{ title: 'Потрібно увійти', description: 'Щоб побачити відвідуваність, увійдіть у свій акаунт.' }}
+      />
+    );
+  }
+  if (!teacherId) {
+    return (
+      <DashboardPageShell
+        title="Відвідуваність"
+        status="empty"
+        empty={{ title: 'Недоступно', description: 'Розділ відвідуваності — лише для вчителів.' }}
+      />
+    );
   }
 
   return (
-    <div className="flex flex-col gap-5">
-      <PageHeader
-        title="Відвідуваність"
-        subtitle={`${visibleStudents.length} ${scope === 'students' ? 'учнів' : 'учнів у групі'} · ${MONTHS_UA[month]} ${year}`}
-      />
-
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-2 flex-wrap">
-          <SegmentedControl value={scope} onChange={setScope} options={SCOPE_OPTIONS} label="Тип перегляду" />
-          {scope === 'groups' && (
-            <select
-              value={groupId}
-              onChange={e => setGroupId(e.target.value)}
-              className="h-9 px-3 rounded-lg border border-border bg-white text-[13px] font-semibold text-ink focus:outline-none focus:border-primary focus:ring-[3px] focus:ring-primary/15 transition-[border-color,box-shadow]"
-            >
-              {MOCK_GROUPS.map(g => (
-                <option key={g.id} value={g.id}>{g.name} · {g.level}</option>
-              ))}
-            </select>
-          )}
-        </div>
-
+    <DashboardPageShell
+      title="Відвідуваність"
+      subtitle={`${students.length} ${students.length === 1 ? 'учень' : 'учнів'} · ${MONTHS_UA[month]} ${year}`}
+      actions={
         <div className="flex items-center gap-2">
-          <button type="button" onClick={() => shiftMonth(-1)} aria-label="Попередній місяць" className="ios-btn ios-btn-secondary w-9 p-0">
+          <Button size="sm" variant="secondary" icon aria-label="Попередній місяць" onClick={() => shiftMonth(-1)}>
             <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M15 18l-6-6 6-6" /></svg>
-          </button>
+          </Button>
           <span className="text-[13px] font-semibold text-ink min-w-[9rem] text-center tabular-nums">
             {MONTHS_UA[month]} {year}
           </span>
-          <button type="button" onClick={() => shiftMonth(+1)} aria-label="Наступний місяць" className="ios-btn ios-btn-secondary w-9 p-0">
+          <Button size="sm" variant="secondary" icon aria-label="Наступний місяць" onClick={() => shiftMonth(+1)}>
             <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M9 18l6-6-6-6" /></svg>
-          </button>
+          </Button>
         </div>
-      </div>
+      }
+    >
+      {error && (
+        <Card variant="outline" padding="sm" className="text-[13px] text-danger border-danger/30">{error}</Card>
+      )}
 
-      <div className="ios-card overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full">
-            <thead>
-              <tr className="border-b border-border">
-                <th className="sticky left-0 z-10 bg-white text-left px-4 py-2.5 text-[10px] font-semibold text-ink-faint uppercase tracking-wider min-w-[200px] border-r border-border">
-                  Учень
-                </th>
-                {Array.from({ length: days }, (_, i) => i + 1).map(d => {
-                  const dayStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-                  const isToday = dayStr === todayStr;
+      <Card variant="surface" padding="none" className="overflow-hidden">
+        {loading && students.length === 0 ? (
+          <div className="px-5 py-10 text-center text-ink-muted text-[13px]">Завантаження…</div>
+        ) : students.length === 0 ? (
+          <div className="px-5 py-10 text-center text-ink-muted text-[13px]">
+            У цьому місяці немає запланованих занять.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="sticky left-0 z-10 bg-surface-raised text-left px-4 py-2.5 text-[10px] font-semibold text-ink-faint uppercase tracking-wider min-w-[200px] border-r border-border">
+                    Учень
+                  </th>
+                  {Array.from({ length: days }, (_, i) => i + 1).map(d => {
+                    const dayStr = dateKey(year, month, d);
+                    const isToday = dayStr === todayStr;
+                    return (
+                      <th key={d} className={`w-8 text-center text-[10px] font-semibold py-2 tabular-nums ${isToday ? 'text-ink' : 'text-ink-faint'}`}>
+                        {d}
+                        {isToday && <span className="block w-1 h-1 rounded-full bg-primary mx-auto mt-0.5" />}
+                      </th>
+                    );
+                  })}
+                  <th className="px-3 py-2 text-[10px] font-semibold text-ink-faint uppercase tracking-wider text-right whitespace-nowrap border-l border-border">
+                    %
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {students.map(s => {
+                  let sPresent = 0, sLate = 0, sAbsent = 0, sExcused = 0, sTotal = 0;
+                  const cells: Array<{ mark: DisplayMark; session: SessionLite | null }> = [];
+                  for (let d = 1; d <= days; d++) {
+                    const cell = getMark(s.documentId, d);
+                    cells.push(cell);
+                    if (!cell.session || cell.mark === null) continue;
+                    sTotal += 1;
+                    if (cell.mark === 'present') sPresent += 1;
+                    else if (cell.mark === 'late') sLate += 1;
+                    else if (cell.mark === 'absent') sAbsent += 1;
+                    else if (cell.mark === 'excused') sExcused += 1;
+                  }
+                  const pct = sTotal === 0 ? 0 : Math.round(((sPresent + sLate * 0.5 + sExcused * 0.5) / sTotal) * 100);
                   return (
-                    <th key={d} className={`w-8 text-center text-[10px] font-semibold py-2 tabular-nums ${isToday ? 'text-ink' : 'text-ink-faint'}`}>
-                      {d}
-                      {isToday && <span className="block w-1 h-1 rounded-full bg-primary mx-auto mt-0.5" />}
-                    </th>
+                    <tr key={s.documentId} className="border-t border-border hover:bg-surface-muted/30">
+                      <td className="sticky left-0 z-10 bg-surface-raised px-4 py-2 border-r border-border min-w-[200px]">
+                        <div className="flex items-center gap-2.5">
+                          {s.avatarUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={s.avatarUrl} alt={s.displayName} className="w-7 h-7 rounded-full object-cover" />
+                          ) : (
+                            <span className="w-7 h-7 rounded-full bg-surface-muted inline-flex items-center justify-center text-[11px] font-semibold text-ink-faint">
+                              {s.displayName.slice(0, 1).toUpperCase()}
+                            </span>
+                          )}
+                          <div className="min-w-0">
+                            <p className="text-[12px] font-semibold text-ink truncate">{s.displayName}</p>
+                            {asLevel(s.level) && <LevelBadge level={asLevel(s.level)!} />}
+                          </div>
+                        </div>
+                      </td>
+                      {cells.map((cell, i) => (
+                        <td key={i} className="text-center p-0">
+                          <button
+                            type="button"
+                            disabled={!cell.session}
+                            onClick={() => cycleMark(s.documentId, i + 1)}
+                            title={cell.mark ? MARK_CFG[cell.mark].label : cell.session ? 'Натисніть, щоб відмітити' : 'Не було уроку'}
+                            className="w-7 h-7 inline-flex items-center justify-center rounded hover:bg-surface-muted transition-colors disabled:hover:bg-transparent disabled:cursor-default"
+                          >
+                            {cell.mark
+                              ? <MarkGlyph mark={cell.mark} />
+                              : cell.session
+                                ? <span className="w-1.5 h-1.5 rounded-full border border-ink-faint/50 block" aria-hidden />
+                                : <span className="w-1 h-1 rounded-full bg-ink-faint/30 block" aria-hidden />}
+                          </button>
+                        </td>
+                      ))}
+                      <td className="px-3 py-2 text-[12px] font-semibold text-ink text-right whitespace-nowrap tabular-nums border-l border-border">
+                        {pct}%
+                      </td>
+                    </tr>
                   );
                 })}
-                <th className="px-3 py-2 text-[10px] font-semibold text-ink-faint uppercase tracking-wider text-right whitespace-nowrap border-l border-border">
-                  %
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {visibleStudents.map(s => {
-                let sPresent = 0, sLate = 0, sAbsent = 0, sTotal = 0;
-                const cells: Mark[] = [];
-                for (let d = 1; d <= days; d++) {
-                  const m = getMark(s.id, d);
-                  cells.push(m);
-                  if (m === null) continue;
-                  sTotal += 1;
-                  if (m === 'present') sPresent += 1;
-                  else if (m === 'late') sLate += 1;
-                  else sAbsent += 1;
-                }
-                const pct = sTotal === 0 ? 0 : Math.round(((sPresent + sLate * 0.5) / sTotal) * 100);
-                return (
-                  <tr key={s.id} className="border-t border-border hover:bg-surface-muted/30">
-                    <td className="sticky left-0 z-10 bg-white px-4 py-2 border-r border-border min-w-[200px]">
-                      <div className="flex items-center gap-2.5">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={s.photo} alt={s.name} className="w-7 h-7 rounded-full object-cover" />
-                        <div className="min-w-0">
-                          <p className="text-[12px] font-semibold text-ink truncate">{s.name}</p>
-                          <LevelBadge level={s.level} />
-                        </div>
-                      </div>
-                    </td>
-                    {cells.map((m, i) => (
-                      <td key={i} className="text-center p-0">
-                        <button
-                          type="button"
-                          onClick={() => cycleMark(s.id, i + 1)}
-                          title={m ? MARK_CFG[m].label : 'Не було уроку'}
-                          className="w-7 h-7 inline-flex items-center justify-center rounded hover:bg-surface-muted transition-colors"
-                        >
-                          {m
-                            ? <MarkGlyph mark={m} />
-                            : <span className="w-1 h-1 rounded-full bg-ink-faint/30 block" aria-hidden />}
-                        </button>
-                      </td>
-                    ))}
-                    <td className="px-3 py-2 text-[12px] font-semibold text-ink text-right whitespace-nowrap tabular-nums border-l border-border">
-                      {pct}%
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+              </tbody>
+            </table>
+          </div>
+        )}
 
         <footer className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-5 py-3 border-t border-border bg-surface-muted/40">
           <div className="flex items-center gap-4 flex-wrap text-[12px]">
@@ -244,15 +439,11 @@ export default function AttendancePage() {
             ))}
           </div>
           <div className="flex items-center gap-2">
-            <button type="button" onClick={() => exportMock('xlsx')} className="ios-btn ios-btn-sm ios-btn-secondary">
-              Excel
-            </button>
-            <button type="button" onClick={() => exportMock('pdf')} className="ios-btn ios-btn-sm ios-btn-secondary">
-              PDF
-            </button>
+            <Button size="sm" variant="secondary" onClick={exportCsv}>CSV</Button>
+            <Button size="sm" variant="secondary" onClick={exportPrint}>Друк</Button>
           </div>
         </footer>
-      </div>
-    </div>
+      </Card>
+    </DashboardPageShell>
   );
 }

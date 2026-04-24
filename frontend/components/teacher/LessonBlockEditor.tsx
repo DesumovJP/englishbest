@@ -1,5 +1,6 @@
 'use client';
-import { BLOCK_KIND_ICONS, BLOCK_KIND_LABELS, type LessonBlock } from '@/lib/teacher-mocks';
+import { BLOCK_KIND_ICONS, BLOCK_KIND_LABELS } from '@/lib/ui/teacher-labels';
+import type { LessonBlock } from '@/lib/types/teacher';
 
 interface LessonBlockEditorProps {
   block: LessonBlock;

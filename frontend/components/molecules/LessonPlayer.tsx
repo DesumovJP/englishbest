@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { Button } from '@/components/atoms/Button';
-import { Badge } from '@/components/atoms/Badge';
+import { Button } from '@/components/ui/Button';
+import { Badge } from '@/components/ui/Badge';
 import { createProgress } from '@/lib/api';
 
 type LessonStatus = 'notStarted' | 'inProgress' | 'completed';
@@ -70,10 +70,10 @@ export function LessonPlayer({
     if (allCorrect) handleComplete();
   };
 
-  const statusBadge: Record<LessonStatus, { label: string; variant: 'default' | 'warning' | 'success' }> = {
-    notStarted: { label: 'Not Started', variant: 'default' },
-    inProgress: { label: 'In Progress', variant: 'warning' },
-    completed: { label: 'Completed', variant: 'success' },
+  const statusBadge: Record<LessonStatus, { label: string; tone: 'neutral' | 'warning' | 'success' }> = {
+    notStarted: { label: 'Not Started', tone: 'neutral' },
+    inProgress: { label: 'In Progress', tone: 'warning' },
+    completed: { label: 'Completed', tone: 'success' },
   };
 
   return (
@@ -83,7 +83,7 @@ export function LessonPlayer({
           <h1 className="text-2xl font-bold text-ink">{title}</h1>
           {durationMin && <p className="text-sm text-ink-muted">⏱ {durationMin} min</p>}
         </div>
-        <Badge variant={statusBadge[status].variant}>{statusBadge[status].label}</Badge>
+        <Badge tone={statusBadge[status].tone}>{statusBadge[status].label}</Badge>
       </div>
 
       {/* Tab bar */}

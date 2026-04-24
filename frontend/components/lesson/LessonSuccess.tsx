@@ -7,9 +7,10 @@ interface LessonSuccessProps {
   courseSlug: string;
   nextLessonSlug?: string;
   backUrl?: string;
-  teacherName: string;
-  teacherPhoto: string;
-  callUrl: string;
+  /** Optional post-lesson CTA. Rendered only when all three fields are present. */
+  teacherName?: string;
+  teacherPhoto?: string;
+  callUrl?: string;
 }
 
 function RewardStat({ src, value, label }: { src: string; value: number; label: string }) {
@@ -80,33 +81,34 @@ export function LessonSuccess({
             )}
           </div>
 
-          {/* Divider */}
-          <div className="h-px bg-white/10 mx-5" />
-
-          {/* Teacher offer — anchored inside same sheet */}
-          <a
-            href={callUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-4 px-5 py-4 hover:bg-white/[0.04] transition-colors group"
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={teacherPhoto}
-              alt={teacherName}
-              className="w-12 h-12 rounded-2xl object-cover border-2 border-white/20 flex-shrink-0"
-            />
-            <div className="flex-1 min-w-0">
-              <p className="type-label text-white/40 mb-0.5">Закріпи з вчителем</p>
-              <p className="text-white font-black text-base leading-tight truncate">{teacherName}</p>
-              <p className="text-white/50 text-xs mt-0.5 leading-snug">
-                Живе заняття — найкращий спосіб не забути нові слова.
-              </p>
-            </div>
-            <div className="w-10 h-10 rounded-xl bg-success flex items-center justify-center flex-shrink-0 shadow-press-success group-active:translate-y-0.5 group-active:shadow-none transition-transform">
-              <span className="text-lg">📹</span>
-            </div>
-          </a>
+          {teacherName && teacherPhoto && callUrl && (
+            <>
+              <div className="h-px bg-white/10 mx-5" />
+              <a
+                href={callUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-4 px-5 py-4 hover:bg-white/[0.04] transition-colors group"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={teacherPhoto}
+                  alt={teacherName}
+                  className="w-12 h-12 rounded-2xl object-cover border-2 border-white/20 flex-shrink-0"
+                />
+                <div className="flex-1 min-w-0">
+                  <p className="type-label text-white/40 mb-0.5">Закріпи з вчителем</p>
+                  <p className="text-white font-black text-base leading-tight truncate">{teacherName}</p>
+                  <p className="text-white/50 text-xs mt-0.5 leading-snug">
+                    Живе заняття — найкращий спосіб не забути нові слова.
+                  </p>
+                </div>
+                <div className="w-10 h-10 rounded-xl bg-success flex items-center justify-center flex-shrink-0 shadow-press-success group-active:translate-y-0.5 group-active:shadow-none transition-transform">
+                  <span className="text-lg">📹</span>
+                </div>
+              </a>
+            </>
+          )}
         </div>
 
       </div>

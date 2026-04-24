@@ -1,25 +1,24 @@
 'use client';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import {
-  MOCK_CHAT_THREADS,
-  type ChatThread,
-} from '@/lib/teacher-mocks';
+  fetchMessages,
+  fetchThreads,
+  markMessageRead,
+  sendMessage,
+  togglePinMessage,
+  THREAD_KIND_LABELS,
+  type Message,
+  type Thread,
+  type ThreadKind,
+} from '@/lib/chat';
+import { useSession } from '@/lib/session-context';
 import { SearchInput, SegmentedControl, type SegmentedControlOption } from '@/components/teacher/ui';
 import { MassMessageModal } from '@/components/teacher/MassMessageModal';
+import { Button } from '@/components/ui/Button';
+import { Avatar } from '@/components/ui/Avatar';
 
-type TabFilter = 'all' | 'student' | 'parent' | 'group';
-
-interface Message {
-  id: string;
-  threadId: string;
-  fromMe: boolean;
-  authorName?: string;
-  body: string;
-  time: string;
-  read: boolean;
-  pinned?: boolean;
-  replyTo?: { author: string; body: string };
-}
+type TabFilter = 'all' | ThreadKind;
 
 const TAB_OPTIONS: ReadonlyArray<SegmentedControlOption<TabFilter>> = [
   { value: 'all',     label: 'Усі' },
@@ -29,33 +28,7 @@ const TAB_OPTIONS: ReadonlyArray<SegmentedControlOption<TabFilter>> = [
 ];
 
 const QUICK_EMOJI = ['👍', '🙏', '✅', '🔥', '🎉', '❤️', '🤝', '📌'];
-
-const SEED_MESSAGES: Record<string, Message[]> = {
-  th1: [
-    { id: 'm1', threadId: 'th1', fromMe: false, body: 'Добрий день! Я зробила ДЗ, можна надіслати?', time: '14:10', read: true, authorName: 'Аліса Коваль' },
-    { id: 'm2', threadId: 'th1', fromMe: true,  body: 'Так, відправляй сюди або прикріплюй файл.', time: '14:18', read: true },
-    { id: 'm3', threadId: 'th1', fromMe: false, body: 'Дякую, готово!', time: '14:32', read: false, authorName: 'Аліса Коваль' },
-  ],
-  th2: [
-    { id: 'm1', threadId: 'th2', fromMe: true,  body: 'Миколо, нагадую — завтра урок о 11:00.', time: '11:55', read: true },
-    { id: 'm2', threadId: 'th2', fromMe: false, body: 'До зустрічі завтра', time: '12:10', read: true, authorName: 'Микола' },
-  ],
-  th3: [
-    { id: 'm1', threadId: 'th3', fromMe: false, body: 'Чи зможе Аліса завтра о 19:00?', time: '10:04', read: false, authorName: 'Олена Коваль' },
-  ],
-  th4: [
-    { id: 'm1', threadId: 'th4', fromMe: true,  body: 'Всім привіт! Ось ДЗ на четвер.', time: '09:30', read: true, pinned: true },
-    { id: 'm2', threadId: 'th4', fromMe: true,  body: 'Ось ДЗ на четвер', time: '09:40', read: true },
-    { id: 'm3', threadId: 'th4', fromMe: false, body: 'Прийнято, дякую!', time: '09:48', read: true, authorName: 'Софія' },
-  ],
-  th5: [
-    { id: 'm1', threadId: 'th5', fromMe: false, body: 'Дякую за урок!', time: 'Вт', read: true, authorName: 'Юлія' },
-  ],
-  th6: [
-    { id: 'm1', threadId: 'th6', fromMe: true,  body: 'Тарасе, рахунок за квітень на пошті.', time: 'Пн', read: true },
-    { id: 'm2', threadId: 'th6', fromMe: false, body: 'Домовились', time: 'Пн', read: true, authorName: 'Тарас' },
-  ],
-};
+const POLL_MS = 10_000;
 
 function IconBtn({ onClick, label, children, active = false }: { onClick: () => void; label: string; children: React.ReactNode; active?: boolean }) {
   return (
@@ -71,21 +44,6 @@ function IconBtn({ onClick, label, children, active = false }: { onClick: () => 
   );
 }
 
-function threadAvatar(thread: ChatThread) {
-  if (thread.photo) {
-    // eslint-disable-next-line @next/next/no-img-element
-    return <img src={thread.photo} alt={thread.title} className="w-10 h-10 rounded-full object-cover flex-shrink-0" />;
-  }
-  return (
-    <span className="w-10 h-10 rounded-full bg-surface-muted text-ink-muted flex items-center justify-center flex-shrink-0" aria-hidden>
-      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="9" cy="9" r="3.2" /><circle cx="16" cy="10" r="2.6" />
-        <path d="M3 20a6 6 0 0112 0" /><path d="M13 19a5 5 0 019-3" />
-      </svg>
-    </span>
-  );
-}
-
 function PinIcon({ className = 'w-3 h-3' }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
@@ -94,33 +52,55 @@ function PinIcon({ className = 'w-3 h-3' }: { className?: string }) {
   );
 }
 
-function Bubble({
-  msg,
-  onReply,
-  onPin,
-}: {
+function threadAvatar(thread: Thread, myId: string) {
+  const other = thread.participants.find((p) => p.documentId !== myId) ?? thread.participants[0];
+  return <Avatar name={other?.displayName ?? thread.title} src={other?.avatarUrl ?? null} size="md" />;
+}
+
+function formatListTime(iso: string | null): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  const now = new Date();
+  const sameDay = d.toDateString() === now.toDateString();
+  if (sameDay) return d.toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' });
+  const diffDays = Math.round((now.getTime() - d.getTime()) / 86_400_000);
+  if (diffDays < 7) return ['Нд', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'][d.getDay()];
+  return d.toLocaleDateString('uk-UA', { day: '2-digit', month: '2-digit' });
+}
+
+function formatMsgTime(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' });
+}
+
+interface BubbleProps {
   msg: Message;
+  isOwn: boolean;
   onReply: (m: Message) => void;
   onPin: (m: Message) => void;
-}) {
-  const isOwn = msg.fromMe;
+  replyToSnippet: { author: string; body: string } | null;
+}
+
+function Bubble({ msg, isOwn, onReply, onPin, replyToSnippet }: BubbleProps) {
   return (
     <div className={`group flex ${isOwn ? 'justify-end' : 'justify-start'} mb-2`}>
       <div className="max-w-[80%] flex flex-col gap-1">
-        {msg.authorName && !isOwn && (
-          <p className="text-[11px] font-semibold text-ink-muted ml-3">{msg.authorName}</p>
+        {msg.author && !isOwn && (
+          <p className="text-[11px] font-semibold text-ink-muted ml-3">{msg.author.displayName}</p>
         )}
         <div className={`relative px-3.5 py-2 rounded-2xl text-[13px] leading-relaxed ${
           isOwn
             ? 'bg-primary text-white rounded-br-sm'
-            : 'bg-white border border-border text-ink rounded-bl-sm'
+            : 'bg-surface-raised border border-border text-ink rounded-bl-sm'
         }`}>
-          {msg.replyTo && (
+          {replyToSnippet && (
             <div className={`mb-1.5 px-2 py-1 rounded-md text-[11px] border-l-2 ${
-              isOwn ? 'border-white/50 bg-white/10 text-white/80' : 'border-primary/40 bg-surface-muted text-ink-muted'
+              isOwn ? 'border-white/50 bg-surface-raised/10 text-white/80' : 'border-primary/40 bg-surface-muted text-ink-muted'
             }`}>
-              <p className="font-semibold">{msg.replyTo.author}</p>
-              <p className="truncate">{msg.replyTo.body}</p>
+              <p className="font-semibold">{replyToSnippet.author}</p>
+              <p className="truncate">{replyToSnippet.body}</p>
             </div>
           )}
           {msg.pinned && (
@@ -131,36 +111,51 @@ function Bubble({
           )}
           <p className="whitespace-pre-wrap">{msg.body}</p>
           <div className={`text-[10px] mt-1 text-right flex items-center justify-end gap-1 tabular-nums ${isOwn ? 'text-white/70' : 'text-ink-faint'}`}>
-            <span>{msg.time}</span>
-            {isOwn && <span aria-label={msg.read ? 'Прочитано' : 'Надіслано'}>{msg.read ? '✓✓' : '✓'}</span>}
+            <span>{formatMsgTime(msg.createdAt)}</span>
           </div>
         </div>
         <div className={`flex gap-1 ${isOwn ? 'justify-end' : 'justify-start'} opacity-0 group-hover:opacity-100 transition-opacity`}>
           <button
             type="button"
             onClick={() => onReply(msg)}
-            className="text-[10px] px-1.5 py-0.5 rounded-md bg-white border border-border text-ink-muted hover:text-ink"
+            className="text-[10px] px-1.5 py-0.5 rounded-md bg-surface-raised border border-border text-ink-muted hover:text-ink"
           >
             Відповісти
           </button>
-          <button
-            type="button"
-            onClick={() => onPin(msg)}
-            className="text-[10px] px-1.5 py-0.5 rounded-md bg-white border border-border text-ink-muted hover:text-ink"
-          >
-            {msg.pinned ? 'Відкріпити' : 'Закріпити'}
-          </button>
+          {isOwn && (
+            <button
+              type="button"
+              onClick={() => onPin(msg)}
+              className="text-[10px] px-1.5 py-0.5 rounded-md bg-surface-raised border border-border text-ink-muted hover:text-ink"
+            >
+              {msg.pinned ? 'Відкріпити' : 'Закріпити'}
+            </button>
+          )}
         </div>
       </div>
     </div>
   );
 }
 
-export default function ChatPage() {
-  const [tab, setTab] = useState<TabFilter>('all');
-  const [query, setQuery] = useState('');
-  const [activeId, setActiveId] = useState<string>(MOCK_CHAT_THREADS[0]?.id ?? '');
-  const [messagesByThread, setMessagesByThread] = useState<Record<string, Message[]>>(SEED_MESSAGES);
+function ChatPageInner() {
+  const { session, status } = useSession();
+  const myId = session?.profile.documentId ?? '';
+  const searchParams = useSearchParams();
+  const initialTab = ((): TabFilter => {
+    const t = searchParams.get('tab');
+    return t === 'student' || t === 'parent' || t === 'group' ? t : 'all';
+  })();
+  const initialQuery = searchParams.get('q') ?? '';
+
+  const [tab, setTab] = useState<TabFilter>(initialTab);
+  const [query, setQuery] = useState(initialQuery);
+  const [activeId, setActiveId] = useState<string>('');
+  const [threads, setThreads] = useState<Thread[]>([]);
+  const [messagesByThread, setMessagesByThread] = useState<Record<string, Message[]>>({});
+  const [loadingThreads, setLoadingThreads] = useState(true);
+  const [loadingMessages, setLoadingMessages] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
   const [draft, setDraft] = useState('');
   const [threadSearch, setThreadSearch] = useState('');
   const [replyTarget, setReplyTarget] = useState<Message | null>(null);
@@ -171,27 +166,118 @@ export default function ChatPage() {
 
   const endRef = useRef<HTMLDivElement>(null);
 
-  const threads = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return MOCK_CHAT_THREADS
-      .filter(t => tab === 'all' || t.kind === tab)
-      .filter(t => q === '' || t.title.toLowerCase().includes(q));
-  }, [tab, query]);
+  const loadThreads = useCallback(
+    async (silent = false) => {
+      if (!myId) return;
+      if (!silent) setLoadingThreads(true);
+      try {
+        const rows = await fetchThreads(myId);
+        setThreads(rows);
+        setError(null);
+        if (!activeId && rows.length > 0) {
+          const q = initialQuery.trim().toLowerCase();
+          const matched = q
+            ? rows.find(
+                (t) =>
+                  (initialTab === 'all' || t.kind === initialTab) &&
+                  t.title.toLowerCase().includes(q),
+              )
+            : undefined;
+          setActiveId((matched ?? rows[0]).documentId);
+        }
+      } catch (e) {
+        if (!silent) setError(e instanceof Error ? e.message : 'failed');
+      } finally {
+        if (!silent) setLoadingThreads(false);
+      }
+    },
+    [myId, activeId, initialQuery, initialTab],
+  );
 
-  const active = useMemo(() => MOCK_CHAT_THREADS.find(t => t.id === activeId), [activeId]);
-  const activeMessages = messagesByThread[activeId] ?? [];
+  const loadMessages = useCallback(
+    async (threadId: string, silent = false) => {
+      if (!myId || !threadId) return;
+      if (!silent) setLoadingMessages(true);
+      try {
+        const rows = await fetchMessages(threadId, myId);
+        setMessagesByThread((prev) => ({ ...prev, [threadId]: rows }));
+      } catch {
+        // ignore poll errors — stale data stays visible
+      } finally {
+        if (!silent) setLoadingMessages(false);
+      }
+    },
+    [myId],
+  );
+
+  useEffect(() => {
+    if (status !== 'authenticated' || !myId) return;
+    void loadThreads();
+  }, [status, myId, loadThreads]);
+
+  useEffect(() => {
+    if (!activeId) return;
+    void loadMessages(activeId);
+  }, [activeId, loadMessages]);
+
+  useEffect(() => {
+    if (status !== 'authenticated' || !myId) return;
+    const t = window.setInterval(() => {
+      void loadThreads(true);
+      if (activeId) void loadMessages(activeId, true);
+    }, POLL_MS);
+    return () => window.clearInterval(t);
+  }, [status, myId, activeId, loadThreads, loadMessages]);
+
+  const filteredThreads = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return threads
+      .filter((t) => tab === 'all' || t.kind === tab)
+      .filter((t) => q === '' || t.title.toLowerCase().includes(q));
+  }, [threads, tab, query]);
+
+  const active = useMemo(() => threads.find((t) => t.documentId === activeId), [threads, activeId]);
+  const activeMessages = useMemo(() => messagesByThread[activeId] ?? [], [messagesByThread, activeId]);
+
+  const messageIndex = useMemo(() => {
+    const map = new Map<string, Message>();
+    for (const m of activeMessages) map.set(m.documentId, m);
+    return map;
+  }, [activeMessages]);
 
   const visibleMessages = useMemo(() => {
     if (!showThreadSearch || threadSearch.trim() === '') return activeMessages;
     const q = threadSearch.toLowerCase();
-    return activeMessages.filter(m => m.body.toLowerCase().includes(q));
+    return activeMessages.filter((m) => m.body.toLowerCase().includes(q));
   }, [activeMessages, threadSearch, showThreadSearch]);
 
-  const pinned = useMemo(() => activeMessages.filter(m => m.pinned), [activeMessages]);
+  const pinned = useMemo(() => activeMessages.filter((m) => m.pinned), [activeMessages]);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [activeMessages.length, activeId]);
+
+  // Mark unread others' messages as read when viewing.
+  useEffect(() => {
+    if (!myId || !activeId) return;
+    const unread = activeMessages.filter((m) => !m.readByMe && m.author?.documentId !== myId);
+    if (unread.length === 0) return;
+    (async () => {
+      for (const m of unread) {
+        try {
+          await markMessageRead(m.documentId);
+        } catch {
+          // ignore
+        }
+      }
+      setMessagesByThread((prev) => ({
+        ...prev,
+        [activeId]: (prev[activeId] ?? []).map((m) =>
+          unread.find((u) => u.documentId === m.documentId) ? { ...m, readByMe: true } : m,
+        ),
+      }));
+    })();
+  }, [activeId, activeMessages, myId]);
 
   function pickThread(id: string) {
     setActiveId(id);
@@ -200,86 +286,128 @@ export default function ChatPage() {
     setShowThreadSearch(false);
   }
 
-  function sendMessage(body?: string) {
+  async function handleSend(body?: string) {
     const text = (body ?? draft).trim();
-    if (text === '') return;
-    const msg: Message = {
-      id: `m-${Date.now()}`,
+    if (text === '' || !activeId) return;
+    const temp: Message = {
+      documentId: `temp-${Date.now()}`,
       threadId: activeId,
-      fromMe: true,
       body: text,
-      time: new Date().toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' }),
-      read: false,
-      replyTo: replyTarget ? { author: replyTarget.authorName ?? 'Ви', body: replyTarget.body } : undefined,
+      pinned: false,
+      createdAt: new Date().toISOString(),
+      author: session
+        ? { documentId: myId, displayName: session.profile.displayName ?? session.profile.firstName, avatarUrl: null }
+        : null,
+      replyToId: replyTarget?.documentId ?? null,
+      readByMe: true,
     };
-    setMessagesByThread(prev => ({ ...prev, [activeId]: [...(prev[activeId] ?? []), msg] }));
+    setMessagesByThread((prev) => ({
+      ...prev,
+      [activeId]: [...(prev[activeId] ?? []), temp],
+    }));
     setDraft('');
     setReplyTarget(null);
     setShowEmoji(false);
+    try {
+      await sendMessage(activeId, text, replyTarget?.documentId);
+      await loadMessages(activeId, true);
+      await loadThreads(true);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Не вдалося надіслати');
+      setMessagesByThread((prev) => ({
+        ...prev,
+        [activeId]: (prev[activeId] ?? []).filter((m) => m.documentId !== temp.documentId),
+      }));
+    }
   }
 
-  function togglePin(msg: Message) {
-    setMessagesByThread(prev => ({
+  async function togglePin(msg: Message) {
+    setMessagesByThread((prev) => ({
       ...prev,
-      [activeId]: (prev[activeId] ?? []).map(m => m.id === msg.id ? { ...m, pinned: !m.pinned } : m),
+      [activeId]: (prev[activeId] ?? []).map((m) =>
+        m.documentId === msg.documentId ? { ...m, pinned: !m.pinned } : m,
+      ),
     }));
+    try {
+      await togglePinMessage(msg.documentId, !msg.pinned);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Не вдалося оновити');
+      // revert
+      setMessagesByThread((prev) => ({
+        ...prev,
+        [activeId]: (prev[activeId] ?? []).map((m) =>
+          m.documentId === msg.documentId ? { ...m, pinned: msg.pinned } : m,
+        ),
+      }));
+    }
+  }
+
+  if (status === 'loading') {
+    return <p className="p-4 text-[13px] text-ink-muted">Завантаження сесії…</p>;
+  }
+  if (status !== 'authenticated') {
+    return <p className="p-4 text-[13px] text-danger-dark">Потрібно увійти, щоб користуватися чатом.</p>;
   }
 
   return (
-    <div className="flex flex-col h-[calc(100dvh-6rem)] md:h-[calc(100dvh-4rem)] rounded-xl overflow-hidden border border-border bg-white">
+    <div className="flex flex-col h-[calc(100dvh-6rem)] md:h-[calc(100dvh-4rem)] rounded-xl overflow-hidden border border-border bg-surface-raised">
       <div className="flex items-center justify-between gap-3 px-4 py-2.5 border-b border-border flex-shrink-0">
         <h1 className="text-[17px] font-semibold text-ink">Чат</h1>
-        <button type="button" onClick={() => setMassOpen(true)} className="ios-btn ios-btn-sm ios-btn-primary">
-          Написати всім
-        </button>
+        <Button size="sm" onClick={() => setMassOpen(true)}>Написати всім</Button>
       </div>
 
+      {error && (
+        <div className="px-4 py-2 bg-danger/10 border-b border-border text-[12px] text-danger-dark flex-shrink-0">
+          {error}
+          <button type="button" onClick={() => setError(null)} className="ml-2 underline">закрити</button>
+        </div>
+      )}
+
       <div className="flex flex-1 min-h-0">
-        <aside className={`${mobilePane === 'list' ? 'flex' : 'hidden'} md:flex w-full md:w-72 lg:w-80 flex-shrink-0 border-r border-border bg-white flex-col`}>
+        <aside className={`${mobilePane === 'list' ? 'flex' : 'hidden'} md:flex w-full md:w-72 lg:w-80 flex-shrink-0 border-r border-border bg-surface-raised flex-col`}>
           <div className="px-3 py-3 border-b border-border flex flex-col gap-2.5">
             <SegmentedControl value={tab} onChange={setTab} options={TAB_OPTIONS} label="Тип чату" />
             <SearchInput
               value={query}
-              onChange={e => setQuery(e.target.value)}
+              onChange={(e) => setQuery(e.target.value)}
               placeholder="Пошук чату…"
               containerClassName="w-full"
             />
           </div>
 
           <ul className="flex-1 overflow-y-auto">
-            {threads.map(t => {
-              const isActive = t.id === activeId;
-              return (
-                <li key={t.id} className="border-t border-border first:border-t-0">
-                  <button
-                    type="button"
-                    onClick={() => pickThread(t.id)}
-                    className={`w-full flex items-start gap-3 px-3 py-3 text-left transition-colors ${
-                      isActive ? 'bg-surface-muted' : 'hover:bg-surface-muted/60'
-                    }`}
-                  >
-                    {threadAvatar(t)}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-1 mb-0.5">
-                        <p className="text-[13px] font-semibold text-ink truncate flex items-center gap-1">
-                          {t.pinned && <PinIcon className="w-3 h-3 text-ink-muted" />}
-                          {t.title}
-                        </p>
-                        <span className="text-[10px] text-ink-faint tabular-nums flex-shrink-0">{t.lastMessageAt}</span>
+            {loadingThreads ? (
+              <li className="px-4 py-10 text-center text-[12px] text-ink-muted">Завантаження…</li>
+            ) : filteredThreads.length === 0 ? (
+              <li className="px-4 py-10 text-center text-[12px] text-ink-muted">
+                {threads.length === 0 ? 'Поки що немає чатів' : 'Нічого не знайдено'}
+              </li>
+            ) : (
+              filteredThreads.map((t) => {
+                const isActive = t.documentId === activeId;
+                return (
+                  <li key={t.documentId} className="border-t border-border first:border-t-0">
+                    <button
+                      type="button"
+                      onClick={() => pickThread(t.documentId)}
+                      className={`w-full flex items-start gap-3 px-3 py-3 text-left transition-colors ${
+                        isActive ? 'bg-surface-muted' : 'hover:bg-surface-muted/60'
+                      }`}
+                    >
+                      {threadAvatar(t, myId)}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-1 mb-0.5">
+                          <p className="text-[13px] font-semibold text-ink truncate">{t.title}</p>
+                          <span className="text-[10px] text-ink-faint tabular-nums flex-shrink-0">
+                            {formatListTime(t.lastMessageAt)}
+                          </span>
+                        </div>
+                        <p className="text-[12px] text-ink-muted truncate">{t.lastMessageBody ?? '—'}</p>
                       </div>
-                      <p className="text-[12px] text-ink-muted truncate">{t.lastMessage}</p>
-                    </div>
-                    {t.unread > 0 && (
-                      <span className="flex-shrink-0 min-w-[18px] h-[18px] px-1 rounded-full bg-primary flex items-center justify-center text-[10px] font-semibold text-white tabular-nums">
-                        {t.unread}
-                      </span>
-                    )}
-                  </button>
-                </li>
-              );
-            })}
-            {threads.length === 0 && (
-              <li className="px-4 py-10 text-center text-[12px] text-ink-muted">Немає чатів</li>
+                    </button>
+                  </li>
+                );
+              })
             )}
           </ul>
         </aside>
@@ -287,7 +415,7 @@ export default function ChatPage() {
         <section className={`${mobilePane === 'thread' ? 'flex' : 'hidden'} md:flex flex-1 flex-col min-w-0 bg-surface-muted/40`}>
           {active ? (
             <>
-              <header className="flex items-center gap-3 px-4 py-2.5 bg-white border-b border-border flex-shrink-0">
+              <header className="flex items-center gap-3 px-4 py-2.5 bg-surface-raised border-b border-border flex-shrink-0">
                 <button
                   type="button"
                   onClick={() => setMobilePane('list')}
@@ -296,23 +424,21 @@ export default function ChatPage() {
                 >
                   <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round"><path d="M15 18l-6-6 6-6" /></svg>
                 </button>
-                {threadAvatar(active)}
+                {threadAvatar(active, myId)}
                 <div className="flex-1 min-w-0">
                   <p className="text-[14px] font-semibold text-ink truncate">{active.title}</p>
-                  <p className="text-[11px] text-ink-muted">
-                    {active.kind === 'student' ? 'Чат з учнем' : active.kind === 'parent' ? 'Чат з батьками' : 'Чат групи'}
-                  </p>
+                  <p className="text-[11px] text-ink-muted">{THREAD_KIND_LABELS[active.kind]}</p>
                 </div>
-                <IconBtn onClick={() => { setShowThreadSearch(v => !v); setThreadSearch(''); }} label="Пошук у чаті" active={showThreadSearch}>
+                <IconBtn onClick={() => { setShowThreadSearch((v) => !v); setThreadSearch(''); }} label="Пошук у чаті" active={showThreadSearch}>
                   <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round"><circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" /></svg>
                 </IconBtn>
               </header>
 
               {showThreadSearch && (
-                <div className="px-4 py-2 bg-white border-b border-border flex-shrink-0">
+                <div className="px-4 py-2 bg-surface-raised border-b border-border flex-shrink-0">
                   <SearchInput
                     value={threadSearch}
-                    onChange={e => setThreadSearch(e.target.value)}
+                    onChange={(e) => setThreadSearch(e.target.value)}
                     placeholder="Пошук у чаті…"
                     containerClassName="w-full"
                     autoFocus
@@ -321,7 +447,7 @@ export default function ChatPage() {
               )}
 
               {pinned.length > 0 && (
-                <div className="px-4 py-2 bg-white border-b border-border flex items-center gap-2 flex-shrink-0">
+                <div className="px-4 py-2 bg-surface-raised border-b border-border flex items-center gap-2 flex-shrink-0">
                   <PinIcon className="w-3 h-3 text-ink-muted" />
                   <p className="text-[11px] text-ink-muted truncate">
                     <span className="font-semibold text-ink">Закріплено:</span> {pinned[0].body}
@@ -330,20 +456,35 @@ export default function ChatPage() {
               )}
 
               <div className="flex-1 overflow-y-auto px-4 py-4">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="flex-1 h-px bg-border" />
-                  <span className="text-[10px] font-semibold text-ink-faint uppercase tracking-wider">Сьогодні</span>
-                  <div className="flex-1 h-px bg-border" />
-                </div>
-
-                {visibleMessages.map(m => (
-                  <Bubble key={m.id} msg={m} onReply={setReplyTarget} onPin={togglePin} />
-                ))}
+                {loadingMessages && activeMessages.length === 0 ? (
+                  <p className="text-center text-[12px] text-ink-muted">Завантаження…</p>
+                ) : visibleMessages.length === 0 ? (
+                  <p className="text-center text-[12px] text-ink-muted">Ще немає повідомлень</p>
+                ) : (
+                  visibleMessages.map((m) => {
+                    const isOwn = m.author?.documentId === myId;
+                    const replyTo = m.replyToId ? messageIndex.get(m.replyToId) : null;
+                    return (
+                      <Bubble
+                        key={m.documentId}
+                        msg={m}
+                        isOwn={isOwn}
+                        onReply={setReplyTarget}
+                        onPin={togglePin}
+                        replyToSnippet={
+                          replyTo
+                            ? { author: replyTo.author?.displayName ?? 'Користувач', body: replyTo.body }
+                            : null
+                        }
+                      />
+                    );
+                  })
+                )}
                 <div ref={endRef} />
               </div>
 
               {replyTarget && (
-                <div className="px-4 py-2 bg-white border-t border-border flex items-center gap-3 flex-shrink-0">
+                <div className="px-4 py-2 bg-surface-raised border-t border-border flex items-center gap-3 flex-shrink-0">
                   <div className="w-0.5 self-stretch bg-primary rounded-full" />
                   <div className="flex-1 min-w-0">
                     <p className="text-[10px] font-semibold text-ink uppercase tracking-wider">Відповідь</p>
@@ -356,12 +497,12 @@ export default function ChatPage() {
               )}
 
               {showEmoji && (
-                <div className="px-4 py-2 bg-white border-t border-border flex flex-wrap gap-1 flex-shrink-0">
-                  {QUICK_EMOJI.map(e => (
+                <div className="px-4 py-2 bg-surface-raised border-t border-border flex flex-wrap gap-1 flex-shrink-0">
+                  {QUICK_EMOJI.map((e) => (
                     <button
                       type="button"
                       key={e}
-                      onClick={() => setDraft(d => d + e)}
+                      onClick={() => setDraft((d) => d + e)}
                       className="w-9 h-9 text-lg rounded-md hover:bg-surface-muted transition-colors"
                     >
                       {e}
@@ -370,35 +511,35 @@ export default function ChatPage() {
                 </div>
               )}
 
-              <div className="px-3 py-2.5 bg-white border-t border-border flex items-end gap-2 flex-shrink-0">
-                <IconBtn onClick={() => window.alert('Прикріплення — з бекендом')} label="Прикріпити файл">
+              <div className="px-3 py-2.5 bg-surface-raised border-t border-border flex items-end gap-2 flex-shrink-0">
+                <IconBtn onClick={() => window.alert('Прикріплення — у розробці')} label="Прикріпити файл">
                   <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M21 12l-8 8a5 5 0 01-7-7l9-9a3.5 3.5 0 015 5l-9 9a2 2 0 01-3-3l8-8" /></svg>
                 </IconBtn>
-                <IconBtn onClick={() => setShowEmoji(v => !v)} label="Емодзі" active={showEmoji}>
+                <IconBtn onClick={() => setShowEmoji((v) => !v)} label="Емодзі" active={showEmoji}>
                   <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round"><circle cx="12" cy="12" r="9" /><path d="M8 14c1 1.5 2.5 2 4 2s3-.5 4-2" /><circle cx="9" cy="10" r=".6" /><circle cx="15" cy="10" r=".6" /></svg>
                 </IconBtn>
                 <textarea
                   value={draft}
-                  onChange={e => setDraft(e.target.value)}
-                  onKeyDown={e => {
+                  onChange={(e) => setDraft(e.target.value)}
+                  onKeyDown={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey) {
                       e.preventDefault();
-                      sendMessage();
+                      void handleSend();
                     }
                   }}
                   placeholder="Напишіть повідомлення…"
                   rows={1}
-                  className="flex-1 resize-none px-3 py-2 rounded-lg border border-border text-[13px] text-ink bg-white focus:outline-none focus:border-primary focus:ring-[3px] focus:ring-primary/15 transition-[border-color,box-shadow] leading-relaxed max-h-[120px]"
+                  className="flex-1 resize-none px-3 py-2 rounded-lg border border-border text-[13px] text-ink bg-surface-raised focus:outline-none focus:border-primary focus:ring-[3px] focus:ring-primary/15 transition-[border-color,box-shadow] leading-relaxed max-h-[120px]"
                 />
-                <button
-                  type="button"
-                  onClick={() => sendMessage()}
+                <Button
+                  size="sm"
+                  icon
+                  onClick={() => void handleSend()}
                   disabled={draft.trim() === ''}
                   aria-label="Надіслати"
-                  className="w-9 h-9 rounded-lg bg-primary text-white flex items-center justify-center hover:bg-primary/90 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                 >
                   <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M3 12L21 3l-6 18-3.5-7L3 12z" /></svg>
-                </button>
+                </Button>
               </div>
             </>
           ) : (
@@ -414,5 +555,13 @@ export default function ChatPage() {
 
       <MassMessageModal open={massOpen} onClose={() => setMassOpen(false)} />
     </div>
+  );
+}
+
+export default function ChatPage() {
+  return (
+    <Suspense>
+      <ChatPageInner />
+    </Suspense>
   );
 }

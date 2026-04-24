@@ -37,6 +37,7 @@ type SessionProfile = {
   firstName: string;
   lastName?: string;
   displayName?: string;
+  level?: string;
   user?: SessionUser;
   kidsProfile?: Record<string, unknown> | null;
   adultProfile?: Record<string, unknown> | null;

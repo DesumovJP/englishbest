@@ -62,6 +62,7 @@ export function ItemDisplay({
     >
       <div
         className={`${sz.wrapper} rounded-2xl overflow-hidden relative flex items-center justify-center`}
+        // data-driven: item.color comes from shop catalog per-item; fallback is a neutral pastel
         style={{ background: item.color ?? "#e0f2fe" }}
       >
         {hasIdle ? (

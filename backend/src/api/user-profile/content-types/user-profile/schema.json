@@ -120,6 +120,12 @@
     },
     "deletedAt": {
       "type": "datetime"
+    },
+    "threads": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "api::thread.thread",
+      "mappedBy": "participants"
     }
   }
 }
