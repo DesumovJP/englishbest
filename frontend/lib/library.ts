@@ -8,8 +8,6 @@
  * consumer.
  */
 
-import { API_BASE_URL } from "./config";
-
 export type LibKind = "book" | "course" | "video" | "game";
 export type LibTabId = "all" | LibKind;
 
@@ -91,8 +89,7 @@ export async function fetchLibraryItems(): Promise<LibraryItem[]> {
   if (_cache) return _cache;
   if (_inflight) return _inflight;
 
-  const base = API_BASE_URL.replace(/\/+$/, "");
-  const url = `${base}/api/courses?filters[kind][$in][0]=book&filters[kind][$in][1]=video&filters[kind][$in][2]=game&filters[kind][$in][3]=course&pagination[pageSize]=200&sort=title:asc`;
+  const url = `/api/courses?filters[kind][$in][0]=book&filters[kind][$in][1]=video&filters[kind][$in][2]=game&filters[kind][$in][3]=course&pagination[pageSize]=200&sort=title:asc`;
 
   _inflight = (async () => {
     const res = await fetch(url, { cache: "no-store" });

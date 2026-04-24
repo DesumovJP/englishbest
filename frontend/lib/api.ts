@@ -17,7 +17,6 @@
  * All results flow through `lib/normalize.ts` so the UI never handles raw
  * Strapi envelopes.
  */
-import { API_BASE_URL } from './config';
 import { fetcher, fetcherClient } from './fetcher';
 import {
   normalizeCourses,
@@ -35,7 +34,6 @@ import type {
 
 // ─── URL helpers ────────────────────────────────────────────────────────────
 
-const BASE = () => API_BASE_URL.replace(/\/+$/, '');
 const q = (params: Record<string, string | number | undefined>) => {
   const s = new URLSearchParams();
   for (const [k, v] of Object.entries(params)) {
@@ -67,14 +65,14 @@ export async function fetchCourses(
 ): Promise<Course[]> {
   const filter = opts.kind ? `filters[kind][$eq]=${opts.kind}&` : '';
   const env = await fetcher<StrapiCollection<any>>(
-    `${BASE()}/api/courses?${filter}${COURSE_POPULATE}`,
+    `/api/courses?${filter}${COURSE_POPULATE}`,
   );
   return normalizeCourses(env);
 }
 
 export async function fetchCourseBySlug(slug: string): Promise<Course | null> {
   const env = await fetcher<StrapiCollection<any>>(
-    `${BASE()}/api/courses${q({ 'filters[slug][$eq]': slug })}&${COURSE_POPULATE}`,
+    `/api/courses${q({ 'filters[slug][$eq]': slug })}&${COURSE_POPULATE}`,
   );
   const first = (env?.data ?? [])[0];
   return first ? normalizeCourse(first) : null;
@@ -84,7 +82,7 @@ export async function fetchCourseBySlug(slug: string): Promise<Course | null> {
 
 export async function fetchLessonsByCourse(courseSlug: string): Promise<Lesson[]> {
   const env = await fetcher<StrapiCollection<any>>(
-    `${BASE()}/api/lessons${q({
+    `/api/lessons${q({
       'filters[course][slug][$eq]': courseSlug,
       'sort[0]': 'orderIndex:asc',
     })}&${LESSON_POPULATE}`,
@@ -97,7 +95,7 @@ export async function fetchLesson(
   lessonSlug: string,
 ): Promise<Lesson | null> {
   const env = await fetcher<StrapiCollection<any>>(
-    `${BASE()}/api/lessons${q({
+    `/api/lessons${q({
       'filters[course][slug][$eq]': courseSlug,
       'filters[slug][$eq]': lessonSlug,
       'pagination[pageSize]': 1,
