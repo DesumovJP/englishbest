@@ -13,48 +13,17 @@ interface DemoAccount {
   label: string;
   sublabel: string;
   email: string;
-  password: string;
-  tone: 'primary' | 'secondary' | 'purple';
+  bubble: string;
   initials: string;
 }
 
 const DEMO_PASSWORD = 'Demo2026!';
 
 const DEMO_ACCOUNTS: DemoAccount[] = [
-  {
-    role: 'kids',
-    label: 'Student',
-    sublabel: 'Учень',
-    email: 'demo-kids@englishbest.app',
-    password: DEMO_PASSWORD,
-    tone: 'primary',
-    initials: 'ST',
-  },
-  {
-    role: 'teacher',
-    label: 'Teacher',
-    sublabel: 'Вчитель',
-    email: 'demo-teacher@englishbest.app',
-    password: DEMO_PASSWORD,
-    tone: 'secondary',
-    initials: 'TE',
-  },
-  {
-    role: 'parent',
-    label: 'Parent',
-    sublabel: 'Батьки',
-    email: 'demo-parent@englishbest.app',
-    password: DEMO_PASSWORD,
-    tone: 'purple',
-    initials: 'PA',
-  },
+  { role: 'kids',    label: 'Student', sublabel: 'Учень',   email: 'demo-kids@englishbest.app',    bubble: 'bg-primary text-white',   initials: 'ST' },
+  { role: 'teacher', label: 'Teacher', sublabel: 'Вчитель', email: 'demo-teacher@englishbest.app', bubble: 'bg-secondary text-white', initials: 'TE' },
+  { role: 'parent',  label: 'Parent',  sublabel: 'Батьки',  email: 'demo-parent@englishbest.app',  bubble: 'bg-purple text-white',    initials: 'PA' },
 ];
-
-const TONE: Record<DemoAccount['tone'], { chip: string; bubble: string }> = {
-  primary:   { chip: 'bg-primary/10 text-primary-dark',     bubble: 'bg-primary text-white' },
-  secondary: { chip: 'bg-secondary/10 text-secondary-dark', bubble: 'bg-secondary text-white' },
-  purple:    { chip: 'bg-purple/10 text-purple-dark',       bubble: 'bg-purple text-white' },
-};
 
 function redirectForRole(role: string | undefined): string {
   switch (role) {
@@ -73,53 +42,6 @@ function resolveNextForRole(next: string | null, role: string | undefined): stri
   if (isKids) return '/kids/dashboard';
   if (next && next.startsWith('/') && next !== '/login') return next;
   return redirectForRole(role);
-}
-
-function DemoAccountCard({
-  account,
-  onUse,
-}: {
-  account: DemoAccount;
-  onUse: (acc: DemoAccount) => void;
-}) {
-  const tone = TONE[account.tone];
-  return (
-    <div className="bg-surface rounded-2xl border border-border p-4 flex flex-col gap-3 hover:border-primary/30 transition-colors">
-      <div className="flex items-center gap-3">
-        <span
-          className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-[13px] tracking-tight ${tone.bubble}`}
-        >
-          {account.initials}
-        </span>
-        <div className="flex-1 min-w-0">
-          <p className="font-black text-ink text-[14px] leading-tight">{account.label}</p>
-          <p className="text-[11px] text-ink-muted leading-tight mt-0.5">{account.sublabel}</p>
-        </div>
-        <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-1 rounded-md ${tone.chip}`}>
-          {account.role}
-        </span>
-      </div>
-
-      <div className="flex flex-col gap-1.5 bg-surface-muted/60 rounded-xl p-2.5">
-        <div className="flex items-center gap-2 text-[12px]">
-          <span className="text-ink-faint font-semibold w-14 shrink-0">Email</span>
-          <code className="flex-1 font-mono text-ink-muted truncate">{account.email}</code>
-        </div>
-        <div className="flex items-center gap-2 text-[12px]">
-          <span className="text-ink-faint font-semibold w-14 shrink-0">Пароль</span>
-          <code className="flex-1 font-mono text-ink-muted">{account.password}</code>
-        </div>
-      </div>
-
-      <button
-        type="button"
-        onClick={() => onUse(account)}
-        className="w-full h-10 rounded-xl bg-primary/10 text-primary-dark font-black text-[12px] hover:bg-primary/15 transition-colors"
-      >
-        Заповнити форму →
-      </button>
-    </div>
-  );
 }
 
 export default function LoginPage() {
@@ -141,7 +63,7 @@ export default function LoginPage() {
 
   function handleUseDemo(acc: DemoAccount) {
     setEmail(acc.email);
-    setPassword(acc.password);
+    setPassword(DEMO_PASSWORD);
     setError(null);
   }
 
@@ -162,7 +84,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-dvh bg-surface-muted/60 flex flex-col">
       {/* ── Header ── */}
-      <header className="bg-surface border-b border-border flex items-center justify-between px-4 sm:px-6 h-16 flex-shrink-0">
+      <header className="bg-surface border-b border-border grid grid-cols-[1fr_auto] items-center px-4 sm:px-6 h-16 flex-shrink-0">
         <Link href="/home" className="flex items-center gap-2.5">
           <span className="relative flex-shrink-0 w-9 h-9 rounded-2xl bg-primary/10 ring-1 ring-primary/20 overflow-hidden flex items-center justify-center">
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -186,21 +108,10 @@ export default function LoginPage() {
       </header>
 
       <main className="flex-1 flex items-center justify-center px-4 py-8 lg:py-12">
-        <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-[1.05fr_1fr] gap-6 lg:gap-10 items-start">
-          {/* ── LEFT: Demo accounts ── */}
-          <aside className="order-2 lg:order-1 bg-surface rounded-3xl border border-border p-5 sm:p-7 flex flex-col gap-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-3">
-              {DEMO_ACCOUNTS.map((acc) => (
-                <DemoAccountCard key={acc.role} account={acc} onUse={handleUseDemo} />
-              ))}
-            </div>
-          </aside>
-
-          {/* ── RIGHT: Login form ── */}
-          <section className="order-1 lg:order-2 bg-surface rounded-3xl border border-border p-6 sm:p-8 flex flex-col gap-6">
+        <div className="w-full max-w-md">
+          <section className="bg-surface rounded-3xl border border-border p-6 sm:p-8 flex flex-col gap-6">
             <div>
-              <p className="text-[10px] font-semibold text-primary uppercase tracking-widest">Ласкаво просимо</p>
-              <h1 className="text-3xl font-black text-ink tracking-tight mt-1">Вхід</h1>
+              <h1 className="text-3xl font-black text-ink tracking-tight">Вхід</h1>
               <p className="text-[13px] text-ink-muted mt-2">
                 Увійдіть у свій акаунт, щоб продовжити навчання.
               </p>
@@ -272,32 +183,61 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={loading || !email || !password}
-                className="w-full h-14 rounded-2xl font-black text-[15px] text-white mt-2 transition-transform active:translate-y-1 active:shadow-none disabled:opacity-40 disabled:cursor-not-allowed bg-primary shadow-press-primary"
+                className="w-full h-14 rounded-2xl font-black text-[15px] text-white mt-1 transition-transform active:translate-y-1 active:shadow-none disabled:opacity-40 disabled:cursor-not-allowed bg-primary shadow-press-primary"
               >
                 {loading ? 'Входимо…' : 'Увійти →'}
               </button>
             </form>
 
-            <div className="flex items-center gap-3">
-              <span className="flex-1 h-px bg-border" aria-hidden />
-              <span className="text-[10px] font-black text-ink-faint uppercase tracking-widest">або</span>
-              <span className="flex-1 h-px bg-border" aria-hidden />
+            {/* ── Demo quick-pick ── */}
+            <div className="flex flex-col gap-2 pt-2 border-t border-border">
+              <div className="flex items-baseline justify-between gap-3 pt-2">
+                <p className="text-[10px] font-black text-ink-faint uppercase tracking-widest">
+                  Демо-акаунти
+                </p>
+                <p className="text-[10px] text-ink-faint">
+                  пароль <code className="font-mono text-ink-muted">{DEMO_PASSWORD}</code>
+                </p>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                {DEMO_ACCOUNTS.map(acc => (
+                  <button
+                    key={acc.role}
+                    type="button"
+                    onClick={() => handleUseDemo(acc)}
+                    className="group flex items-center gap-3 p-2 rounded-xl hover:bg-surface-muted transition-colors text-left"
+                  >
+                    <span className={`w-8 h-8 rounded-lg flex items-center justify-center font-black text-[11px] tracking-tight flex-shrink-0 ${acc.bubble}`}>
+                      {acc.initials}
+                    </span>
+                    <span className="flex-1 min-w-0 flex items-baseline gap-2">
+                      <span className="font-black text-ink text-[13px]">{acc.label}</span>
+                      <span className="text-[11px] text-ink-muted">· {acc.sublabel}</span>
+                    </span>
+                    <span className="text-[10px] text-ink-faint group-hover:text-primary-dark font-black transition-colors">
+                      Використати →
+                    </span>
+                  </button>
+                ))}
+              </div>
             </div>
 
-            <Link
-              href="/auth/register"
-              className="w-full inline-flex items-center justify-center h-12 rounded-2xl bg-surface-muted border-2 border-border text-ink font-black text-[13px] hover:border-primary/40 transition-colors"
-            >
-              Створити новий акаунт
-            </Link>
-
-            <p className="text-center text-[11px] text-ink-faint">
-              Продовжуючи, ви погоджуєтесь з{' '}
-              <Link href="#" className="font-black text-ink-muted hover:text-ink transition-colors">
-                умовами використання
+            <div className="flex flex-col gap-3 text-center">
+              <Link
+                href="/auth/register"
+                className="text-[13px] text-ink-muted hover:text-ink transition-colors"
+              >
+                Немає акаунта?{' '}
+                <span className="text-primary font-black">Створити</span>
               </Link>
-              .
-            </p>
+              <p className="text-[11px] text-ink-faint">
+                Продовжуючи, ви погоджуєтесь з{' '}
+                <Link href="#" className="font-black text-ink-muted hover:text-ink transition-colors">
+                  умовами використання
+                </Link>
+                .
+              </p>
+            </div>
           </section>
         </div>
       </main>

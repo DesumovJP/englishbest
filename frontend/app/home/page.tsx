@@ -70,10 +70,12 @@ export default function HomePage() {
       <PopupTimer />
 
       {/* ── Header ── */}
-      <header className="sticky top-0 z-40 bg-surface/95 backdrop-blur-md border-b border-border flex items-center justify-between px-4 sm:px-6 h-16">
-        <FoxLogo size={36} />
+      <header className="sticky top-0 z-40 bg-surface/95 backdrop-blur-md border-b border-border grid grid-cols-[1fr_auto_1fr] items-center px-4 sm:px-6 h-16">
+        <div className="justify-self-start">
+          <FoxLogo size={36} />
+        </div>
 
-        <nav aria-label="Навігація" className="hidden md:flex items-center gap-1">
+        <nav aria-label="Навігація" className="hidden md:flex items-center gap-1 justify-self-center">
           {[
             { label: 'Як навчаємо', href: '#methodology' },
             { label: 'Формати та ціни', href: '#formats' },
@@ -90,21 +92,14 @@ export default function HomePage() {
           ))}
         </nav>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 justify-self-end">
           <LanguageSwitcher />
           <div className="w-px h-5 bg-border mx-1 hidden md:block" aria-hidden />
           <Link
             href="/login"
-            className="hidden md:inline-flex items-center text-[13px] font-semibold text-ink-muted hover:text-ink px-3 h-9 rounded-lg hover:bg-surface-muted transition-colors"
+            className="inline-flex items-center text-[13px] font-semibold text-ink-muted hover:text-ink px-3 h-9 rounded-lg hover:bg-surface-muted transition-colors"
           >
             Увійти
-          </Link>
-          <Link
-            href="/welcome"
-            className="inline-flex items-center justify-center bg-primary text-white font-black text-[13px] px-4 h-10 rounded-xl shadow-press-primary active:translate-y-1 active:shadow-none transition-transform"
-          >
-            <span className="sm:hidden">Спробувати</span>
-            <span className="hidden sm:inline">Спробувати безкоштовно</span>
           </Link>
         </div>
       </header>
@@ -327,7 +322,7 @@ export default function HomePage() {
               ].map(item => (
                 <div
                   key={item.n}
-                  className="md:col-span-3 bg-surface border border-border rounded-3xl p-6 flex items-start gap-4 hover:border-primary/30 transition-colors"
+                  className="md:col-span-3 bg-surface border border-border rounded-3xl p-6 flex items-center gap-4 hover:border-primary/30 transition-colors"
                 >
                   <div className={`flex-shrink-0 w-11 h-11 rounded-xl flex items-center justify-center ${item.iconBg}`}>
                     <span className="w-5 h-5 block">{item.icon}</span>
@@ -571,12 +566,6 @@ export default function HomePage() {
                   className="inline-flex items-center justify-center gap-2 rounded-2xl px-6 h-14 font-black text-[15px] bg-accent text-white shadow-press-accent active:translate-y-1 active:shadow-none transition-transform"
                 >
                   Підібрати вчителя безкоштовно →
-                </Link>
-                <Link
-                  href="#methodology"
-                  className="inline-flex items-center justify-center gap-2 rounded-2xl px-6 h-14 font-black text-[15px] bg-white/10 text-white border-2 border-white/20 hover:bg-white/15 transition-colors"
-                >
-                  Дізнатись більше
                 </Link>
               </div>
             </div>
