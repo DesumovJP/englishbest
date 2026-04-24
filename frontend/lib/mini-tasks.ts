@@ -126,10 +126,15 @@ function normalize(raw: any): MiniTask | null {
   };
 }
 
+// author → teacher-profile; `displayName` is not a teacher-profile field, so we
+// only pull `documentId` (normalize() already ignores the rest). Expanding into
+// user.displayName is possible later if the UI needs the author's name.
+// author → teacher-profile; `displayName` is not a teacher-profile field, so we
+// only pull `documentId` (normalize() already ignores the rest). Expanding into
+// user.displayName is possible later if the UI needs the author's name.
 const LIST_QUERY =
   'populate[author][fields][0]=documentId'
-  + '&populate[author][fields][1]=displayName'
-  + '&populate[exercise]=*'
+  + '&populate[exercise]=true'
   + '&pagination[pageSize]=200'
   + '&sort=createdAt:desc';
 

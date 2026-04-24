@@ -20,6 +20,7 @@ import * as libraryItems from './10-library-items';
 import * as realLessons from './11-real-lessons';
 import * as realHomework from './12-real-homework';
 import * as kidsSessions from './13-kids-sessions';
+import * as demoWiring from './14-demo-wiring';
 
 const SEEDS: { name: string; up: (strapi: any) => Promise<void> }[] = [
   { name: '00-roles', up: roles.up },
@@ -43,6 +44,10 @@ const SEEDS: { name: string; up: (strapi: any) => Promise<void> }[] = [
   // kids-sessions runs after real-homework so it can reuse the seed teacher
   // and demo-kid profile to populate the calendar widget with real events.
   { name: '13-kids-sessions', up: kidsSessions.up },
+  // demo-wiring runs last so it can link demo-kids ↔ demo-parent and attach
+  // a group + mini-tasks to demo-teacher. Depends on the demo accounts
+  // already existing (SEED_DEMO_ACCOUNTS=1 on first boot).
+  { name: '14-demo-wiring', up: demoWiring.up },
 ];
 
 export async function runSeeds(strapi: any) {

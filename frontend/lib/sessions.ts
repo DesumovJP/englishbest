@@ -117,10 +117,12 @@ function normalizeAttendee(raw: any): SessionAttendee | null {
 
 function normalizeTeacher(raw: any): SessionTeacher | null {
   if (!raw?.documentId) return null;
+  // teacher-profile has no display fields — they live on the linked user-profile.
+  const u = raw.user ?? {};
   const display =
-    typeof raw.displayName === "string" && raw.displayName
-      ? raw.displayName
-      : `${raw.firstName ?? ""} ${raw.lastName ?? ""}`.trim() || "—";
+    typeof u.displayName === "string" && u.displayName
+      ? u.displayName
+      : `${u.firstName ?? ""} ${u.lastName ?? ""}`.trim() || "—";
   return { documentId: String(raw.documentId), displayName: display };
 }
 
@@ -158,10 +160,13 @@ function normalize(raw: any): Session | null {
 }
 
 const POPULATE_QUERY =
-  "populate[teacher][fields][0]=displayName" +
-  "&populate[teacher][fields][1]=firstName" +
-  "&populate[teacher][fields][2]=lastName" +
+  // teacher → teacher-profile; display fields are on its nested user (user-profile).
+  "populate[teacher][fields][0]=documentId" +
+  "&populate[teacher][populate][user][fields][0]=displayName" +
+  "&populate[teacher][populate][user][fields][1]=firstName" +
+  "&populate[teacher][populate][user][fields][2]=lastName" +
   "&populate[course][fields][0]=title" +
+  // attendees → user-profile directly.
   "&populate[attendees][fields][0]=firstName" +
   "&populate[attendees][fields][1]=lastName" +
   "&populate[attendees][fields][2]=displayName" +

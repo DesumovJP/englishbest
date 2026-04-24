@@ -15,6 +15,10 @@ const LESSON_UID = 'api::lesson.lesson';
 const COURSE_UID = 'api::course.course';
 const USER_PROFILE_UID = 'api::user-profile.user-profile';
 const TEACHER_UID = 'api::teacher-profile.teacher-profile';
+// Prefer the demo-teacher account as the visible owner so the teacher
+// dashboard has real data; fall back to the hidden seed author when the
+// demo account hasn't been created (SEED_DEMO_ACCOUNTS !== '1').
+const DEMO_TEACHER_SLUG = 'demo-teacher';
 const SEED_TEACHER_SLUG = 'seed-kids-teacher';
 
 type HomeworkExerciseSeed = {
@@ -138,6 +142,15 @@ const HOMEWORKS: HomeworkSeed[] = [
   },
 ];
 
+function wrapAnswer(ex: HomeworkExerciseSeed): Record<string, unknown> {
+  if (ex.type === 'mcq') {
+    const idx = typeof ex.answer === 'number' ? ex.answer : 0;
+    const correct = ex.options?.[idx] ?? '';
+    return { correctIndex: idx, correct };
+  }
+  return { value: ex.answer ?? '' };
+}
+
 async function findDemoKidsProfile(strapi: any): Promise<string | null> {
   const [profile] = await strapi.documents(USER_PROFILE_UID).findMany({
     filters: { role: { $eq: 'kids' } },
@@ -148,10 +161,14 @@ async function findDemoKidsProfile(strapi: any): Promise<string | null> {
 }
 
 async function findSeedTeacher(strapi: any): Promise<string | null> {
-  const teacher = await strapi.db
+  const demo = await strapi.db
+    .query(TEACHER_UID)
+    .findOne({ where: { publicSlug: DEMO_TEACHER_SLUG } });
+  if (demo?.documentId) return demo.documentId;
+  const fallback = await strapi.db
     .query(TEACHER_UID)
     .findOne({ where: { publicSlug: SEED_TEACHER_SLUG } });
-  return teacher?.documentId ?? null;
+  return fallback?.documentId ?? null;
 }
 
 async function findLesson(strapi: any, slug: string): Promise<string | null> {
@@ -188,14 +205,21 @@ export async function up(strapi: any): Promise<void> {
   let skipped = 0;
 
   for (const hw of HOMEWORKS) {
+    // Match by title only — owner-agnostic so earlier runs owned by the
+    // legacy seed-kids-teacher get reassigned to the demo teacher when the
+    // demo account is later created.
     const [existing] = await strapi.documents(HOMEWORK_UID).findMany({
-      filters: {
-        title: hw.title,
-        teacher: { documentId: { $eq: teacherId } },
-      },
+      filters: { title: hw.title },
+      populate: { teacher: { fields: ['documentId'] } },
       limit: 1,
     });
     if (existing) {
+      if ((existing as any).teacher?.documentId !== teacherId) {
+        await strapi.documents(HOMEWORK_UID).update({
+          documentId: (existing as any).documentId,
+          data: { teacher: teacherId },
+        });
+      }
       skipped += 1;
       continue;
     }
@@ -228,7 +252,10 @@ export async function up(strapi: any): Promise<void> {
           type: ex.type,
           question: ex.question,
           options: ex.options,
-          answer: ex.answer,
+          // postgres `json` column rejects bare primitives — wrap so every
+          // answer serializes as an object. Matches MiniTaskBuilder's
+          // on-the-fly convention: mcq → {correctIndex, correct}, text → {value}.
+          answer: wrapAnswer(ex),
           explanation: ex.explanation,
           points: ex.points ?? 10,
         })),

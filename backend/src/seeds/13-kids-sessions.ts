@@ -16,6 +16,10 @@ const SESSION_UID = 'api::session.session';
 const USER_PROFILE_UID = 'api::user-profile.user-profile';
 const TEACHER_UID = 'api::teacher-profile.teacher-profile';
 const COURSE_UID = 'api::course.course';
+// Prefer demo-teacher as the visible owner so the teacher dashboard has real
+// sessions; fall back to the hidden seed author when the demo account hasn't
+// been created (SEED_DEMO_ACCOUNTS !== '1').
+const DEMO_TEACHER_SLUG = 'demo-teacher';
 const SEED_TEACHER_SLUG = 'seed-kids-teacher';
 const DEFAULT_COURSE_SLUG = 'english-kids-starter';
 
@@ -84,10 +88,14 @@ async function findDemoKidsProfileId(strapi: any): Promise<string | null> {
 }
 
 async function findSeedTeacherId(strapi: any): Promise<string | null> {
-  const teacher = await strapi.db
+  const demo = await strapi.db
+    .query(TEACHER_UID)
+    .findOne({ where: { publicSlug: DEMO_TEACHER_SLUG } });
+  if (demo?.documentId) return demo.documentId;
+  const fallback = await strapi.db
     .query(TEACHER_UID)
     .findOne({ where: { publicSlug: SEED_TEACHER_SLUG } });
-  return teacher?.documentId ?? null;
+  return fallback?.documentId ?? null;
 }
 
 async function findCourseId(strapi: any, slug: string): Promise<string | null> {
@@ -130,17 +138,24 @@ export async function up(strapi: any): Promise<void> {
       .toISOString()
       .slice(0, 10);
 
-    // Match by (teacher + title) falling on the same calendar day — runs on
-    // subsequent days never duplicate the same named lesson for a given day.
+    // Match by (title + day) — intentionally owner-agnostic so earlier runs
+    // owned by the legacy seed-kids-teacher get reassigned to the demo
+    // teacher when the demo account is later created.
     const [existing] = await strapi.documents(SESSION_UID).findMany({
       filters: {
         title: s.title,
-        teacher: { documentId: { $eq: teacherId } },
         startAt: { $gte: `${dayStart}T00:00:00.000Z`, $lt: `${dayEnd}T00:00:00.000Z` },
       },
+      populate: { teacher: { fields: ['documentId'] } },
       limit: 1,
     });
     if (existing) {
+      if ((existing as any).teacher?.documentId !== teacherId) {
+        await strapi.documents(SESSION_UID).update({
+          documentId: (existing as any).documentId,
+          data: { teacher: teacherId },
+        });
+      }
       skipped += 1;
       continue;
     }

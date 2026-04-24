@@ -90,6 +90,7 @@ async function ensureSeedTeacher(strapi: any): Promise<string | null> {
 type ExistingCourse = {
   documentId: string;
   slug: string;
+  kind?: 'course' | 'book' | 'video' | 'game' | null;
   teacher?: { documentId?: string } | null;
   sections?: Array<{ id?: number; slug?: string; title?: string; order?: number; lessonSlugs?: string[] }>;
 };
@@ -205,9 +206,12 @@ async function upsertSections(
   lessons: LessonSeed[],
 ): Promise<void> {
   const merged = buildSections(lessons, course.sections);
+  // Strapi v5 validates the full doc on partial update; if an older row has
+  // `kind: null`, omitting it here fails the enum/required check. Backfill
+  // with the seed's default ('course') whenever the existing row is null.
   await strapi.documents(COURSE_UID).update({
     documentId: course.documentId,
-    data: { sections: merged },
+    data: { sections: merged, kind: course.kind ?? 'course' },
     status: 'published',
   });
 }
