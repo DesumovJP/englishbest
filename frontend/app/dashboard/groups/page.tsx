@@ -24,6 +24,7 @@ export default function GroupsPage() {
   const [selected, setSelected] = useState<Group | null>(null);
   const [assignOpen, setAssignOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
+  const [editing, setEditing] = useState<Group | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
@@ -110,6 +111,10 @@ export default function GroupsPage() {
         <GroupDetail
           group={selected}
           onAssignClick={() => setAssignOpen(true)}
+          onEdit={() => {
+            setEditing(selected);
+            setSelected(null);
+          }}
           onMessage={() => {
             const qs = new URLSearchParams({ tab: 'group', q: selected.name });
             router.push(`/dashboard/chat?${qs.toString()}`);
@@ -131,6 +136,20 @@ export default function GroupsPage() {
       onCreated={(g) => {
         setGroups((prev) => [g, ...prev]);
         flashToast(`Групу «${g.name}» створено`);
+      }}
+    />
+
+    <CreateGroupModal
+      open={editing !== null}
+      onClose={() => setEditing(null)}
+      editing={editing}
+      onUpdated={(g) => {
+        setGroups((prev) => prev.map((x) => (x.documentId === g.documentId ? g : x)));
+        flashToast(`Групу «${g.name}» оновлено`);
+      }}
+      onDeleted={(groupId) => {
+        setGroups((prev) => prev.filter((x) => x.documentId !== groupId));
+        flashToast('Групу видалено');
       }}
     />
 
@@ -206,10 +225,12 @@ function StatCell({ label, value }: { label: string; value: string }) {
 function GroupDetail({
   group,
   onAssignClick,
+  onEdit,
   onMessage,
 }: {
   group: Group;
   onAssignClick: () => void;
+  onEdit: () => void;
   onMessage: () => void;
 }) {
   const members = group.members;
@@ -261,6 +282,9 @@ function GroupDetail({
             Чат групи
           </Button>
         </div>
+        <Button variant="secondary" onClick={onEdit} fullWidth>
+          Редагувати групу
+        </Button>
       </div>
 
       <div>

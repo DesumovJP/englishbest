@@ -1,20 +1,31 @@
 /**
- * CreateGroupModal — live-wired group creation.
+ * CreateGroupModal — live-wired group create/edit modal.
  *
- * Loads teacher's own students (`/api/teacher/me/students`) so the caller
- * can pick initial members. Submits via `createGroup()`.
+ * Loads teacher's own students (`/api/teacher/me/students`) for the member
+ * picker. When `editing` is provided, the modal operates in edit mode
+ * (prefills + calls `updateGroup` + exposes a "Delete" action); otherwise it
+ * creates a new group via `createGroup`.
  */
 'use client';
 import { useEffect, useState } from 'react';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
-import { createGroup, type Group, type GroupLevel } from '@/lib/groups';
+import {
+  createGroup,
+  deleteGroup,
+  updateGroup,
+  type Group,
+  type GroupLevel,
+} from '@/lib/groups';
 import { fetchMyStudents, type TeacherStudent } from '@/lib/teacher-students';
 
 interface CreateGroupModalProps {
   open: boolean;
   onClose: () => void;
   onCreated?: (group: Group) => void;
+  onUpdated?: (group: Group) => void;
+  onDeleted?: (groupId: string) => void;
+  editing?: Group | null;
 }
 
 const LEVELS: GroupLevel[] = ['A0', 'A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
@@ -23,7 +34,16 @@ const fieldLabel = 'text-xs font-black text-ink-muted uppercase tracking-wide';
 const fieldInput =
   'w-full mt-1.5 h-10 px-3 rounded-xl border border-border bg-white text-sm text-ink focus:outline-none focus:border-primary';
 
-export function CreateGroupModal({ open, onClose, onCreated }: CreateGroupModalProps) {
+export function CreateGroupModal({
+  open,
+  onClose,
+  onCreated,
+  onUpdated,
+  onDeleted,
+  editing,
+}: CreateGroupModalProps) {
+  const isEdit = Boolean(editing);
+
   const [students,     setStudents]   = useState<TeacherStudent[]>([]);
   const [loadStatus,   setLoadStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
 
@@ -32,6 +52,7 @@ export function CreateGroupModal({ open, onClose, onCreated }: CreateGroupModalP
   const [meetUrl,      setMeetUrl]    = useState('');
   const [memberIds,    setMemberIds]  = useState<string[]>([]);
   const [submitting,   setSubmitting] = useState(false);
+  const [deleting,     setDeleting]   = useState(false);
   const [error,        setError]      = useState<string | null>(null);
   const [toast,        setToast]      = useState<string | null>(null);
 
@@ -54,18 +75,38 @@ export function CreateGroupModal({ open, onClose, onCreated }: CreateGroupModalP
     return () => { alive = false; };
   }, [open]);
 
+  useEffect(() => {
+    if (!open) return;
+    if (editing) {
+      setName(editing.name);
+      setLevel(editing.level);
+      setMeetUrl(editing.meetUrl ?? '');
+      setMemberIds(editing.members.map((m) => m.documentId));
+    } else {
+      setName('');
+      setLevel('A1');
+      setMeetUrl('');
+      setMemberIds([]);
+    }
+    setSubmitting(false);
+    setDeleting(false);
+    setError(null);
+    setToast(null);
+  }, [open, editing]);
+
   function resetForm() {
     setName('');
     setLevel('A1');
     setMeetUrl('');
     setMemberIds([]);
     setSubmitting(false);
+    setDeleting(false);
     setError(null);
     setToast(null);
   }
 
   function handleClose() {
-    if (submitting) return;
+    if (submitting || deleting) return;
     resetForm();
     onClose();
   }
@@ -84,26 +125,56 @@ export function CreateGroupModal({ open, onClose, onCreated }: CreateGroupModalP
     }
     setSubmitting(true);
     try {
-      const g = await createGroup({
-        name: trimmed,
-        level,
-        meetUrl: meetUrl.trim() || null,
-        memberIds: memberIds.length > 0 ? memberIds : undefined,
-      });
-      onCreated?.(g);
-      setToast(`Групу «${g.name}» створено`);
+      if (isEdit && editing) {
+        const g = await updateGroup(editing.documentId, {
+          name: trimmed,
+          level,
+          meetUrl: meetUrl.trim() || null,
+          memberIds,
+        });
+        onUpdated?.(g);
+        setToast(`Групу «${g.name}» оновлено`);
+      } else {
+        const g = await createGroup({
+          name: trimmed,
+          level,
+          meetUrl: meetUrl.trim() || null,
+          memberIds: memberIds.length > 0 ? memberIds : undefined,
+        });
+        onCreated?.(g);
+        setToast(`Групу «${g.name}» створено`);
+      }
       window.setTimeout(() => {
         resetForm();
         onClose();
-      }, 1200);
+      }, 1000);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Не вдалось створити групу');
+      setError(e instanceof Error ? e.message : 'Не вдалось зберегти групу');
       setSubmitting(false);
     }
   }
 
+  async function handleDelete() {
+    if (!editing) return;
+    if (!window.confirm(`Видалити групу «${editing.name}»? Цю дію не можна скасувати.`)) return;
+    setDeleting(true);
+    setError(null);
+    try {
+      await deleteGroup(editing.documentId);
+      onDeleted?.(editing.documentId);
+      setToast('Групу видалено');
+      window.setTimeout(() => {
+        resetForm();
+        onClose();
+      }, 900);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Не вдалось видалити групу');
+      setDeleting(false);
+    }
+  }
+
   return (
-    <Modal isOpen={open} onClose={handleClose} title="Нова група">
+    <Modal isOpen={open} onClose={handleClose} title={isEdit ? 'Редагувати групу' : 'Нова група'}>
       {toast ? (
         <div className="py-10 text-center">
           <p className="text-3xl mb-3">✅</p>
@@ -125,7 +196,7 @@ export function CreateGroupModal({ open, onClose, onCreated }: CreateGroupModalP
               type="text"
               value={name}
               required
-              disabled={submitting}
+              disabled={submitting || deleting}
               onChange={(e) => setName(e.target.value)}
               placeholder="Напр. Ранок A1 · ПН/СР"
               className={fieldInput}
@@ -139,7 +210,7 @@ export function CreateGroupModal({ open, onClose, onCreated }: CreateGroupModalP
                 <button
                   key={l}
                   type="button"
-                  disabled={submitting}
+                  disabled={submitting || deleting}
                   onClick={() => setLevel(l)}
                   className={`px-3 py-1.5 rounded-lg border text-[13px] font-bold transition-colors ${
                     level === l
@@ -159,7 +230,7 @@ export function CreateGroupModal({ open, onClose, onCreated }: CreateGroupModalP
               id="grp-meet"
               type="url"
               value={meetUrl}
-              disabled={submitting}
+              disabled={submitting || deleting}
               onChange={(e) => setMeetUrl(e.target.value)}
               placeholder="https://meet.google.com/…"
               className={fieldInput}
@@ -184,7 +255,7 @@ export function CreateGroupModal({ open, onClose, onCreated }: CreateGroupModalP
                       <input
                         type="checkbox"
                         checked={checked}
-                        disabled={submitting}
+                        disabled={submitting || deleting}
                         onChange={() => toggleMember(s.documentId)}
                       />
                       <span className="text-[13px] text-ink flex-1 truncate">{s.displayName}</span>
@@ -201,11 +272,27 @@ export function CreateGroupModal({ open, onClose, onCreated }: CreateGroupModalP
           {error && <p className="text-sm text-danger-dark">{error}</p>}
 
           <div className="flex gap-2 pt-2">
-            <Button type="button" variant="secondary" onClick={handleClose} disabled={submitting} fullWidth>
+            {isEdit && (
+              <Button
+                type="button"
+                variant="danger"
+                onClick={handleDelete}
+                disabled={submitting || deleting}
+              >
+                {deleting ? 'Видаляю…' : 'Видалити'}
+              </Button>
+            )}
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={handleClose}
+              disabled={submitting || deleting}
+              fullWidth
+            >
               Скасувати
             </Button>
-            <Button type="submit" disabled={submitting} fullWidth>
-              {submitting ? 'Створюю…' : 'Створити'}
+            <Button type="submit" disabled={submitting || deleting} fullWidth>
+              {submitting ? (isEdit ? 'Зберігаю…' : 'Створюю…') : isEdit ? 'Зберегти' : 'Створити'}
             </Button>
           </div>
         </form>
