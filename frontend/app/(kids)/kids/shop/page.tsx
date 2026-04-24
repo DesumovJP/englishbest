@@ -6,7 +6,6 @@ import type { Level } from "@/lib/types";
 import { useKidsIdentity } from "@/lib/use-kids-identity";
 import { LootBoxModal, BoxCard } from "@/components/kids/LootBox";
 import type { BoxRarity } from "@/components/kids/LootBox";
-import AddCustomModal from "@/components/kids/AddCustomModal";
 import {
   useCharacterCatalog,
   useCustomItems,
@@ -635,7 +634,6 @@ function ShopPageInner() {
   const [toast, setToast]         = useState<string | null>(null);
   const [buyItem, setBuyItem]     = useState<ShopItem | null>(null);
   const [openBox, setOpenBox]     = useState<BoxRarity | null>(null);
-  const [showAdd, setShowAdd]     = useState(false);
   const [onlyAffordable, setOnlyAffordable] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -719,8 +717,6 @@ function ShopPageInner() {
               <span className="text-[7.5px] text-coin font-bold uppercase tracking-[0.07em]">Balance</span>
               <span className="font-black text-sm text-coin">{balance}</span>
             </div>
-            <button onClick={() => setShowAdd(true)}
-              className="ml-auto w-7 h-7 rounded-lg flex items-center justify-center font-black text-base bg-surface-muted text-ink active:scale-90 transition-transform">+</button>
           </div>
 
           <p className="px-5 mt-3 mb-2 font-black uppercase tracking-widest text-[10px] text-ink-faint">Category</p>
@@ -797,13 +793,6 @@ function ShopPageInner() {
                   <span className="text-[7.5px] text-coin font-bold uppercase tracking-[0.07em]">Balance</span>
                   <span className="font-black text-[13px] text-coin mt-0.5">{balance}</span>
                 </div>
-                <button
-                  onClick={() => setShowAdd(true)}
-                  aria-label="Поповнити"
-                  className="w-6 h-6 rounded-lg flex items-center justify-center font-black text-sm bg-coin-border text-coin active:scale-90 transition-transform ml-1"
-                >
-                  +
-                </button>
               </div>
             </div>
             <button
@@ -989,7 +978,6 @@ function ShopPageInner() {
 
       {buyItem && <BuyModal item={buyItem} onSuccess={handleSuccess} onClose={() => setBuyItem(null)} />}
       {openBox && <LootBoxModal boxType={openBox} balance={balance} onClose={() => setOpenBox(null)} onOpen={handleLootBoxOpen} />}
-      {showAdd && <AddCustomModal onClose={() => setShowAdd(false)} />}
 
       {toast && (
         <div className="fixed bottom-28 left-1/2 -translate-x-1/2 z-50 animate-fade-in-up">

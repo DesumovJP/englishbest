@@ -44,16 +44,8 @@ export interface UserProgressRow {
 }
 
 const POPULATE = [
-  'populate[lesson][fields][0]=slug',
-  'populate[lesson][fields][1]=title',
-  'populate[lesson][fields][2]=orderIndex',
-  'populate[lesson][fields][3]=type',
-  'populate[lesson][populate][course][fields][0]=slug',
-  'populate[lesson][populate][course][fields][1]=documentId',
-  'populate[course][fields][0]=slug',
-  'populate[course][fields][1]=title',
-  'populate[course][fields][2]=level',
-  'populate[course][fields][3]=iconEmoji',
+  'populate[lesson][populate][course]=true',
+  'populate[course]=true',
 ].join('&');
 
 function normalizeRow(raw: any): UserProgressRow {

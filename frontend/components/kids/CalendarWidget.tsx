@@ -53,8 +53,38 @@ function useSessions(enabled: boolean) {
   return sessions;
 }
 
+const MONTHS_FULL_UA = [
+  'Січень', 'Лютий', 'Березень', 'Квітень', 'Травень', 'Червень',
+  'Липень', 'Серпень', 'Вересень', 'Жовтень', 'Листопад', 'Грудень',
+];
+const WEEK_HEADER_UA = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'];
+
+function toISODay(d: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+function buildMonthGrid(year: number, month: number): Array<{ iso: string; date: Date; inMonth: boolean }> {
+  const first = new Date(year, month, 1);
+  const firstWeekday = (first.getDay() + 6) % 7; // 0 = Monday
+  const startDate = new Date(year, month, 1 - firstWeekday);
+  const cells: Array<{ iso: string; date: Date; inMonth: boolean }> = [];
+  for (let i = 0; i < 42; i++) {
+    const d = new Date(startDate);
+    d.setDate(startDate.getDate() + i);
+    cells.push({ iso: toISODay(d), date: d, inMonth: d.getMonth() === month });
+  }
+  return cells;
+}
+
 export function CalendarDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const sessions = useSessions(open);
+  const today = new Date();
+  const todayISO = toISODay(today);
+
+  const [viewYear, setViewYear] = useState(today.getFullYear());
+  const [viewMonth, setViewMonth] = useState(today.getMonth());
+  const [selectedISO, setSelectedISO] = useState(todayISO);
 
   useEffect(() => {
     if (!open) return;
@@ -63,18 +93,38 @@ export function CalendarDialog({ open, onClose }: { open: boolean; onClose: () =
     return () => window.removeEventListener('keydown', onKey);
   }, [open, onClose]);
 
+  useEffect(() => {
+    if (open) {
+      const now = new Date();
+      setViewYear(now.getFullYear());
+      setViewMonth(now.getMonth());
+      setSelectedISO(toISODay(now));
+    }
+  }, [open]);
+
   if (!open) return null;
 
-  const today = new Date();
-  const todayISO = today.toISOString().slice(0, 10);
-  const dayNum = today.getDate();
-  const monthAbbr = MONTHS_UA[today.getMonth()];
-  const weekday = WEEKDAYS_UA[today.getDay()];
-
-  const upcoming = (sessions ?? [])
-    .filter(s => s.status === 'scheduled' || s.status === 'live')
-    .filter(s => !!s.startAt && new Date(s.startAt).getTime() >= Date.now() - 60 * 60 * 1000)
+  const grid = buildMonthGrid(viewYear, viewMonth);
+  const activeSessions = (sessions ?? []).filter(s => s.status === 'scheduled' || s.status === 'live');
+  const daysWithSession = new Set(
+    activeSessions
+      .map(s => (s.startAt ? toISODay(new Date(s.startAt)) : null))
+      .filter((x): x is string => !!x),
+  );
+  const daySessions = activeSessions
+    .filter(s => s.startAt && toISODay(new Date(s.startAt)) === selectedISO)
     .sort((a, b) => a.startAt.localeCompare(b.startAt));
+
+  function prevMonth() {
+    const m = viewMonth - 1;
+    if (m < 0) { setViewMonth(11); setViewYear(viewYear - 1); } else { setViewMonth(m); }
+  }
+  function nextMonth() {
+    const m = viewMonth + 1;
+    if (m > 11) { setViewMonth(0); setViewYear(viewYear + 1); } else { setViewMonth(m); }
+  }
+
+  const selectedDate = new Date(selectedISO + 'T00:00:00');
 
   return (
     <div
@@ -85,13 +135,13 @@ export function CalendarDialog({ open, onClose }: { open: boolean; onClose: () =
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-md max-h-[80vh] overflow-y-auto bg-white rounded-3xl shadow-card-md p-5 sm:p-6"
+        className="relative w-full max-w-3xl max-h-[90vh] overflow-hidden bg-white rounded-3xl shadow-card-md flex flex-col sm:flex-row"
         onClick={(e) => e.stopPropagation()}
       >
         <button
           type="button"
           onClick={onClose}
-          className="absolute top-3 right-3 w-9 h-9 rounded-full bg-surface-muted hover:bg-border flex items-center justify-center transition-colors"
+          className="absolute top-3 right-3 z-10 w-9 h-9 rounded-full bg-surface-muted hover:bg-border flex items-center justify-center transition-colors"
           aria-label="Закрити"
         >
           <svg className="w-4 h-4 text-ink" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" aria-hidden>
@@ -99,40 +149,105 @@ export function CalendarDialog({ open, onClose }: { open: boolean; onClose: () =
           </svg>
         </button>
 
-        <div className="flex items-center gap-3 mb-4">
-          <div className="flex flex-col items-center justify-center rounded-xl w-12 h-12 bg-danger shadow-press-danger">
-            <span className="font-black text-white leading-none text-lg">{dayNum}</span>
-            <span className="font-bold text-white/85 leading-none text-[8px]">{monthAbbr}</span>
+        <div className="flex-1 p-5 sm:p-6 border-b sm:border-b-0 sm:border-r border-border">
+          <div className="flex items-center justify-between mb-4">
+            <button
+              type="button"
+              onClick={prevMonth}
+              className="w-8 h-8 rounded-full bg-surface-muted hover:bg-border flex items-center justify-center"
+              aria-label="Попередній місяць"
+            >
+              <svg className="w-3.5 h-3.5 text-ink" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round"><path d="M15 18l-6-6 6-6" /></svg>
+            </button>
+            <h2 className="font-black text-ink text-base">
+              {MONTHS_FULL_UA[viewMonth]} {viewYear}
+            </h2>
+            <button
+              type="button"
+              onClick={nextMonth}
+              className="w-8 h-8 rounded-full bg-surface-muted hover:bg-border flex items-center justify-center"
+              aria-label="Наступний місяць"
+            >
+              <svg className="w-3.5 h-3.5 text-ink" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round"><path d="M9 18l6-6-6-6" /></svg>
+            </button>
           </div>
-          <div>
-            <h2 className="font-black text-ink text-lg leading-none">Мій розклад</h2>
-            <p className="font-medium text-xs text-ink-muted mt-1">{weekday}, сьогодні</p>
+
+          <div className="grid grid-cols-7 gap-1 mb-1">
+            {WEEK_HEADER_UA.map(w => (
+              <div key={w} className="text-[10px] font-black uppercase text-ink-faint text-center py-1">{w}</div>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-7 gap-1">
+            {grid.map(cell => {
+              const isToday = cell.iso === todayISO;
+              const isSelected = cell.iso === selectedISO;
+              const hasSession = daysWithSession.has(cell.iso);
+              return (
+                <button
+                  key={cell.iso}
+                  type="button"
+                  onClick={() => setSelectedISO(cell.iso)}
+                  className={[
+                    'relative aspect-square rounded-lg text-[12px] font-black flex items-center justify-center transition-colors',
+                    !cell.inMonth ? 'text-ink-faint/50' : 'text-ink',
+                    isSelected
+                      ? 'bg-primary text-white'
+                      : isToday
+                        ? 'bg-primary/15 text-primary-dark'
+                        : 'hover:bg-surface-muted',
+                  ].join(' ')}
+                  aria-pressed={isSelected}
+                >
+                  {cell.date.getDate()}
+                  {hasSession && !isSelected && (
+                    <span className="absolute bottom-1 w-1 h-1 rounded-full bg-danger" aria-hidden />
+                  )}
+                </button>
+              );
+            })}
           </div>
         </div>
 
-        {sessions === null ? (
-          <div className="flex flex-col gap-2">
-            <div className="h-10 w-full rounded-xl bg-ink-faint/10 animate-pulse" />
-            <div className="h-10 w-full rounded-xl bg-ink-faint/10 animate-pulse" />
-            <div className="h-10 w-3/4 rounded-xl bg-ink-faint/10 animate-pulse" />
+        <div className="flex-1 p-5 sm:p-6 overflow-y-auto min-h-[220px]">
+          <div className="mb-3">
+            <p className="font-black uppercase tracking-widest text-[10px] text-ink-faint">
+              {selectedISO === todayISO ? 'Сьогодні' : WEEKDAYS_UA[selectedDate.getDay()]}
+            </p>
+            <h3 className="font-black text-ink text-base mt-0.5">
+              {selectedDate.getDate()} {MONTHS_FULL_UA[selectedDate.getMonth()]}
+            </h3>
           </div>
-        ) : upcoming.length === 0 ? (
-          <p className="text-sm text-ink-muted font-medium py-6 text-center">
-            Найближчих занять поки немає.
-          </p>
-        ) : (
-          <div className="flex flex-col gap-2">
-            {upcoming.map(ev => (
-              <div key={ev.documentId} className="flex items-center gap-3 rounded-2xl px-3 py-2.5 bg-surface-muted">
-                <div className="w-2.5 h-2.5 rounded-full flex-shrink-0 bg-primary" />
-                <p className="font-bold text-sm text-ink flex-1 truncate">{ev.title || 'Заняття'}</p>
-                <p className="font-black text-xs text-ink-muted flex-shrink-0">
-                  {formatSessionDay(ev.startAt, todayISO)} · {formatSessionTime(ev.startAt)}
-                </p>
-              </div>
-            ))}
-          </div>
-        )}
+
+          {sessions === null ? (
+            <div className="flex flex-col gap-2">
+              <div className="h-10 w-full rounded-xl bg-ink-faint/10 animate-pulse" />
+              <div className="h-10 w-full rounded-xl bg-ink-faint/10 animate-pulse" />
+            </div>
+          ) : daySessions.length === 0 ? (
+            <p className="text-sm text-ink-muted font-medium py-4">
+              У цей день занять немає.
+            </p>
+          ) : (
+            <ul className="flex flex-col gap-2">
+              {daySessions.map(ev => (
+                <li
+                  key={ev.documentId}
+                  className="flex items-center gap-3 rounded-2xl px-3 py-2.5 bg-surface-muted"
+                >
+                  <div className="w-2.5 h-2.5 rounded-full flex-shrink-0 bg-primary" />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-black text-sm text-ink truncate">{ev.title || 'Заняття'}</p>
+                    <p className="font-bold text-[11px] text-ink-muted mt-0.5">
+                      {formatSessionTime(ev.startAt)}
+                      {ev.status === 'live' ? ' · в ефірі' : ''}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </div>
     </div>
   );

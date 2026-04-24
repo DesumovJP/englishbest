@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { useKidsIdentity } from "@/lib/use-kids-identity";
 import CharacterAvatar from "@/components/kids/CharacterAvatar";
-import AddCustomModal from "@/components/kids/AddCustomModal";
 import {
   useCustomCharacters,
   useKidsState,
@@ -48,7 +47,6 @@ export default function CharactersPage() {
   const { characters: serverChars, loading: charsLoading } = useCharacterCatalog();
   const { characters: customChars } = useCustomCharacters();
   const { level: kidsLevel } = useKidsIdentity();
-  const [showAdd, setShowAdd] = useState(false);
   const [activeSlotKey, setActiveSlotKey] = useState<SlotKey | null>(null);
   const [showCharPicker, setShowCharPicker] = useState(false);
   const [purchasing, setPurchasing] = useState<string | null>(null);
@@ -177,15 +175,6 @@ export default function CharactersPage() {
           title="Мій персонаж"
           subtitle={`${ownedCount}/${allChars.length} персонажів зібрано`}
           backHref="/kids/dashboard"
-          right={
-            <button
-              onClick={() => setShowAdd(true)}
-              aria-label="Додати власного персонажа"
-              className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-lg text-white bg-primary shadow-press-primary active:scale-90 transition-transform"
-            >
-              +
-            </button>
-          }
         />
       }
     >
@@ -461,7 +450,6 @@ export default function CharactersPage() {
         </div>
       </div>
 
-      {showAdd && <AddCustomModal onClose={() => setShowAdd(false)} />}
     </KidsPageShell>
   );
 }

@@ -1,6 +1,11 @@
+import { redirect } from 'next/navigation';
 import { Sidebar } from '@/components/molecules/Sidebar';
+import { getSession } from '@/lib/auth-server';
 
-export default function LibraryLayout({ children }: { children: React.ReactNode }) {
+export default async function LibraryLayout({ children }: { children: React.ReactNode }) {
+  const session = await getSession();
+  if (!session) redirect('/login?next=/library');
+
   return (
     <div className="flex min-h-svh bg-surface-muted items-start">
       <Sidebar />

@@ -64,3 +64,22 @@ export async function getSession(): Promise<Session | null> {
   if (!res.ok) return null;
   return (await res.json()) as Session;
 }
+
+/**
+ * Require a session with one of the given roles; redirect otherwise.
+ * Use from RSC pages/layouts to enforce role-based access.
+ */
+export async function requireRole(
+  allowed: Array<Session['profile']['role']>,
+  nextPath: string,
+): Promise<Session> {
+  const { redirect } = await import('next/navigation');
+  const session = await getSession();
+  if (!session) redirect(`/login?next=${encodeURIComponent(nextPath)}`);
+  const role = session.profile.role;
+  if (!allowed.includes(role)) {
+    if (role === 'kids' || role === 'adult') redirect('/kids/dashboard');
+    redirect('/dashboard');
+  }
+  return session;
+}
