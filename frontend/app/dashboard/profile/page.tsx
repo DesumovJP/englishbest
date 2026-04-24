@@ -9,6 +9,7 @@
  */
 'use client';
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { DashboardPageShell } from '@/components/ui/shells';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -360,8 +361,14 @@ function TeacherProfileEditor({
 }
 
 export default function ProfilePage() {
+  const router = useRouter();
   const { session, status: sessionStatus, logout, refresh } = useSession();
   const role = session?.profile?.role ?? null;
+
+  async function handleLogout() {
+    await logout();
+    router.replace('/login');
+  }
 
   const [profile, setProfile]             = useState<UserProfile | null>(null);
   const [loading, setLoading]             = useState(false);
@@ -487,7 +494,7 @@ export default function ProfilePage() {
             Щоб змінити пароль або email, зверніться до адміністратора школи.
           </p>
           <div>
-            <Button variant="secondary" onClick={() => void logout()}>
+            <Button variant="secondary" onClick={() => void handleLogout()}>
               Вийти з акаунту
             </Button>
           </div>
