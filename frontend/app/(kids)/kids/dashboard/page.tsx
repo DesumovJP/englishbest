@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useCallback, useRef } from "react";
-import Link from "next/link";
 import { LootBoxModal } from "@/components/kids/LootBox";
 import type { BoxRarity } from "@/components/kids/LootBox";
 import CharacterAvatar from "@/components/kids/CharacterAvatar";
@@ -11,7 +10,7 @@ import { HudCard, SpeechBubble } from "@/components/kids/ui";
 import { SHOP_ITEMS_BY_ID, SLOT_OFFSET } from "@/lib/shop-catalog";
 import type { PlacedItem } from "@/lib/kids-store";
 import { ContinueLessonWidget } from "@/components/kids/ContinueLessonWidget";
-import { CalendarWidget } from "@/components/kids/CalendarWidget";
+import { CalendarWidget, CalendarDialog } from "@/components/kids/CalendarWidget";
 
 const EMOTION_CYCLE: CharacterEmotion[] = [
   'idle', 'happy', 'celebrate', 'thinking', 'sleepy', 'surprised', 'sad', 'angry',
@@ -186,6 +185,7 @@ export default function KidsDashboardPage() {
   const [bounceKey, setBounceKey]   = useState(0);
   const [openBox, setOpenBox]       = useState<BoxRarity | null>(null);
   const [editMode, setEditMode]     = useState(false);
+  const [calendarOpen, setCalendarOpen] = useState(false);
 
   const coins   = kidsState.coins ?? 0;
   const streak  = kidsState.streak ?? 0;
@@ -262,14 +262,15 @@ export default function KidsDashboardPage() {
 
       {/* Mobile top pills */}
       <div className="sm:hidden absolute z-20 top-[env(safe-area-inset-top,8px)] left-2 right-2 flex gap-1.5">
-        <Link
-          href="/calendar"
+        <button
+          type="button"
+          onClick={() => setCalendarOpen(true)}
           className="h-11 rounded-2xl bg-surface-raised/95 backdrop-blur-sm shadow-card-md flex items-center gap-1.5 px-3 active:scale-95 transition-transform"
           aria-label="Розклад"
         >
           <span className="text-[15px] leading-none">📅</span>
           <span className="font-black text-[13px] text-ink leading-none">Розклад</span>
-        </Link>
+        </button>
         <div className="flex-1 h-11 rounded-2xl bg-surface-raised/95 backdrop-blur-sm shadow-card-md flex items-center gap-1.5 px-3">
           {streak >= 3 && (
             <>
@@ -344,6 +345,8 @@ export default function KidsDashboardPage() {
           onOpen={openLootBox}
         />
       )}
+
+      <CalendarDialog open={calendarOpen} onClose={() => setCalendarOpen(false)} />
     </div>
   );
 }
