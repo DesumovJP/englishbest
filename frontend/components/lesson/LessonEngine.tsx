@@ -64,12 +64,16 @@ export function LessonEngine({ lesson, nextLessonSlug, backUrl = '/kids/school',
     if (stepIdx + 1 >= lesson.steps.length) {
       const earnedXp    = Math.max(5, lesson.xp - mistakes * 2);
       const earnedCoins = Math.ceil(earnedXp / 2);
+      // Flip to the success screen first; persist XP/coins in the background
+      // so a transient server failure can't strand the learner on the last step.
       setEarned({ xp: earnedXp, coins: earnedCoins });
-      await patchKids({
+      setDone(true);
+      patchKids({
         xp:    (kidsState.xp    ?? 0) + earnedXp,
         coins: (kidsState.coins ?? 0) + earnedCoins,
+      }).catch(err => {
+        console.error('[LessonEngine] patchKids failed', err);
       });
-      setDone(true);
     } else {
       setStepIdx(i => i + 1);
     }
