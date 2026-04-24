@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useSession } from '@/lib/session-context';
@@ -147,13 +147,22 @@ function DemoAccountCard({
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { login } = useSession();
+  const { session, status, login } = useSession();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (status !== 'authenticated' || !session) return;
+    const next = searchParams.get('next');
+    const target = next && next.startsWith('/') && next !== '/login'
+      ? next
+      : redirectForRole(session.profile.role);
+    router.replace(target);
+  }, [status, session, router, searchParams]);
 
   function handleUseDemo(acc: DemoAccount) {
     setEmail(acc.email);
