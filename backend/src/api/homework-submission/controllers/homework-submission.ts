@@ -15,6 +15,7 @@
  * homework lifecycle on publish.
  */
 import { factories } from '@strapi/strapi';
+import { scopedFind } from '../../../lib/scoped-find';
 
 const SUB_UID = 'api::homework-submission.homework-submission';
 const HOMEWORK_UID = 'api::homework.homework';
@@ -67,16 +68,16 @@ export default factories.createCoreController(SUB_UID, ({ strapi }) => ({
       return (super.find as any)(ctx);
     }
 
-    ctx.query = ctx.query || {};
-    const existing = ((ctx.query as any).filters ?? {}) as Record<string, unknown>;
-
+    // Non-admin callers don't hold read permission on the `student`/`homework`
+    // relations, so merging these into ctx.query.filters before validateQuery
+    // would trigger 400 "Invalid key student/homework". scopedFind validates
+    // the client's own query first, then merges the scope filter at the
+    // document-service layer.
+    let scopeFilter: Record<string, unknown>;
     if (role === 'teacher') {
       const teacherId = await callerTeacherProfileId(strapi, user.id);
       if (!teacherId) return ctx.forbidden('no teacher-profile');
-      (ctx.query as any).filters = {
-        ...existing,
-        homework: { teacher: { documentId: { $eq: teacherId } } },
-      };
+      scopeFilter = { homework: { teacher: { documentId: { $eq: teacherId } } } };
     } else if (role === 'parent') {
       const profileId = await callerProfileId(strapi, user.id);
       if (!profileId) return ctx.forbidden('no user-profile');
@@ -85,20 +86,14 @@ export default factories.createCoreController(SUB_UID, ({ strapi }) => ({
         ctx.body = { data: [], meta: { pagination: { page: 1, pageSize: 0, pageCount: 0, total: 0 } } };
         return;
       }
-      (ctx.query as any).filters = {
-        ...existing,
-        student: { documentId: { $in: kidIds } },
-      };
+      scopeFilter = { student: { documentId: { $in: kidIds } } };
     } else {
       const profileId = await callerProfileId(strapi, user.id);
       if (!profileId) return ctx.forbidden('no user-profile');
-      (ctx.query as any).filters = {
-        ...existing,
-        student: { documentId: { $eq: profileId } },
-      };
+      scopeFilter = { student: { documentId: { $eq: profileId } } };
     }
 
-    return (super.find as any)(ctx);
+    return scopedFind(ctx, this, SUB_UID, scopeFilter);
   },
 
   async findOne(ctx) {

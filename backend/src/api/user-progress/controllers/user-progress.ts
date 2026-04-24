@@ -10,8 +10,10 @@
  * the route-level `find-me` style scoping falls out of this.
  */
 import { factories } from '@strapi/strapi';
+import { scopedFind } from '../../../lib/scoped-find';
 
 const PROFILE_UID = 'api::user-profile.user-profile';
+const PROGRESS_UID = 'api::user-progress.user-progress';
 
 async function callerProfileId(strapi: any, userId: number | string): Promise<string | null> {
   const [profile] = await strapi.documents(PROFILE_UID).findMany({
@@ -34,17 +36,16 @@ export default factories.createCoreController(
       const user = ctx.state.user;
       if (!user) return ctx.unauthorized();
 
-      if (!isStaff(user)) {
-        const profileId = await callerProfileId(strapi, user.id);
-        if (!profileId) return ctx.forbidden('no user-profile');
-        ctx.query = ctx.query || {};
-        (ctx.query as any).filters = {
-          ...((ctx.query as any).filters ?? {}),
-          user: { documentId: { $eq: profileId } },
-        };
+      if (isStaff(user)) {
+        return (super.find as any)(ctx);
       }
 
-      return (super.find as any)(ctx);
+      const profileId = await callerProfileId(strapi, user.id);
+      if (!profileId) return ctx.forbidden('no user-profile');
+
+      return scopedFind(ctx, this, PROGRESS_UID, {
+        user: { documentId: { $eq: profileId } },
+      });
     },
 
     async findOne(ctx) {

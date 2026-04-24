@@ -10,6 +10,7 @@
  *   - parent — read-only on `isPublic`.
  */
 import { factories } from '@strapi/strapi';
+import { scopedFind } from '../../../lib/scoped-find';
 
 const UID = 'api::mini-task.mini-task';
 const TEACHER_UID = 'api::teacher-profile.teacher-profile';
@@ -35,26 +36,22 @@ export default factories.createCoreController(UID, ({ strapi }) => ({
 
     if (role === 'admin') return (super.find as any)(ctx);
 
-    ctx.query = ctx.query || {};
-    const existing = ((ctx.query as any).filters ?? {}) as Record<string, unknown>;
-
+    // Non-admin callers lack permission on the `author` relation filter —
+    // scopedFind merges the scope at the document-service layer to avoid 400.
+    let scopeFilter: Record<string, unknown>;
     if (role === 'teacher') {
       const teacherId = await callerTeacherProfileId(strapi, user.id);
       if (!teacherId) return ctx.forbidden('no teacher-profile');
-      (ctx.query as any).filters = {
-        ...existing,
+      scopeFilter = {
         $or: [
           { author: { documentId: { $eq: teacherId } } },
           { isPublic: { $eq: true } },
         ],
       };
     } else {
-      (ctx.query as any).filters = {
-        ...existing,
-        isPublic: { $eq: true },
-      };
+      scopeFilter = { isPublic: { $eq: true } };
     }
-    return (super.find as any)(ctx);
+    return scopedFind(ctx, this, UID, scopeFilter);
   },
 
   async findOne(ctx) {

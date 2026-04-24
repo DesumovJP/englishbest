@@ -10,6 +10,7 @@
  *   - student  — read-only own records.
  */
 import { factories } from '@strapi/strapi';
+import { scopedFind } from '../../../lib/scoped-find';
 
 const RECORD_UID = 'api::attendance-record.attendance-record';
 const SESSION_UID = 'api::session.session';
@@ -63,16 +64,14 @@ export default factories.createCoreController(RECORD_UID, ({ strapi }) => ({
 
     if (role === 'admin') return (super.find as any)(ctx);
 
-    ctx.query = ctx.query || {};
-    const existing = ((ctx.query as any).filters ?? {}) as Record<string, unknown>;
-
+    // Non-admin callers lack permission on `session`/`student` relation filters
+    // — scopedFind merges the scope at the document-service layer to avoid
+    // 400 "Invalid key …" from validateQuery.
+    let scopeFilter: Record<string, unknown>;
     if (role === 'teacher') {
       const teacherId = await callerTeacherProfileId(strapi, user.id);
       if (!teacherId) return ctx.forbidden('no teacher-profile');
-      (ctx.query as any).filters = {
-        ...existing,
-        session: { teacher: { documentId: { $eq: teacherId } } },
-      };
+      scopeFilter = { session: { teacher: { documentId: { $eq: teacherId } } } };
     } else if (role === 'parent') {
       const profileId = await callerProfileId(strapi, user.id);
       if (!profileId) return ctx.forbidden();
@@ -81,19 +80,13 @@ export default factories.createCoreController(RECORD_UID, ({ strapi }) => ({
         ctx.body = { data: [], meta: { pagination: { page: 1, pageSize: 0, pageCount: 0, total: 0 } } };
         return;
       }
-      (ctx.query as any).filters = {
-        ...existing,
-        student: { documentId: { $in: kidIds } },
-      };
+      scopeFilter = { student: { documentId: { $in: kidIds } } };
     } else {
       const profileId = await callerProfileId(strapi, user.id);
       if (!profileId) return ctx.forbidden();
-      (ctx.query as any).filters = {
-        ...existing,
-        student: { documentId: { $eq: profileId } },
-      };
+      scopeFilter = { student: { documentId: { $eq: profileId } } };
     }
-    return (super.find as any)(ctx);
+    return scopedFind(ctx, this, RECORD_UID, scopeFilter);
   },
 
   async findOne(ctx) {

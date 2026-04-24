@@ -9,6 +9,7 @@
  * Payouts are admin-curated aggregates. Teachers never mutate them.
  */
 import { factories } from '@strapi/strapi';
+import { scopedFind } from '../../../lib/scoped-find';
 
 const PAYOUT_UID = 'api::teacher-payout.teacher-payout';
 const TEACHER_UID = 'api::teacher-profile.teacher-profile';
@@ -38,13 +39,11 @@ export default factories.createCoreController(PAYOUT_UID, ({ strapi }) => ({
     const teacherId = await callerTeacherProfileId(strapi, user.id);
     if (!teacherId) return ctx.forbidden('no teacher-profile');
 
-    ctx.query = ctx.query || {};
-    const existing = ((ctx.query as any).filters ?? {}) as Record<string, unknown>;
-    (ctx.query as any).filters = {
-      ...existing,
+    // Teachers lack permission on `teacher` relation filter — scopedFind
+    // merges the scope at the document-service layer.
+    return scopedFind(ctx, this, PAYOUT_UID, {
       teacher: { documentId: { $eq: teacherId } },
-    };
-    return (super.find as any)(ctx);
+    });
   },
 
   async findOne(ctx) {

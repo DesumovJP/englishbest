@@ -9,6 +9,7 @@
  *   - delete — admin only.
  */
 import { factories } from '@strapi/strapi';
+import { scopedFind } from '../../../lib/scoped-find';
 
 const THREAD_UID = 'api::thread.thread';
 const PROFILE_UID = 'api::user-profile.user-profile';
@@ -47,13 +48,11 @@ export default factories.createCoreController(THREAD_UID, ({ strapi }) => ({
     const profileId = await callerProfileId(strapi, user.id);
     if (!profileId) return ctx.forbidden('no user-profile');
 
-    ctx.query = ctx.query || {};
-    const existing = ((ctx.query as any).filters ?? {}) as Record<string, unknown>;
-    (ctx.query as any).filters = {
-      ...existing,
+    // Non-admin callers lack permission on `participants` — scopedFind applies
+    // the filter at the document-service layer.
+    return scopedFind(ctx, this, THREAD_UID, {
       participants: { documentId: { $eq: profileId } },
-    };
-    return (super.find as any)(ctx);
+    });
   },
 
   async findOne(ctx) {

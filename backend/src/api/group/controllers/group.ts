@@ -12,6 +12,7 @@
  * (teachers cannot assign groups to peers; admin bypass applies).
  */
 import { factories } from '@strapi/strapi';
+import { scopedFind } from '../../../lib/scoped-find';
 
 const GROUP_UID = 'api::group.group';
 const PROFILE_UID = 'api::user-profile.user-profile';
@@ -49,27 +50,19 @@ export default factories.createCoreController(GROUP_UID, ({ strapi }) => ({
       return (super.find as any)(ctx);
     }
 
-    ctx.query = ctx.query || {};
-    const existingFilters = ((ctx.query as any).filters ?? {}) as Record<string, unknown>;
-
+    // Non-admin callers lack permission on `teacher`/`members` relation filters
+    // — scopedFind merges the scope at the document-service layer.
+    let scopeFilter: Record<string, unknown>;
     if (role === 'teacher') {
       const teacherId = await callerTeacherProfileId(strapi, user.id);
       if (!teacherId) return ctx.forbidden('no teacher-profile');
-      (ctx.query as any).filters = {
-        ...existingFilters,
-        teacher: { documentId: { $eq: teacherId } },
-      };
+      scopeFilter = { teacher: { documentId: { $eq: teacherId } } };
     } else {
-      // student / parent — only groups where they are a member.
       const profileId = await callerProfileId(strapi, user.id);
       if (!profileId) return ctx.forbidden('no user-profile');
-      (ctx.query as any).filters = {
-        ...existingFilters,
-        members: { documentId: { $eq: profileId } },
-      };
+      scopeFilter = { members: { documentId: { $eq: profileId } } };
     }
-
-    return (super.find as any)(ctx);
+    return scopedFind(ctx, this, GROUP_UID, scopeFilter);
   },
 
   async findOne(ctx) {

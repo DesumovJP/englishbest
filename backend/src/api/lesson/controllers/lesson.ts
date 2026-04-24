@@ -16,6 +16,7 @@
  * Create/update/delete are restricted to teacher + admin.
  */
 import { factories } from '@strapi/strapi';
+import { scopedFind } from '../../../lib/scoped-find';
 
 const LESSON_UID = 'api::lesson.lesson';
 const TEACHER_UID = 'api::teacher-profile.teacher-profile';
@@ -41,26 +42,22 @@ export default factories.createCoreController(LESSON_UID, ({ strapi }) => ({
 
     if (role === 'admin') return (super.find as any)(ctx);
 
-    ctx.query = ctx.query || {};
-    const existing = ((ctx.query as any).filters ?? {}) as Record<string, unknown>;
-
+    // Non-admin callers lack permission on the `owner` relation filter —
+    // scopedFind merges the scope at the document-service layer.
+    let scopeFilter: Record<string, unknown>;
     if (user && role === 'teacher') {
       const teacherId = await callerTeacherProfileId(strapi, user.id);
       if (!teacherId) return ctx.forbidden('no teacher-profile');
-      (ctx.query as any).filters = {
-        ...existing,
+      scopeFilter = {
         $or: [
           { owner: { documentId: { $eq: teacherId } } },
-          { source: { $in: PUBLIC_SOURCES } },
+          { source: { $in: PUBLIC_SOURCES as unknown as string[] } },
         ],
       };
     } else {
-      (ctx.query as any).filters = {
-        ...existing,
-        source: { $in: PUBLIC_SOURCES },
-      };
+      scopeFilter = { source: { $in: PUBLIC_SOURCES as unknown as string[] } };
     }
-    return (super.find as any)(ctx);
+    return scopedFind(ctx, this, LESSON_UID, scopeFilter);
   },
 
   async findOne(ctx) {

@@ -8,6 +8,7 @@
  * by end users.
  */
 import { factories } from '@strapi/strapi';
+import { scopedFind } from '../../../lib/scoped-find';
 
 const PROFILE_UID = 'api::user-profile.user-profile';
 const USER_ACHIEVEMENT_UID = 'api::user-achievement.user-achievement';
@@ -31,17 +32,16 @@ export default factories.createCoreController(USER_ACHIEVEMENT_UID, ({ strapi })
     const user = ctx.state.user;
     if (!user) return ctx.unauthorized();
 
-    if (!isStaff(user)) {
-      const profileId = await callerProfileId(strapi, user.id);
-      if (!profileId) return ctx.forbidden('no user-profile');
-      ctx.query = ctx.query || {};
-      (ctx.query as any).filters = {
-        ...((ctx.query as any).filters ?? {}),
-        user: { documentId: { $eq: profileId } },
-      };
-    }
+    if (isStaff(user)) return (super.find as any)(ctx);
 
-    return (super.find as any)(ctx);
+    const profileId = await callerProfileId(strapi, user.id);
+    if (!profileId) return ctx.forbidden('no user-profile');
+
+    // Non-staff callers lack permission on the `user` relation filter —
+    // scopedFind merges the scope at the document-service layer.
+    return scopedFind(ctx, this, USER_ACHIEVEMENT_UID, {
+      user: { documentId: { $eq: profileId } },
+    });
   },
 
   async findOne(ctx) {

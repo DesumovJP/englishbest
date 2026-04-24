@@ -13,6 +13,7 @@
  * auto-creates per-assignee `homework-submission` rows.
  */
 import { factories } from '@strapi/strapi';
+import { scopedFind } from '../../../lib/scoped-find';
 
 const HOMEWORK_UID = 'api::homework.homework';
 const PROFILE_UID = 'api::user-profile.user-profile';
@@ -57,16 +58,14 @@ export default factories.createCoreController(HOMEWORK_UID, ({ strapi }) => ({
 
     if (role === 'admin') return (super.find as any)(ctx);
 
-    ctx.query = ctx.query || {};
-    const existing = ((ctx.query as any).filters ?? {}) as Record<string, unknown>;
-
+    // Non-admin callers lack permission on the `teacher`/`assignees` relation
+    // filters — scopedFind applies them post-validation at the document-service
+    // layer to avoid 400 "Invalid key …".
+    let scopeFilter: Record<string, unknown>;
     if (role === 'teacher') {
       const teacherId = await callerTeacherProfileId(strapi, user.id);
       if (!teacherId) return ctx.forbidden('no teacher-profile');
-      (ctx.query as any).filters = {
-        ...existing,
-        teacher: { documentId: { $eq: teacherId } },
-      };
+      scopeFilter = { teacher: { documentId: { $eq: teacherId } } };
     } else if (role === 'parent') {
       const profileId = await callerProfileId(strapi, user.id);
       if (!profileId) return ctx.forbidden();
@@ -75,19 +74,13 @@ export default factories.createCoreController(HOMEWORK_UID, ({ strapi }) => ({
         ctx.body = { data: [], meta: { pagination: { page: 1, pageSize: 0, pageCount: 0, total: 0 } } };
         return;
       }
-      (ctx.query as any).filters = {
-        ...existing,
-        assignees: { documentId: { $in: kidIds } },
-      };
+      scopeFilter = { assignees: { documentId: { $in: kidIds } } };
     } else {
       const profileId = await callerProfileId(strapi, user.id);
       if (!profileId) return ctx.forbidden();
-      (ctx.query as any).filters = {
-        ...existing,
-        assignees: { documentId: { $eq: profileId } },
-      };
+      scopeFilter = { assignees: { documentId: { $eq: profileId } } };
     }
-    return (super.find as any)(ctx);
+    return scopedFind(ctx, this, HOMEWORK_UID, scopeFilter);
   },
 
   async findOne(ctx) {
