@@ -77,6 +77,15 @@ function redirectForRole(role: string | undefined): string {
   }
 }
 
+function resolveNextForRole(next: string | null, role: string | undefined): string {
+  const role_ = role ?? '';
+  const isKids = role_ === 'kids' || role_ === 'adult';
+  // kids/adult don't have /dashboard — bounce them home even if next= was set
+  if (isKids) return '/kids/dashboard';
+  if (next && next.startsWith('/') && next !== '/login') return next;
+  return redirectForRole(role);
+}
+
 function CopyButton({ text, label }: { text: string; label: string }) {
   const [copied, setCopied] = useState(false);
   async function handleCopy() {
@@ -158,10 +167,7 @@ export default function LoginPage() {
   useEffect(() => {
     if (status !== 'authenticated' || !session) return;
     const next = searchParams.get('next');
-    const target = next && next.startsWith('/') && next !== '/login'
-      ? next
-      : redirectForRole(session.profile.role);
-    router.replace(target);
+    router.replace(resolveNextForRole(next, session.profile.role));
   }, [status, session, router, searchParams]);
 
   function handleUseDemo(acc: DemoAccount) {
@@ -177,7 +183,7 @@ export default function LoginPage() {
     try {
       const s = await login({ identifier: email, password });
       const next = searchParams.get('next');
-      router.push(next && next.startsWith('/') ? next : redirectForRole(s.profile.role));
+      router.push(resolveNextForRole(next, s.profile.role));
     } catch (err) {
       setError(apiErrorMessage(err, 'Не вдалося увійти. Перевірте email і пароль.'));
       setLoading(false);

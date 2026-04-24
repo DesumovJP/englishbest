@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef } from "react";
+import Link from "next/link";
 import { LootBoxModal } from "@/components/kids/LootBox";
 import type { BoxRarity, LootItem } from "@/components/kids/LootBox";
 import CharacterAvatar from "@/components/kids/CharacterAvatar";
@@ -10,6 +11,7 @@ import { HudCard, SpeechBubble } from "@/components/kids/ui";
 import { SHOP_ITEMS_BY_ID, SLOT_OFFSET } from "@/lib/shop-catalog";
 import type { PlacedItem } from "@/lib/kids-store";
 import { ContinueLessonWidget } from "@/components/kids/ContinueLessonWidget";
+import { CalendarWidget } from "@/components/kids/CalendarWidget";
 
 const EMOTION_CYCLE: CharacterEmotion[] = [
   'idle', 'happy', 'celebrate', 'thinking', 'sleepy', 'surprised', 'sad', 'angry',
@@ -251,8 +253,9 @@ export default function KidsDashboardPage() {
       )}
 
       {/* Desktop/tablet HUD — left column */}
-      <div className="hidden sm:flex absolute z-20 flex-col gap-2 md:gap-2.5 top-[env(safe-area-inset-top,10px)] md:top-[env(safe-area-inset-top,14px)] left-2 md:left-3 w-[min(160px,36vw)] md:w-[min(185px,44vw)]">
-        <StreakWidget streak={streak} />
+      <div className="hidden sm:flex absolute z-20 flex-col gap-2 md:gap-2.5 top-[env(safe-area-inset-top,10px)] md:top-[env(safe-area-inset-top,14px)] left-2 md:left-3 w-[min(185px,42vw)] md:w-[min(210px,46vw)]">
+        <CalendarWidget />
+        {streak >= 3 && <StreakWidget streak={streak} />}
         <LootBoxWidget coins={coins} onOpen={() => setOpenBox("common")} />
       </div>
 
@@ -263,11 +266,23 @@ export default function KidsDashboardPage() {
 
       {/* Mobile top pills */}
       <div className="sm:hidden absolute z-20 top-[env(safe-area-inset-top,8px)] left-2 right-2 flex gap-1.5">
+        <Link
+          href="/calendar"
+          className="h-11 rounded-2xl bg-surface-raised/95 backdrop-blur-sm shadow-card-md flex items-center gap-1.5 px-3 active:scale-95 transition-transform"
+          aria-label="Розклад"
+        >
+          <span className="text-[15px] leading-none">📅</span>
+          <span className="font-black text-[13px] text-ink leading-none">Розклад</span>
+        </Link>
         <div className="flex-1 h-11 rounded-2xl bg-surface-raised/95 backdrop-blur-sm shadow-card-md flex items-center gap-1.5 px-3">
-          <span className="text-[16px] leading-none">🔥</span>
-          <span className="font-black text-[14px] text-accent-dark leading-none tabular-nums">{streak}</span>
-          <span className="font-bold text-[10px] text-ink-muted">днів</span>
-          <span className="text-ink-faint mx-1" aria-hidden>·</span>
+          {streak >= 3 && (
+            <>
+              <span className="text-[16px] leading-none">🔥</span>
+              <span className="font-black text-[14px] text-accent-dark leading-none tabular-nums">{streak}</span>
+              <span className="font-bold text-[10px] text-ink-muted">днів</span>
+              <span className="text-ink-faint mx-1" aria-hidden>·</span>
+            </>
+          )}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/coin.png" alt="" aria-hidden width={13} height={13} className="object-contain" />
           <span className="font-black text-[13px] text-coin leading-none tabular-nums">{coins > 9999 ? "9999+" : coins}</span>

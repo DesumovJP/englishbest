@@ -21,5 +21,10 @@ export default function DashboardRootPage() {
     else                         router.replace('/dashboard/student');
   }, [router, session, status]);
 
-  return null;
+  return (
+    <div className="min-h-[40vh] flex flex-col items-center justify-center gap-3 text-ink-muted">
+      <div className="w-8 h-8 rounded-full border-2 border-primary/30 border-t-primary animate-spin" aria-hidden />
+      <p className="text-sm font-semibold">Відкриваємо дашборд…</p>
+    </div>
+  );
 }

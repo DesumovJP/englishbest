@@ -20,9 +20,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }, [router, session, status]);
 
-  if (status === 'loading' || status === 'anonymous' || !session) return null;
+  if (status === 'loading') return <AuthLoading label="Завантаження…" />;
+  if (status === 'anonymous' || !session) return <AuthLoading label="Перенаправлення на вхід…" />;
   const role = session.profile.role;
-  if (role === 'kids' || role === 'adult') return null;
+  if (role === 'kids' || role === 'adult') return <AuthLoading label="Відкриваємо Kids Zone…" />;
 
   return (
     <div className="flex min-h-svh bg-surface items-start">
@@ -32,6 +33,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {children}
         </div>
       </main>
+    </div>
+  );
+}
+
+function AuthLoading({ label }: { label: string }) {
+  return (
+    <div className="min-h-svh flex flex-col items-center justify-center gap-3 bg-surface text-ink-muted">
+      <div className="w-8 h-8 rounded-full border-2 border-primary/30 border-t-primary animate-spin" aria-hidden />
+      <p className="text-sm font-semibold">{label}</p>
     </div>
   );
 }
