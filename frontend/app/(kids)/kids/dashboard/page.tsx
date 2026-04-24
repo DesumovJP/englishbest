@@ -260,8 +260,8 @@ export default function KidsDashboardPage() {
         <ContinueLessonWidget compact />
       </div>
 
-      {/* Mobile top pills */}
-      <div className="sm:hidden absolute z-20 top-[env(safe-area-inset-top,8px)] left-2 right-2 flex gap-1.5">
+      {/* Mobile top pills — right-14 leaves room for the KidsSettingsMenu gear */}
+      <div className="sm:hidden absolute z-20 top-[env(safe-area-inset-top,8px)] left-2 right-14 flex gap-1.5">
         <button
           type="button"
           onClick={() => setCalendarOpen(true)}
