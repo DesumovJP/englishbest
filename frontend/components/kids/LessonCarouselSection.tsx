@@ -276,22 +276,22 @@ function UnifiedCarousel({
   const activeAccent = activeCourse ? accentOf(activeCourse) : '#22C55E';
 
   return (
-    <section className="flex flex-col">
+    <section className="flex flex-col h-full min-h-0">
       {/* Sticky course ribbon — title + overall progress bar */}
-      <div className="flex items-center gap-3 px-4 py-3 bg-surface-muted border-b border-border">
+      <div className="flex items-center gap-3 px-4 py-2.5 bg-surface-muted border-b border-border flex-shrink-0">
         <div
-          className="w-11 h-11 rounded-xl flex items-center justify-center text-[22px] flex-shrink-0 transition-colors"
+          className="w-9 h-9 rounded-lg flex items-center justify-center text-[18px] flex-shrink-0 transition-colors"
           style={{ background: `${activeAccent}20`, border: `1.5px solid ${activeAccent}40` }}
         >
           {activeCourse ? emojiOf(activeCourse) : '🎓'}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-black text-[14px] text-ink truncate leading-tight">
+          <p className="font-black text-[13px] text-ink truncate leading-tight">
             {activeCourse?.title ?? 'Уроки'}
           </p>
           <div className="flex items-center gap-2 mt-1">
             <div
-              className="flex-1 h-[5px] rounded-full overflow-hidden"
+              className="flex-1 h-[4px] rounded-full overflow-hidden"
               style={{ background: `${activeAccent}20` }}
             >
               <div
@@ -307,20 +307,20 @@ function UnifiedCarousel({
         </div>
       </div>
 
-      {/* Unified horizontal scroll-snap carousel */}
+      {/* Unified horizontal scroll-snap carousel — flex-1 so it vertically centers */}
       <div
         ref={scrollRef}
-        className="flex items-center overflow-x-auto overflow-y-hidden"
+        className="flex-1 min-h-0 flex items-center overflow-x-auto overflow-y-hidden"
         style={{
           scrollbarWidth: 'none',
           msOverflowStyle: 'none',
           scrollSnapType: 'x mandatory',
           WebkitOverflowScrolling: 'touch',
-          paddingLeft: 'calc(50% - clamp(160px, 38vw, 220px))',
-          paddingRight: 'calc(50% - clamp(160px, 38vw, 220px))',
+          paddingLeft: 'calc(50% - clamp(120px, 28vw, 180px))',
+          paddingRight: 'calc(50% - clamp(120px, 28vw, 180px))',
         }}
       >
-        <div className="flex items-center gap-5 py-6">
+        <div className="flex items-center gap-4">
           {nodes.map(node => {
             const { lesson, course, status, groupLabel } = node;
             const isCurr = status === 'current';
@@ -337,7 +337,7 @@ function UnifiedCarousel({
                 }}
                 className="flex-shrink-0"
                 style={{
-                  width: 'clamp(320px, 76vw, 440px)',
+                  width: 'clamp(240px, 56vw, 360px)',
                   aspectRatio: '3/4',
                   scrollSnapAlign: 'center',
                   transform: `scale(${scaleFor(lesson.slug)})`,

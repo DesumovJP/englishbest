@@ -257,7 +257,7 @@ export default function SchoolPage() {
       <div className="flex-1 overflow-hidden flex flex-col">
         {tab === 'lessons' ? (
           lessonView === 'carousel' ? (
-            <div className="flex-1 overflow-y-auto w-full">
+            <div className="flex-1 min-h-0 w-full">
               <LessonCarouselSection level={kidsLevel} />
             </div>
           ) : (
