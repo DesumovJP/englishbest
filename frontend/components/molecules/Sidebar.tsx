@@ -66,7 +66,11 @@ const NAV_FLAT: Record<'student' | 'parent' | 'admin', NavItem[]> = {
     { label: 'Календар',       href: '/calendar',          icon: I.calendar },
     { label: 'Дитячий модуль', href: '/kids/dashboard',    icon: I.kid },
   ],
-  parent: [],
+  parent: [
+    { label: 'Дашборд',   href: '/dashboard/parent', icon: I.home },
+    { label: 'Календар',  href: '/calendar',         icon: I.calendar },
+    { label: 'Чат',       href: '/dashboard/chat',   icon: I.chat },
+  ],
   admin: [
     { label: 'Дашборд',    href: '/dashboard/admin',     icon: I.home },
     { label: 'Аналітика',  href: '/dashboard/analytics', icon: I.analytics },
