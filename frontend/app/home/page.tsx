@@ -70,44 +70,42 @@ export default function HomePage() {
       <PopupTimer />
 
       {/* ── Header ── */}
-      <header className="sticky top-0 z-40 bg-surface/95 backdrop-blur-md border-b border-border">
-        <div className={`${G} ${W} h-16 flex items-center justify-between`}>
-          <FoxLogo size={36} />
+      <header className="sticky top-0 z-40 bg-surface/95 backdrop-blur-md border-b border-border flex items-center justify-between px-4 sm:px-6 h-16">
+        <FoxLogo size={36} />
 
-          <nav aria-label="Навігація" className="hidden md:flex items-center gap-1">
-            {[
-              { label: 'Як навчаємо', href: '#methodology' },
-              { label: 'Формати та ціни', href: '#formats' },
-              { label: 'Вчителі', href: '#teachers' },
-              { label: 'Відгуки', href: '#reviews' },
-            ].map(item => (
-              <Link
-                key={item.label}
-                href={item.href}
-                className="text-[13px] font-semibold text-ink-muted hover:text-ink transition-colors px-3 py-2 rounded-lg hover:bg-surface-muted"
-              >
-                {item.label}
-              </Link>
-            ))}
-          </nav>
+        <nav aria-label="Навігація" className="hidden md:flex items-center gap-1">
+          {[
+            { label: 'Як навчаємо', href: '#methodology' },
+            { label: 'Формати та ціни', href: '#formats' },
+            { label: 'Вчителі', href: '#teachers' },
+            { label: 'Відгуки', href: '#reviews' },
+          ].map(item => (
+            <Link
+              key={item.label}
+              href={item.href}
+              className="text-[13px] font-semibold text-ink-muted hover:text-ink transition-colors px-3 py-2 rounded-lg hover:bg-surface-muted"
+            >
+              {item.label}
+            </Link>
+          ))}
+        </nav>
 
-          <div className="flex items-center gap-2">
-            <LanguageSwitcher />
-            <div className="w-px h-5 bg-border mx-1 hidden md:block" aria-hidden />
-            <Link
-              href="/login"
-              className="hidden md:inline-flex items-center text-[13px] font-semibold text-ink-muted hover:text-ink px-3 h-9 rounded-lg hover:bg-surface-muted transition-colors"
-            >
-              Увійти
-            </Link>
-            <Link
-              href="/welcome"
-              className="inline-flex items-center justify-center bg-primary text-white font-black text-[13px] px-4 h-10 rounded-xl shadow-press-primary active:translate-y-1 active:shadow-none transition-transform"
-            >
-              <span className="sm:hidden">Спробувати</span>
-              <span className="hidden sm:inline">Спробувати безкоштовно</span>
-            </Link>
-          </div>
+        <div className="flex items-center gap-2">
+          <LanguageSwitcher />
+          <div className="w-px h-5 bg-border mx-1 hidden md:block" aria-hidden />
+          <Link
+            href="/login"
+            className="hidden md:inline-flex items-center text-[13px] font-semibold text-ink-muted hover:text-ink px-3 h-9 rounded-lg hover:bg-surface-muted transition-colors"
+          >
+            Увійти
+          </Link>
+          <Link
+            href="/welcome"
+            className="inline-flex items-center justify-center bg-primary text-white font-black text-[13px] px-4 h-10 rounded-xl shadow-press-primary active:translate-y-1 active:shadow-none transition-transform"
+          >
+            <span className="sm:hidden">Спробувати</span>
+            <span className="hidden sm:inline">Спробувати безкоштовно</span>
+          </Link>
         </div>
       </header>
 
@@ -120,13 +118,13 @@ export default function HomePage() {
               <div className="inline-flex items-center gap-2 px-3 h-7 w-fit rounded-full bg-primary/10 text-primary-dark">
                 <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
                 <span className="text-[10px] font-black tracking-widest uppercase">
-                  Онлайн-школа · 1 200+ учнів
+                  Перший урок безкоштовно
                 </span>
               </div>
-              <h1 className="text-[2.25rem] sm:text-5xl lg:text-[3.75rem] font-black text-ink leading-[1.02] tracking-tight">
-                Дитина заговорить<br />
-                <span className="text-primary">англійською</span><br />
-                вже за місяць
+              <h1 className="text-[2.25rem] sm:text-5xl lg:text-[3.75rem] font-black text-ink leading-[1.05] tracking-tight">
+                Онлайн-уроки<br />
+                <span className="text-primary">англійської</span><br />
+                для дітей
               </h1>
               <p className="text-ink-muted text-base sm:text-lg leading-relaxed max-w-md">
                 Сертифікований вчитель, індивідуальна програма та ігровий формат —
@@ -166,43 +164,17 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* Right column — fox mascot + stat card */}
+            {/* Right column — fox mascot */}
             <div className="relative">
-              <div className="relative rounded-[2rem] bg-gradient-to-br from-primary/10 via-surface to-accent/10 border border-border p-6 sm:p-8 overflow-hidden">
-                <div aria-hidden className="pointer-events-none absolute -top-10 -right-10 w-40 h-40 rounded-full bg-primary/15 blur-3xl" />
-                <div aria-hidden className="pointer-events-none absolute -bottom-12 -left-8 w-48 h-48 rounded-full bg-accent/15 blur-3xl" />
-
-                <div className="relative flex flex-col items-center gap-5 text-center">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src="/characters/fox/hi.png"
-                    alt="Лисеня EnglishBest"
-                    className="w-48 h-48 sm:w-60 sm:h-60 object-contain drop-shadow-[0_20px_40px_rgba(21,128,61,0.25)]"
-                  />
-
-                  {/* Mini stats strip (teacher-dashboard style) */}
-                  <div className="grid grid-cols-3 w-full bg-surface rounded-2xl border border-border overflow-hidden">
-                    <div className="px-3 py-3">
-                      <p className="text-[10px] font-semibold text-ink-faint uppercase tracking-wider">Вчителі</p>
-                      <p className="text-[20px] font-black text-ink tabular-nums mt-0.5">50+</p>
-                    </div>
-                    <div className="px-3 py-3 border-l border-border">
-                      <p className="text-[10px] font-semibold text-ink-faint uppercase tracking-wider">Країн</p>
-                      <p className="text-[20px] font-black text-ink tabular-nums mt-0.5">5</p>
-                    </div>
-                    <div className="px-3 py-3 border-l border-border">
-                      <p className="text-[10px] font-semibold text-ink-faint uppercase tracking-wider">Рейтинг</p>
-                      <p className="text-[20px] font-black text-ink tabular-nums mt-0.5">4.9</p>
-                    </div>
-                  </div>
-
-                  <Link
-                    href="/welcome"
-                    className="inline-flex items-center justify-center gap-2 w-full h-14 rounded-2xl bg-primary text-white font-black text-[15px] shadow-press-primary active:translate-y-1 active:shadow-none transition-transform"
-                  >
-                    Підібрати вчителя безкоштовно →
-                  </Link>
-                </div>
+              <div className="relative rounded-[2rem] bg-gradient-to-br from-primary/10 via-surface to-accent/10 border border-border p-6 sm:p-10 overflow-hidden aspect-square flex items-center justify-center">
+                <div aria-hidden className="pointer-events-none absolute -top-10 -right-10 w-48 h-48 rounded-full bg-primary/15 blur-3xl" />
+                <div aria-hidden className="pointer-events-none absolute -bottom-12 -left-8 w-56 h-56 rounded-full bg-accent/15 blur-3xl" />
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/characters/fox/hi.png"
+                  alt="Лисеня EnglishBest"
+                  className="relative w-full max-w-[360px] object-contain drop-shadow-[0_20px_40px_rgba(21,128,61,0.25)]"
+                />
               </div>
             </div>
           </div>
@@ -227,14 +199,9 @@ export default function HomePage() {
         {/* ── Як відбувається запис ── */}
         <section className={`py-16 lg:py-20 ${G}`}>
           <div className={`${W} flex flex-col gap-10`}>
-            <div className="flex items-end justify-between gap-6 flex-wrap">
-              <div>
-                <p className="text-[10px] font-semibold text-primary uppercase tracking-widest mb-2">Простий старт</p>
-                <h2 className="text-2xl sm:text-3xl font-black text-ink tracking-tight">Як відбувається запис</h2>
-              </div>
-              <PressLink href="/welcome" variant="primary" className="h-11 px-4">
-                Залишити заявку
-              </PressLink>
+            <div>
+              <p className="text-[10px] font-semibold text-primary uppercase tracking-widest mb-2">Простий старт</p>
+              <h2 className="text-2xl sm:text-3xl font-black text-ink tracking-tight">Як відбувається запис</h2>
             </div>
 
             <ol className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -263,166 +230,321 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* ── Методика ── */}
+        {/* ── Методика — bento grid ── */}
         <section id="methodology" className={`py-16 lg:py-20 bg-surface-muted/60 ${G}`}>
           <div className={`${W} flex flex-col gap-10`}>
-            <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+            <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 max-w-3xl">
               <div>
-                <p className="text-[10px] font-semibold text-primary uppercase tracking-widest mb-2">Наша методика</p>
-                <h2 className="text-2xl sm:text-3xl font-black text-ink tracking-tight">Ми навчаємо по-іншому</h2>
+                <p className="text-[10px] font-semibold text-primary uppercase tracking-widest mb-2">Як ми вчимо</p>
+                <h2 className="text-2xl sm:text-3xl font-black text-ink tracking-tight">Чотири принципи, які працюють</h2>
               </div>
-              <p className="text-ink-muted max-w-sm text-[13px] leading-relaxed">
-                Структуровані програми, живі вчителі та щоденна мікро-практика — замість зазубрювання.
-              </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {/* Big green stat card */}
-              <div className="md:col-span-2 relative overflow-hidden rounded-2xl min-h-[220px] bg-gradient-to-br from-primary to-primary-dark p-7 flex flex-col justify-between">
-                <div aria-hidden className="pointer-events-none absolute -top-10 -right-10 w-48 h-48 rounded-full bg-white/10 blur-2xl" />
-                <div aria-hidden className="pointer-events-none absolute -bottom-12 -left-8 w-48 h-48 rounded-full bg-white/10 blur-2xl" />
+            {/* Bento: 6-col grid. Featured card spans 3, small cards 3. */}
+            <div className="grid grid-cols-1 md:grid-cols-6 gap-4 auto-rows-fr">
+              {/* Featured card */}
+              <div className="md:col-span-3 md:row-span-2 relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary to-primary-dark p-8 flex flex-col justify-between min-h-[300px]">
+                <div aria-hidden className="pointer-events-none absolute -top-16 -right-16 w-60 h-60 rounded-full bg-white/10 blur-2xl" />
+                <div aria-hidden className="pointer-events-none absolute -bottom-16 -left-12 w-60 h-60 rounded-full bg-white/10 blur-2xl" />
+
                 <div className="relative">
-                  <p className="text-[10px] font-semibold text-white/70 uppercase tracking-widest">Наша спільнота</p>
-                  <p className="text-5xl font-black text-white leading-none mt-2 tabular-nums">1 200+</p>
+                  <span className="inline-flex items-center gap-2 px-3 h-7 rounded-full bg-white/15 text-white text-[10px] font-black uppercase tracking-widest">
+                    Принцип №1
+                  </span>
+                  <h3 className="text-3xl sm:text-4xl font-black text-white tracking-tight leading-tight mt-5">
+                    Уроки <span className="text-accent">про те, що</span><br />цікаво саме зараз
+                  </h3>
+                  <p className="text-white/80 text-[14px] leading-relaxed mt-3 max-w-sm">
+                    Minecraft, футбол, TikTok або улюблена книга — все стає приводом говорити англійською без стресу.
+                  </p>
                 </div>
-                <div className="relative flex items-center gap-3">
-                  <div className="flex">
-                    {[{ id: 12, g: 'women' }, { id: 44, g: 'women' }, { id: 32, g: 'men' }, { id: 65, g: 'women' }, { id: 23, g: 'women' }].map((a, i) => (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        key={a.id}
-                        src={`https://randomuser.me/api/portraits/${a.g}/${a.id}.jpg`}
-                        alt=""
-                        aria-hidden
-                        className={`w-9 h-9 rounded-full border-2 border-primary/60 object-cover ${i > 0 ? '-ml-2.5' : ''}`}
-                      />
-                    ))}
-                  </div>
-                  <div>
-                    <p className="text-white font-black text-sm">учнів у 5+ країнах</p>
-                    <p className="text-white/70 text-[12px] mt-0.5">навчаються з нами з 2019 року</p>
+
+                <div className="relative flex items-end justify-between gap-4 mt-8">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src="/characters/fox/hi.png"
+                    alt=""
+                    aria-hidden
+                    className="w-32 h-32 object-contain drop-shadow-[0_10px_20px_rgba(0,0,0,0.2)]"
+                  />
+                  <div className="text-right">
+                    <p className="text-white/70 text-[11px] font-black uppercase tracking-widest">У середньому</p>
+                    <p className="text-5xl font-black text-white tabular-nums leading-none mt-1">92%</p>
+                    <p className="text-white/70 text-[11px] mt-1 max-w-[140px] leading-snug">учнів хочуть на наступний урок</p>
                   </div>
                 </div>
               </div>
 
               {[
-                { title: 'Урок — про те, що цікаво', sub: 'Minecraft, футбол, TikTok — все стає приводом говорити англійською.' },
-                { title: 'Вчитель підібраний, не призначений', sub: 'Не хто вільний у розкладі — а хто підходить саме вашій дитині.' },
-                { title: 'Батьки у курсі після кожного уроку', sub: 'Короткий звіт у застосунку — без зайвих дзвінків і питань.' },
-                { title: 'Спробуйте без ризику', sub: 'Перший урок безкоштовний. Не підійде — жодних зобов\'язань.' },
+                {
+                  n: '02',
+                  title: 'Вчитель підібраний, не призначений',
+                  sub: 'Не хто вільний у розкладі — а хто підходить саме вашій дитині.',
+                  iconBg: 'bg-primary/10 text-primary-dark',
+                  icon: (
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                      <circle cx="12" cy="7" r="4" />
+                    </svg>
+                  ),
+                },
+                {
+                  n: '03',
+                  title: 'Короткий звіт після кожного уроку',
+                  sub: 'У застосунку — без зайвих дзвінків і питань.',
+                  iconBg: 'bg-accent/10 text-accent-dark',
+                  icon: (
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                      <polyline points="14 2 14 8 20 8" />
+                      <line x1="16" y1="13" x2="8" y2="13" />
+                      <line x1="16" y1="17" x2="8" y2="17" />
+                    </svg>
+                  ),
+                },
+                {
+                  n: '04',
+                  title: 'Перший урок безкоштовний',
+                  sub: 'Спробуйте без зобов\'язань. Не підійде — просто не продовжуєте.',
+                  iconBg: 'bg-purple/10 text-purple-dark',
+                  icon: (
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  ),
+                },
+                {
+                  n: '05',
+                  title: 'Щоденна мікро-практика',
+                  sub: 'Короткі вправи в додатку — мова залишається активною між уроками.',
+                  iconBg: 'bg-secondary/10 text-secondary-dark',
+                  icon: (
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                    </svg>
+                  ),
+                },
               ].map(item => (
                 <div
-                  key={item.title}
-                  className="bg-surface border border-border rounded-2xl p-5 flex flex-col gap-2 min-h-[180px] hover:border-primary/30 transition-colors"
+                  key={item.n}
+                  className="md:col-span-3 bg-surface border border-border rounded-3xl p-6 flex items-start gap-4 hover:border-primary/30 transition-colors"
                 >
-                  <p className="font-black text-ink leading-snug text-[14px]">{item.title}</p>
-                  <p className="text-[12px] text-ink-muted leading-relaxed">{item.sub}</p>
+                  <div className={`flex-shrink-0 w-11 h-11 rounded-xl flex items-center justify-center ${item.iconBg}`}>
+                    <span className="w-5 h-5 block">{item.icon}</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-black text-ink-faint uppercase tracking-widest tabular-nums">
+                        {item.n}
+                      </span>
+                      <span className="h-px flex-1 bg-border" aria-hidden />
+                    </div>
+                    <h3 className="font-black text-ink text-[15px] leading-snug mt-2">{item.title}</h3>
+                    <p className="text-[12.5px] text-ink-muted leading-relaxed mt-1">{item.sub}</p>
+                  </div>
                 </div>
               ))}
             </div>
           </div>
         </section>
 
-        {/* ── Формати + Вчителі ── */}
+        {/* ── Формати + ціни — pricing cards ── */}
         <section id="formats" className={`py-16 lg:py-20 ${G}`}>
-          <div className={`${W} grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-12`}>
-            {/* Formats */}
-            <div className="flex flex-col gap-5">
+          <div className={`${W} flex flex-col gap-10`}>
+            <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
               <div>
                 <p className="text-[10px] font-semibold text-primary uppercase tracking-widest mb-2">Формати та ціни</p>
-                <h2 className="text-2xl sm:text-3xl font-black text-ink tracking-tight">Оберіть формат навчання</h2>
+                <h2 className="text-2xl sm:text-3xl font-black text-ink tracking-tight">Оберіть свій темп</h2>
+                <p className="text-ink-muted text-[13px] leading-relaxed mt-2 max-w-md">
+                  Чотири формати — один вчитель, одна програма. Змінюйте у будь-який момент.
+                </p>
               </div>
-              <div className="bg-surface border border-border rounded-2xl divide-y divide-border overflow-hidden">
-                {[
-                  { img: 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=120&h=120&fit=crop&q=80', label: 'Індивідуальний', sub: 'Максимальний прогрес — без компромісів', price: '₴ 380', per: 'за урок', highlight: false },
-                  { img: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=120&h=120&fit=crop&q=80', label: 'Парний', sub: 'Вдвічі дешевше — вдвічі веселіше', price: '₴ 220', per: 'за урок / особа', highlight: true, badge: 'Топ' },
-                  { img: 'https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=120&h=120&fit=crop&q=80', label: 'Груповий', sub: 'Жива атмосфера і командна динаміка', price: '₴ 150', per: 'за урок / особа', highlight: false },
-                  { img: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=120&h=120&fit=crop&q=80', label: 'Розмовний клуб', sub: 'Говоріть вільно — без страху', price: '₴ 120', per: 'за заняття', highlight: false },
-                ].map(f => (
-                  <div
-                    key={f.label}
-                    className={`flex items-center gap-4 px-4 py-3.5 ${f.highlight ? 'bg-primary/5' : ''}`}
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {[
+                {
+                  label: 'Індивідуальний',
+                  tagline: 'Максимум уваги',
+                  price: '380',
+                  per: '/ урок',
+                  features: ['1-на-1 з вчителем', 'Гнучкий розклад', 'Швидкий прогрес'],
+                  highlight: false,
+                  badge: null as string | null,
+                },
+                {
+                  label: 'Парний',
+                  tagline: 'З другом або сестрою',
+                  price: '220',
+                  per: '/ урок · особа',
+                  features: ['Веселіше вчитись', 'Вартість нижча', 'Жива комунікація'],
+                  highlight: true,
+                  badge: 'Топ вибір',
+                },
+                {
+                  label: 'Груповий',
+                  tagline: 'Міні-група 4-6 осіб',
+                  price: '150',
+                  per: '/ урок · особа',
+                  features: ['Командна динаміка', 'Ігри та проєкти', 'Доступна ціна'],
+                  highlight: false,
+                  badge: null,
+                },
+                {
+                  label: 'Розмовний клуб',
+                  tagline: 'Практика вільного мовлення',
+                  price: '120',
+                  per: '/ заняття',
+                  features: ['Теми на щодень', 'Без оцінювання', 'Spoken English'],
+                  highlight: false,
+                  badge: null,
+                },
+              ].map(f => (
+                <div
+                  key={f.label}
+                  className={[
+                    'relative rounded-3xl p-6 flex flex-col gap-5 transition-all',
+                    f.highlight
+                      ? 'bg-gradient-to-br from-primary to-primary-dark text-white shadow-card-md'
+                      : 'bg-surface border border-border hover:border-primary/30',
+                  ].join(' ')}
+                >
+                  {f.badge && (
+                    <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 inline-flex items-center px-3 h-6 rounded-full bg-accent text-white text-[10px] font-black uppercase tracking-widest shadow-card-sm whitespace-nowrap">
+                      {f.badge}
+                    </span>
+                  )}
+
+                  <div>
+                    <p className={`text-[10px] font-black uppercase tracking-widest ${f.highlight ? 'text-white/70' : 'text-primary'}`}>
+                      {f.tagline}
+                    </p>
+                    <h3 className={`text-xl font-black tracking-tight mt-1 ${f.highlight ? 'text-white' : 'text-ink'}`}>
+                      {f.label}
+                    </h3>
+                  </div>
+
+                  <div className="flex items-baseline gap-1">
+                    <span className={`text-[18px] font-black ${f.highlight ? 'text-white/80' : 'text-ink-muted'}`}>₴</span>
+                    <span className={`text-5xl font-black tabular-nums leading-none ${f.highlight ? 'text-white' : 'text-ink'}`}>
+                      {f.price}
+                    </span>
+                    <span className={`text-[12px] font-semibold ml-1 ${f.highlight ? 'text-white/70' : 'text-ink-muted'}`}>
+                      {f.per}
+                    </span>
+                  </div>
+
+                  <ul className="flex flex-col gap-2">
+                    {f.features.map(feat => (
+                      <li key={feat} className="flex items-center gap-2">
+                        <span
+                          className={`flex-shrink-0 w-4 h-4 rounded-full flex items-center justify-center ${
+                            f.highlight ? 'bg-white/20 text-white' : 'bg-primary/10 text-primary-dark'
+                          }`}
+                        >
+                          <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
+                        </span>
+                        <span className={`text-[12.5px] ${f.highlight ? 'text-white/90' : 'text-ink'}`}>
+                          {feat}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  <Link
+                    href="/welcome"
+                    className={[
+                      'mt-auto inline-flex items-center justify-center h-11 rounded-xl font-black text-[13px] transition-transform active:translate-y-1 active:shadow-none',
+                      f.highlight
+                        ? 'bg-white text-primary-dark shadow-[0_5px_0_rgba(0,0,0,0.15)]'
+                        : 'bg-primary text-white shadow-press-primary',
+                    ].join(' ')}
                   >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={f.img} alt="" aria-hidden className="w-12 h-12 rounded-xl object-cover flex-shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="font-black text-ink text-sm">{f.label}</p>
-                        {f.badge && (
-                          <span className="text-[9px] font-black bg-primary text-white px-1.5 py-0.5 rounded-md leading-none uppercase tracking-wider">
-                            {f.badge}
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-[12px] text-ink-muted mt-0.5 truncate">{f.sub}</p>
-                    </div>
-                    <div className="text-right flex-shrink-0">
-                      <p className="font-black text-ink text-sm leading-none tabular-nums">{f.price}</p>
-                      <p className="text-[10px] text-ink-muted mt-0.5">{f.per}</p>
-                    </div>
+                    Обрати →
+                  </Link>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ── Вчителі — showcase strip ── */}
+        <section id="teachers" className={`py-16 lg:py-20 bg-surface-muted/60 ${G}`}>
+          <div className={`${W} flex flex-col gap-10`}>
+            <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+              <div>
+                <p className="text-[10px] font-semibold text-primary uppercase tracking-widest mb-2">Команда</p>
+                <h2 className="text-2xl sm:text-3xl font-black text-ink tracking-tight">Знайомтесь — наші вчителі</h2>
+                <p className="text-ink-muted text-[13px] leading-relaxed mt-2 max-w-md">
+                  Кожен проходить відбір і пробні уроки перш ніж потрапити до команди.
+                </p>
+              </div>
+
+              {/* Stat pills */}
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { v: '50+', l: 'вчителів' },
+                  { v: 'CELTA', l: 'сертифікація' },
+                  { v: '3-15', l: 'років досвіду' },
+                ].map(s => (
+                  <div key={s.l} className="bg-surface border border-border rounded-2xl px-3 py-3 text-center">
+                    <p className="text-[16px] font-black text-ink tabular-nums leading-none">{s.v}</p>
+                    <p className="text-[10px] text-ink-muted mt-1.5 leading-tight">{s.l}</p>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Teachers */}
-            <div id="teachers" className="flex flex-col gap-5">
-              <div>
-                <p className="text-[10px] font-semibold text-primary uppercase tracking-widest mb-2">Наші вчителі</p>
-                <h2 className="text-2xl sm:text-3xl font-black text-ink tracking-tight">50+ педагогів</h2>
-                <p className="text-ink-muted text-[13px] leading-relaxed mt-2 max-w-sm">
-                  Кожен проходить відбір і пробні уроки перед тим, як потрапити до команди.
-                </p>
-              </div>
+            {/* Teacher cards grid */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[
+                { id: 44, g: 'women', name: 'Anna',    specialty: 'Kids 6-10', rating: 4.9, years: 8,  tags: ['Ігри', 'Cambridge'] },
+                { id: 65, g: 'women', name: 'Olena',   specialty: 'Teens',     rating: 4.9, years: 6,  tags: ['Speaking', 'Exams'] },
+                { id: 32, g: 'men',   name: 'Mykhailo', specialty: 'Кids 7-12', rating: 5.0, years: 12, tags: ['STEM', 'CELTA'] },
+                { id: 23, g: 'women', name: 'Kateryna', specialty: 'Adults & Teens', rating: 4.8, years: 10, tags: ['Business', 'IELTS'] },
+              ].map(t => (
+                <div
+                  key={t.id}
+                  className="bg-surface border border-border rounded-3xl p-5 flex flex-col gap-4 hover:border-primary/30 transition-colors"
+                >
+                  <div className="relative">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={`https://randomuser.me/api/portraits/${t.g}/${t.id}.jpg`}
+                      alt={t.name}
+                      className="w-full aspect-square object-cover rounded-2xl"
+                    />
+                    <div className="absolute bottom-2 right-2 inline-flex items-center gap-1 px-2 h-6 rounded-full bg-surface/95 backdrop-blur-sm border border-border shadow-card-sm">
+                      <svg className="w-3 h-3 text-accent" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                      </svg>
+                      <span className="text-[11px] font-black text-ink tabular-nums">{t.rating}</span>
+                    </div>
+                  </div>
 
-              <div className="bg-surface border border-border rounded-2xl p-5 flex flex-col gap-5">
-                <div className="flex items-center gap-3">
-                  <div className="flex">
-                    {[{ id: 44, g: 'women' }, { id: 65, g: 'women' }, { id: 32, g: 'men' }, { id: 23, g: 'women' }, { id: 12, g: 'men' }, { id: 55, g: 'men' }].map((a, i) => (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        key={a.id}
-                        src={`https://randomuser.me/api/portraits/${a.g}/${a.id}.jpg`}
-                        alt=""
-                        aria-hidden
-                        className={`w-10 h-10 rounded-full border-2 border-surface object-cover${i > 0 ? ' -ml-2.5' : ''}`}
-                      />
+                  <div>
+                    <p className="font-black text-ink text-[15px] leading-tight">{t.name}</p>
+                    <p className="text-[12px] text-ink-muted mt-0.5">{t.specialty} · {t.years} років</p>
+                  </div>
+
+                  <div className="flex flex-wrap gap-1.5 mt-auto">
+                    {t.tags.map(tag => (
+                      <span key={tag} className="inline-flex items-center px-2 py-1 rounded-md bg-primary/8 text-primary-dark text-[10px] font-black uppercase tracking-wider">
+                        {tag}
+                      </span>
                     ))}
                   </div>
-                  <p className="text-[13px] text-ink-muted">і ще 44+ професіоналів</p>
                 </div>
-
-                <ul className="flex flex-col gap-3">
-                  {[
-                    { label: 'Сертифікація', text: 'CELTA / TEFL або вища педагогічна освіта' },
-                    { label: 'Досвід',        text: 'Від 3 до 15 років роботи з дітьми' },
-                    { label: 'Підбір',        text: 'Під характер і темп дитини, не за розкладом' },
-                    { label: 'Заміна',        text: 'Безкоштовна, якщо вчитель не підійшов' },
-                  ].map(item => (
-                    <li key={item.label} className="flex items-start gap-3">
-                      <span className="mt-0.5 flex-shrink-0 inline-flex items-center justify-center w-20 px-2 py-1 rounded-lg bg-primary/8 text-primary-dark text-[10px] font-black uppercase tracking-wider">
-                        {item.label}
-                      </span>
-                      <p className="text-[13px] text-ink leading-snug">{item.text}</p>
-                    </li>
-                  ))}
-                </ul>
-
-                <PressLink href="/welcome" variant="ghost" className="w-full h-11 text-[13px]">
-                  Познайомитися з вчителем
-                </PressLink>
-              </div>
+              ))}
             </div>
           </div>
         </section>
 
         {/* ── Відгуки ── */}
-        <section id="reviews" className={`py-16 lg:py-20 bg-surface-muted/60 ${G}`}>
-          <div className={`${W} flex flex-col gap-8`}>
-            <div>
-              <p className="text-[10px] font-semibold text-primary uppercase tracking-widest mb-2">Відгуки батьків</p>
-              <h2 className="text-2xl sm:text-3xl font-black text-ink tracking-tight">Що кажуть наші учні</h2>
-            </div>
+        <section id="reviews" className={`py-16 lg:py-20 ${G}`}>
+          <div className={`${W}`}>
             <ReviewsSlider />
           </div>
         </section>

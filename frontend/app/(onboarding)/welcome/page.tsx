@@ -110,50 +110,55 @@ export default function WelcomePage() {
   return (
     <div className="min-h-dvh bg-surface-muted/60 flex flex-col">
       {/* Top bar with fox + progress */}
-      <header className="bg-surface border-b border-border">
-        <div className="max-w-3xl mx-auto w-full px-4 sm:px-6 h-16 flex items-center gap-4">
-          <Link href="/home" className="flex items-center gap-2.5 flex-shrink-0">
-            <span className="relative w-9 h-9 rounded-2xl bg-primary/10 ring-1 ring-primary/20 overflow-hidden flex items-center justify-center">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/characters/fox/hi.png"
-                alt=""
-                aria-hidden
-                className="absolute inset-0 w-[120%] h-[120%] object-contain -translate-x-[2px] translate-y-[2px]"
-              />
+      <header className="bg-surface border-b border-border flex items-center gap-4 px-4 sm:px-6 h-16">
+        <Link href="/home" className="flex items-center gap-2.5 flex-shrink-0">
+          <span className="relative w-9 h-9 rounded-2xl bg-primary/10 ring-1 ring-primary/20 overflow-hidden flex items-center justify-center">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/characters/fox/hi.png"
+              alt=""
+              aria-hidden
+              className="absolute inset-0 w-[120%] h-[120%] object-contain -translate-x-[2px] translate-y-[2px]"
+            />
+          </span>
+          <span className="font-black text-ink text-lg">
+            English<span className="text-primary">Best</span>
+          </span>
+        </Link>
+
+        {phase !== "intro" && (
+          <div className="flex items-center gap-3 flex-1 min-w-0 max-w-md mx-auto">
+            <ProgressBar
+              value={progress}
+              size="md"
+              track="bg-surface-muted"
+              label="Прогрес опитування"
+              className="flex-1"
+            />
+            <span className="text-[12px] font-black text-ink-muted tabular-nums w-12 text-right">
+              {phase === "thanks" ? "✓" : `${completedSteps}/${TOTAL}`}
             </span>
-            <span className="font-black text-ink text-base hidden sm:inline">
-              English<span className="text-primary">Best</span>
-            </span>
+          </div>
+        )}
+
+        {phase !== "intro" && phase !== "thanks" ? (
+          <button
+            onClick={back}
+            aria-label="Назад"
+            className="w-10 h-10 rounded-xl bg-surface-muted hover:bg-border text-ink-muted hover:text-ink flex items-center justify-center transition-colors flex-shrink-0"
+          >
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" aria-hidden>
+              <path d="M15 18l-6-6 6-6" />
+            </svg>
+          </button>
+        ) : (
+          <Link
+            href="/home"
+            className="text-[12px] font-semibold text-ink-muted hover:text-ink px-3 h-9 rounded-lg hover:bg-surface-muted inline-flex items-center transition-colors ml-auto"
+          >
+            ← На головну
           </Link>
-
-          {phase !== "intro" && (
-            <div className="flex items-center gap-3 flex-1 min-w-0">
-              <ProgressBar
-                value={progress}
-                size="md"
-                track="bg-surface-muted"
-                label="Прогрес опитування"
-                className="flex-1"
-              />
-              <span className="text-[12px] font-black text-ink-muted tabular-nums w-12 text-right">
-                {phase === "thanks" ? "✓" : `${completedSteps}/${TOTAL}`}
-              </span>
-            </div>
-          )}
-
-          {phase !== "intro" && phase !== "thanks" && (
-            <button
-              onClick={back}
-              aria-label="Назад"
-              className="w-10 h-10 rounded-xl bg-surface-muted hover:bg-border text-ink-muted hover:text-ink flex items-center justify-center transition-colors flex-shrink-0"
-            >
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" aria-hidden>
-                <path d="M15 18l-6-6 6-6" />
-              </svg>
-            </button>
-          )}
-        </div>
+        )}
       </header>
 
       <main className="flex-1 flex items-center justify-center px-4 py-10">
