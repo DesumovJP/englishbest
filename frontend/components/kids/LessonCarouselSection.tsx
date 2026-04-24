@@ -1,14 +1,16 @@
 /**
- * LessonCarouselSection — horizontal, center-focus lesson carousel.
+ * LessonCarouselSection — single horizontal, center-focus lesson carousel.
  *
- * One carousel per course in the current level. Lessons scroll horizontally
- * with CSS scroll-snap locking each card to the viewport center; a scroll
- * listener updates per-card scale/opacity so the focused card pops. On
- * mount we auto-scroll to the learner's current lesson.
+ * All lessons across all kids-level courses are flattened into ONE carousel.
+ * The first card of each new course/section carries a chip label so the
+ * learner still perceives boundaries — but there is no vertical stack of
+ * per-course carousels. Scroll-snap centers each card, and on mount the
+ * viewport lands on the learner's current lesson.
  *
- * Data contract identical to `LessonTreeSection`:
- * `fetchCourses` (filtered by level + kids/any audience) + `fetchLessonsByCourse`
- * per course + `fetchMyProgress` for completion state.
+ * Data:
+ *   - `fetchCourses` (filtered by level + kids/any audience)
+ *   - `fetchLessonsByCourse` per course
+ *   - `fetchMyProgress` for completion state
  *
  * "Status" is a soft signal — `upcoming` cards still navigate; real access
  * control lives in the course/lesson pages.
@@ -26,11 +28,14 @@ interface Props {
   level: Level;
 }
 
-interface CourseGroup {
+interface FlatNode {
+  lesson: Lesson;
   course: Course;
-  lessons: Lesson[];
-  completedSlugs: Set<string>;
-  currentSlug: string | null;
+  status: NodeStatus;
+  /** When true, render a leading label chip (start of a course or section). */
+  groupLabel?: string;
+  /** First lesson of each course — used for the course-header ribbon. */
+  isCourseStart: boolean;
 }
 
 type NodeStatus = 'done' | 'current' | 'upcoming';
@@ -53,12 +58,12 @@ function LessonCard({
   lesson,
   status,
   accent,
-  unitLabel,
+  groupLabel,
 }: {
   lesson: Lesson;
   status: NodeStatus;
   accent: string;
-  unitLabel?: string;
+  groupLabel?: string;
 }) {
   const emoji = TYPE_EMOJI[lesson.type] ?? '📘';
   const typeLabel = TYPE_LABEL[lesson.type] ?? 'Урок';
@@ -128,15 +133,15 @@ function LessonCard({
         </div>
       )}
 
-      {unitLabel && (
-        <div className="absolute top-3 left-3 rounded-full px-2.5 py-1 bg-black/45 backdrop-blur border border-white/25">
-          <span className="font-black text-white text-[10px] tracking-widest">
-            {unitLabel}
+      {groupLabel && (
+        <div className="absolute top-3 left-3 rounded-full px-2.5 py-1 bg-black/45 backdrop-blur border border-white/25 max-w-[75%]">
+          <span className="font-black text-white text-[10px] tracking-widest truncate block">
+            {groupLabel}
           </span>
         </div>
       )}
 
-      {isDone && !unitLabel && (
+      {isDone && !groupLabel && (
         <div
           className="absolute top-3 right-3 w-7 h-7 rounded-full flex items-center justify-center"
           style={{ background: '#16a34a', boxShadow: '0 3px 10px rgba(22,163,74,0.5)' }}
@@ -158,36 +163,43 @@ function LessonCard({
   );
 }
 
-function CourseCarousel({ group }: { group: CourseGroup }) {
-  const { course, lessons, completedSlugs, currentSlug } = group;
+function accentOf(course: Course): string {
+  return (course as any).iconColor ?? '#22C55E';
+}
+
+function emojiOf(course: Course): string {
+  return (course as any).iconEmoji ?? '🎓';
+}
+
+interface UnifiedCarouselProps {
+  nodes: FlatNode[];
+  currentSlug: string | null;
+  completedTotal: number;
+  lessonsTotal: number;
+}
+
+function UnifiedCarousel({
+  nodes,
+  currentSlug,
+  completedTotal,
+  lessonsTotal,
+}: UnifiedCarouselProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const currentRef = useRef<HTMLDivElement | null>(null);
   const cardRefs = useRef(new Map<string, HTMLDivElement>());
   const rafRef = useRef<number | null>(null);
   const [scales, setScales] = useState<Map<string, number>>(new Map());
+  const [activeCourseSlug, setActiveCourseSlug] = useState<string | null>(
+    nodes[0]?.course.slug ?? null,
+  );
 
-  const accent = (course as any).iconColor ?? '#22C55E';
-  const pct = lessons.length === 0 ? 0 : Math.round((completedSlugs.size / lessons.length) * 100);
+  const pct = lessonsTotal === 0 ? 0 : Math.round((completedTotal / lessonsTotal) * 100);
 
-  // Section-label-on-first-card-of-section helpers.
-  const sectionFirsts = useMemo(() => {
-    const seen = new Set<string>();
-    const firstSlugs = new Set<string>();
-    for (const l of lessons) {
-      const key = l.sectionSlug ?? 'default';
-      if (!seen.has(key)) {
-        seen.add(key);
-        firstSlugs.add(l.slug);
-      }
-    }
-    return firstSlugs;
-  }, [lessons]);
-
-  function statusOf(slug: string): NodeStatus {
-    if (completedSlugs.has(slug)) return 'done';
-    if (currentSlug === slug) return 'current';
-    return 'upcoming';
-  }
+  // Sticky course ribbon — reflect which course the currently-centered card belongs to.
+  const activeCourse = useMemo(() => {
+    const n = nodes.find(node => node.course.slug === activeCourseSlug);
+    return n?.course ?? nodes[0]?.course ?? null;
+  }, [activeCourseSlug, nodes]);
 
   function calcScales() {
     const ctr = scrollRef.current;
@@ -196,12 +208,26 @@ function CourseCarousel({ group }: { group: CourseGroup }) {
     const cx = cl + cw / 2;
     const threshold = cw * 0.5;
     const next = new Map<string, number>();
+    let bestSlug: string | null = null;
+    let bestDist = Infinity;
+    let bestCourseSlug: string | null = null;
     cardRefs.current.forEach((el, slug) => {
       const { left, width } = el.getBoundingClientRect();
       const dist = Math.abs(left + width / 2 - cx);
       next.set(slug, Math.max(0, Math.min(1, 1 - dist / threshold)));
+      if (dist < bestDist) {
+        bestDist = dist;
+        bestSlug = slug;
+        const node = nodes.find(n => n.lesson.slug === slug);
+        bestCourseSlug = node?.course.slug ?? null;
+      }
     });
     setScales(next);
+    if (bestCourseSlug && bestCourseSlug !== activeCourseSlug) {
+      setActiveCourseSlug(bestCourseSlug);
+    }
+    // Silence unused-var lint — kept for potential future focus state.
+    void bestSlug;
   }
 
   useEffect(() => {
@@ -247,42 +273,44 @@ function CourseCarousel({ group }: { group: CourseGroup }) {
     return 0.52 + 0.48 * t;
   }
 
+  const activeAccent = activeCourse ? accentOf(activeCourse) : '#22C55E';
+
   return (
     <section className="flex flex-col">
-      {/* Compact course header */}
+      {/* Sticky course ribbon — title + overall progress bar */}
       <div className="flex items-center gap-3 px-4 py-3 bg-surface-muted border-b border-border">
         <div
-          className="w-11 h-11 rounded-xl flex items-center justify-center text-[22px] flex-shrink-0"
-          style={{ background: `${accent}20`, border: `1.5px solid ${accent}40` }}
+          className="w-11 h-11 rounded-xl flex items-center justify-center text-[22px] flex-shrink-0 transition-colors"
+          style={{ background: `${activeAccent}20`, border: `1.5px solid ${activeAccent}40` }}
         >
-          {(course as any).iconEmoji ?? '🎓'}
+          {activeCourse ? emojiOf(activeCourse) : '🎓'}
         </div>
         <div className="flex-1 min-w-0">
           <p className="font-black text-[14px] text-ink truncate leading-tight">
-            {course.title}
+            {activeCourse?.title ?? 'Уроки'}
           </p>
           <div className="flex items-center gap-2 mt-1">
             <div
               className="flex-1 h-[5px] rounded-full overflow-hidden"
-              style={{ background: `${accent}20` }}
+              style={{ background: `${activeAccent}20` }}
             >
               <div
                 className="h-full rounded-full transition-all duration-700"
-                style={{ width: `${pct}%`, background: accent }}
+                style={{ width: `${pct}%`, background: activeAccent }}
               />
             </div>
-            <span className="font-black text-[11px] flex-shrink-0" style={{ color: accent }}>
-              {completedSlugs.size}
-              <span className="font-medium text-ink-faint">/{lessons.length}</span>
+            <span className="font-black text-[11px] flex-shrink-0" style={{ color: activeAccent }}>
+              {completedTotal}
+              <span className="font-medium text-ink-faint">/{lessonsTotal}</span>
             </span>
           </div>
         </div>
       </div>
 
-      {/* Horizontal scroll-snap carousel */}
+      {/* Unified horizontal scroll-snap carousel */}
       <div
         ref={scrollRef}
-        className="flex items-center overflow-x-auto"
+        className="flex items-center overflow-x-auto overflow-y-hidden"
         style={{
           scrollbarWidth: 'none',
           msOverflowStyle: 'none',
@@ -293,24 +321,14 @@ function CourseCarousel({ group }: { group: CourseGroup }) {
         }}
       >
         <div className="flex items-center gap-5 py-6">
-          {lessons.map(lesson => {
-            const status = statusOf(lesson.slug);
+          {nodes.map(node => {
+            const { lesson, course, status, groupLabel } = node;
             const isCurr = status === 'current';
-            const unitLabel = sectionFirsts.has(lesson.slug)
-              ? (lesson.sectionSlug ?? 'UNIT').toUpperCase()
-              : undefined;
-            const card = (
-              <LessonCard
-                lesson={lesson}
-                status={status}
-                accent={accent}
-                unitLabel={unitLabel}
-              />
-            );
+            const accent = accentOf(course);
 
             return (
               <div
-                key={lesson.slug}
+                key={`${course.slug}__${lesson.slug}`}
                 ref={el => {
                   if (el) {
                     cardRefs.current.set(lesson.slug, el);
@@ -333,7 +351,12 @@ function CourseCarousel({ group }: { group: CourseGroup }) {
                   className="block w-full h-full active:scale-[0.97] transition-transform"
                   aria-label={lesson.title}
                 >
-                  {card}
+                  <LessonCard
+                    lesson={lesson}
+                    status={status}
+                    accent={accent}
+                    groupLabel={groupLabel}
+                  />
                 </Link>
               </div>
             );
@@ -344,8 +367,69 @@ function CourseCarousel({ group }: { group: CourseGroup }) {
   );
 }
 
+interface CourseData {
+  course: Course;
+  lessons: Lesson[];
+  completedSlugs: Set<string>;
+  currentSlug: string | null;
+}
+
+function flatten(courses: CourseData[]): {
+  nodes: FlatNode[];
+  currentSlug: string | null;
+  completedTotal: number;
+  lessonsTotal: number;
+} {
+  // The overall "current" is the first non-completed lesson of the first
+  // course with any unfinished lessons. If everything is done, last lesson.
+  const nodes: FlatNode[] = [];
+  let overallCurrent: string | null = null;
+  let completedTotal = 0;
+  let lessonsTotal = 0;
+
+  for (const cd of courses) {
+    lessonsTotal += cd.lessons.length;
+    completedTotal += cd.completedSlugs.size;
+    if (!overallCurrent && cd.currentSlug) overallCurrent = cd.currentSlug;
+
+    let firstInCourse = true;
+    let prevSectionKey: string | null = null;
+
+    for (const lesson of cd.lessons) {
+      const sectionKey = lesson.sectionSlug ?? 'default';
+      const sectionChanged = sectionKey !== prevSectionKey;
+
+      let groupLabel: string | undefined;
+      if (firstInCourse) {
+        groupLabel = cd.course.title.toUpperCase();
+      } else if (sectionChanged) {
+        groupLabel = (lesson.sectionSlug ?? 'UNIT').toUpperCase();
+      }
+
+      const status: NodeStatus = cd.completedSlugs.has(lesson.slug)
+        ? 'done'
+        : cd.currentSlug === lesson.slug
+          ? 'current'
+          : 'upcoming';
+
+      nodes.push({
+        lesson,
+        course: cd.course,
+        status,
+        groupLabel,
+        isCourseStart: firstInCourse,
+      });
+
+      firstInCourse = false;
+      prevSectionKey = sectionKey;
+    }
+  }
+
+  return { nodes, currentSlug: overallCurrent, completedTotal, lessonsTotal };
+}
+
 export function LessonCarouselSection({ level }: Props) {
-  const [groups, setGroups] = useState<CourseGroup[] | null>(null);
+  const [data, setData] = useState<CourseData[] | null>(null);
   const [status, setStatus] = useState<'loading' | 'ready' | 'empty' | 'error'>(
     'loading',
   );
@@ -371,7 +455,7 @@ export function LessonCarouselSection({ level }: Props) {
         );
 
         if (myCourses.length === 0) {
-          setGroups([]);
+          setData([]);
           setStatus('empty');
           return;
         }
@@ -387,8 +471,8 @@ export function LessonCarouselSection({ level }: Props) {
           completedByCourse.set(courseSlug, set);
         }
 
-        const populated: CourseGroup[] = await Promise.all(
-          myCourses.map(async (course): Promise<CourseGroup> => {
+        const populated: CourseData[] = await Promise.all(
+          myCourses.map(async (course): Promise<CourseData> => {
             const lessons = await fetchLessonsByCourse(course.slug);
             const sorted = [...lessons].sort(
               (a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0),
@@ -408,7 +492,7 @@ export function LessonCarouselSection({ level }: Props) {
 
         if (!alive) return;
         const nonEmpty = populated.filter(g => g.lessons.length > 0);
-        setGroups(nonEmpty);
+        setData(nonEmpty);
         setStatus(nonEmpty.length === 0 ? 'empty' : 'ready');
       } catch (e) {
         if (!alive) return;
@@ -431,7 +515,7 @@ export function LessonCarouselSection({ level }: Props) {
       />
     );
   }
-  if (status === 'empty' || !groups || groups.length === 0) {
+  if (status === 'empty' || !data || data.length === 0) {
     return (
       <EmptyState
         title="Немає уроків для твого рівня"
@@ -440,11 +524,13 @@ export function LessonCarouselSection({ level }: Props) {
     );
   }
 
+  const flat = flatten(data);
   return (
-    <div className="flex flex-col gap-6">
-      {groups.map(group => (
-        <CourseCarousel key={group.course.documentId} group={group} />
-      ))}
-    </div>
+    <UnifiedCarousel
+      nodes={flat.nodes}
+      currentSlug={flat.currentSlug}
+      completedTotal={flat.completedTotal}
+      lessonsTotal={flat.lessonsTotal}
+    />
   );
 }

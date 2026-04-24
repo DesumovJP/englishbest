@@ -44,6 +44,20 @@ const q = (params: Record<string, string | number | undefined>) => {
 };
 
 /**
+ * Server-side (RSC/route-handler) needs an absolute URL for `fetch`. In the
+ * browser we keep relative paths so the Next proxy at `/api/...` handles
+ * auth/CORS. Public catalog reads (courses/lessons) don't need the proxy's
+ * JWT forwarding — hitting Strapi directly is fine.
+ */
+const ORIGIN =
+  typeof window === 'undefined'
+    ? (process.env.STRAPI_API_URL ??
+        process.env.NEXT_PUBLIC_API_BASE_URL ??
+        'http://localhost:1337'
+      ).replace(/\/+$/, '')
+    : '';
+
+/**
  * Populate spec for a Course: teacher + its user (+ avatar), thumbnail, sections.
  * Strapi v5 nested populate: bracket notation.
  */
@@ -65,14 +79,14 @@ export async function fetchCourses(
 ): Promise<Course[]> {
   const filter = opts.kind ? `filters[kind][$eq]=${opts.kind}&` : '';
   const env = await fetcher<StrapiCollection<any>>(
-    `/api/courses?${filter}${COURSE_POPULATE}`,
+    `${ORIGIN}/api/courses?${filter}${COURSE_POPULATE}`,
   );
   return normalizeCourses(env);
 }
 
 export async function fetchCourseBySlug(slug: string): Promise<Course | null> {
   const env = await fetcher<StrapiCollection<any>>(
-    `/api/courses${q({ 'filters[slug][$eq]': slug })}&${COURSE_POPULATE}`,
+    `${ORIGIN}/api/courses${q({ 'filters[slug][$eq]': slug })}&${COURSE_POPULATE}`,
   );
   const first = (env?.data ?? [])[0];
   return first ? normalizeCourse(first) : null;
@@ -82,7 +96,7 @@ export async function fetchCourseBySlug(slug: string): Promise<Course | null> {
 
 export async function fetchLessonsByCourse(courseSlug: string): Promise<Lesson[]> {
   const env = await fetcher<StrapiCollection<any>>(
-    `/api/lessons${q({
+    `${ORIGIN}/api/lessons${q({
       'filters[course][slug][$eq]': courseSlug,
       'sort[0]': 'orderIndex:asc',
     })}&${LESSON_POPULATE}`,
@@ -95,7 +109,7 @@ export async function fetchLesson(
   lessonSlug: string,
 ): Promise<Lesson | null> {
   const env = await fetcher<StrapiCollection<any>>(
-    `/api/lessons${q({
+    `${ORIGIN}/api/lessons${q({
       'filters[course][slug][$eq]': courseSlug,
       'filters[slug][$eq]': lessonSlug,
       'pagination[pageSize]': 1,
