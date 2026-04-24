@@ -18,6 +18,25 @@ const GROUP_UID = 'api::group.group';
 const PROFILE_UID = 'api::user-profile.user-profile';
 const TEACHER_UID = 'api::teacher-profile.teacher-profile';
 
+// Server-trusted populate for find/findOne: teacher-profile + its user display
+// fields, plus members (user-profile) with avatar. Required because non-admin
+// callers lack `find` on api::user-profile.user-profile — sanitizeQuery drops
+// these populate entries, so without this override the UI sees empty members.
+// Typed loosely: document-service accepts this shape at runtime, but the strict
+// compile-time union over attribute names gets unwieldy for hand-written specs.
+const FIND_POPULATE: any = {
+  teacher: {
+    fields: ['documentId'],
+    populate: {
+      user: { fields: ['documentId', 'displayName', 'firstName', 'lastName'] },
+    },
+  },
+  members: {
+    fields: ['documentId', 'firstName', 'lastName', 'displayName', 'level'],
+    populate: { avatar: { fields: ['url'] } },
+  },
+};
+
 function roleType(ctxUser: any): string {
   return (ctxUser?.role?.type ?? '').toLowerCase();
 }
@@ -62,7 +81,7 @@ export default factories.createCoreController(GROUP_UID, ({ strapi }) => ({
       if (!profileId) return ctx.forbidden('no user-profile');
       scopeFilter = { members: { documentId: { $eq: profileId } } };
     }
-    return scopedFind(ctx, this, GROUP_UID, scopeFilter);
+    return scopedFind(ctx, this, GROUP_UID, scopeFilter, { populate: FIND_POPULATE });
   },
 
   async findOne(ctx) {
@@ -72,29 +91,29 @@ export default factories.createCoreController(GROUP_UID, ({ strapi }) => ({
 
     const entity = await strapi.documents(GROUP_UID).findOne({
       documentId: ctx.params.id,
-      populate: { teacher: true, members: true },
+      populate: FIND_POPULATE,
     });
 
     if (!entity) return ctx.notFound();
 
-    if (role === 'admin') {
-      return (super.findOne as any)(ctx);
-    }
-
-    if (role === 'teacher') {
-      const teacherId = await callerTeacherProfileId(strapi, user.id);
-      if (!teacherId || (entity as any).teacher?.documentId !== teacherId) {
-        return ctx.forbidden();
+    if (role !== 'admin') {
+      if (role === 'teacher') {
+        const teacherId = await callerTeacherProfileId(strapi, user.id);
+        if (!teacherId || (entity as any).teacher?.documentId !== teacherId) {
+          return ctx.forbidden();
+        }
+      } else {
+        const profileId = await callerProfileId(strapi, user.id);
+        const isMember = ((entity as any).members ?? []).some(
+          (m: any) => m?.documentId === profileId,
+        );
+        if (!profileId || !isMember) return ctx.forbidden();
       }
-    } else {
-      const profileId = await callerProfileId(strapi, user.id);
-      const isMember = ((entity as any).members ?? []).some(
-        (m: any) => m?.documentId === profileId,
-      );
-      if (!profileId || !isMember) return ctx.forbidden();
     }
 
-    return (super.findOne as any)(ctx);
+    // Return with server-trusted populate so non-admins see members too.
+    const sanitized = await this.sanitizeOutput(entity, ctx);
+    return this.transformResponse(sanitized);
   },
 
   async create(ctx) {

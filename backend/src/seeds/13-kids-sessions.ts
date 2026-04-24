@@ -146,14 +146,28 @@ export async function up(strapi: any): Promise<void> {
         title: s.title,
         startAt: { $gte: `${dayStart}T00:00:00.000Z`, $lt: `${dayEnd}T00:00:00.000Z` },
       },
-      populate: { teacher: { fields: ['documentId'] } },
+      populate: {
+        teacher: { fields: ['documentId'] },
+        attendees: { fields: ['documentId'] },
+      },
       limit: 1,
     });
     if (existing) {
-      if ((existing as any).teacher?.documentId !== teacherId) {
+      const currentTeacherId = (existing as any).teacher?.documentId ?? null;
+      const currentAttendeeIds: string[] = ((existing as any).attendees ?? [])
+        .map((a: any) => a?.documentId)
+        .filter(Boolean);
+      const teacherDrift = currentTeacherId !== teacherId;
+      const attendeeMissing = !currentAttendeeIds.includes(studentId);
+      if (teacherDrift || attendeeMissing) {
         await strapi.documents(SESSION_UID).update({
           documentId: (existing as any).documentId,
-          data: { teacher: teacherId },
+          data: {
+            ...(teacherDrift ? { teacher: teacherId } : {}),
+            ...(attendeeMissing
+              ? { attendees: Array.from(new Set([...currentAttendeeIds, studentId])) }
+              : {}),
+          },
         });
       }
       skipped += 1;

@@ -18,6 +18,26 @@ const SESSION_UID = 'api::session.session';
 const PROFILE_UID = 'api::user-profile.user-profile';
 const TEACHER_UID = 'api::teacher-profile.teacher-profile';
 
+// Server-trusted populate: teacher-profile + its user (display fields), course
+// summary, attendees (user-profile) with avatar. Non-admin callers lack `find`
+// on api::user-profile.user-profile, so sanitizeQuery strips these populates —
+// we re-inject them at the document-service layer.
+// Typed loosely: document-service accepts this shape at runtime, but the strict
+// compile-time union over attribute names gets unwieldy for hand-written specs.
+const FIND_POPULATE: any = {
+  teacher: {
+    fields: ['documentId'],
+    populate: {
+      user: { fields: ['documentId', 'displayName', 'firstName', 'lastName'] },
+    },
+  },
+  course: { fields: ['documentId', 'title'] },
+  attendees: {
+    fields: ['documentId', 'firstName', 'lastName', 'displayName', 'level'],
+    populate: { avatar: { fields: ['url'] } },
+  },
+};
+
 function roleType(ctxUser: any): string {
   return (ctxUser?.role?.type ?? '').toLowerCase();
 }
@@ -80,7 +100,7 @@ export default factories.createCoreController(SESSION_UID, ({ strapi }) => ({
       if (!profileId) return ctx.forbidden();
       scopeFilter = { attendees: { documentId: { $eq: profileId } } };
     }
-    return scopedFind(ctx, this, SESSION_UID, scopeFilter);
+    return scopedFind(ctx, this, SESSION_UID, scopeFilter, { populate: FIND_POPULATE });
   },
 
   async findOne(ctx) {
@@ -90,27 +110,28 @@ export default factories.createCoreController(SESSION_UID, ({ strapi }) => ({
 
     const entity = await strapi.documents(SESSION_UID).findOne({
       documentId: ctx.params.id,
-      populate: { teacher: true, attendees: true },
+      populate: FIND_POPULATE,
     });
     if (!entity) return ctx.notFound();
 
-    if (role === 'admin') return (super.findOne as any)(ctx);
-
-    if (role === 'teacher') {
-      const teacherId = await callerTeacherProfileId(strapi, user.id);
-      if (!teacherId || (entity as any).teacher?.documentId !== teacherId) return ctx.forbidden();
-    } else if (role === 'parent') {
-      const profileId = await callerProfileId(strapi, user.id);
-      if (!profileId) return ctx.forbidden();
-      const kidIds = await childProfileIds(strapi, profileId);
-      const attIds: string[] = ((entity as any).attendees ?? []).map((a: any) => a?.documentId).filter(Boolean);
-      if (!attIds.some((id) => kidIds.includes(id))) return ctx.forbidden();
-    } else {
-      const profileId = await callerProfileId(strapi, user.id);
-      const attIds: string[] = ((entity as any).attendees ?? []).map((a: any) => a?.documentId).filter(Boolean);
-      if (!profileId || !attIds.includes(profileId)) return ctx.forbidden();
+    if (role !== 'admin') {
+      if (role === 'teacher') {
+        const teacherId = await callerTeacherProfileId(strapi, user.id);
+        if (!teacherId || (entity as any).teacher?.documentId !== teacherId) return ctx.forbidden();
+      } else if (role === 'parent') {
+        const profileId = await callerProfileId(strapi, user.id);
+        if (!profileId) return ctx.forbidden();
+        const kidIds = await childProfileIds(strapi, profileId);
+        const attIds: string[] = ((entity as any).attendees ?? []).map((a: any) => a?.documentId).filter(Boolean);
+        if (!attIds.some((id) => kidIds.includes(id))) return ctx.forbidden();
+      } else {
+        const profileId = await callerProfileId(strapi, user.id);
+        const attIds: string[] = ((entity as any).attendees ?? []).map((a: any) => a?.documentId).filter(Boolean);
+        if (!profileId || !attIds.includes(profileId)) return ctx.forbidden();
+      }
     }
-    return (super.findOne as any)(ctx);
+    const sanitized = await this.sanitizeOutput(entity, ctx);
+    return this.transformResponse(sanitized);
   },
 
   async create(ctx) {
