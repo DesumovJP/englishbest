@@ -1,30 +1,24 @@
-'use client';
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useSession } from '@/lib/session-context';
+/**
+ * /dashboard root — server-side role dispatcher.
+ *
+ * The parent layout already handled anonymous + kids/adult. Here we only
+ * route the remaining staff roles (teacher / parent / admin) to their
+ * role-specific landing pages, server-side.
+ */
+import { redirect } from 'next/navigation';
+import { getSession } from '@/lib/auth-server';
 
-export default function DashboardRootPage() {
-  const router = useRouter();
-  const { session, status } = useSession();
+export default async function DashboardRootPage() {
+  const session = await getSession();
 
-  useEffect(() => {
-    if (status === 'loading') return;
-    if (status === 'anonymous' || !session) {
-      router.replace('/login');
-      return;
-    }
-    const role = session.profile.role;
-    if (role === 'teacher')      router.replace('/dashboard/teacher');
-    else if (role === 'admin')   router.replace('/dashboard/admin');
-    else if (role === 'parent')  router.replace('/dashboard/parent');
-    else if (role === 'kids')    router.replace('/kids/dashboard');
-    else                         router.replace('/dashboard/student');
-  }, [router, session, status]);
+  // Layout already redirects when unauthenticated, but defend in depth.
+  if (!session) redirect('/login');
 
-  return (
-    <div className="min-h-[40vh] flex flex-col items-center justify-center gap-3 text-ink-muted">
-      <div className="w-8 h-8 rounded-full border-2 border-primary/30 border-t-primary animate-spin" aria-hidden />
-      <p className="text-sm font-semibold">Відкриваємо дашборд…</p>
-    </div>
-  );
+  const role = session.profile.role;
+  if (role === 'teacher') redirect('/dashboard/teacher');
+  if (role === 'admin')   redirect('/dashboard/admin');
+  if (role === 'parent')  redirect('/dashboard/parent');
+
+  // Fallback — shouldn't be reachable (kids/adult handled by the layout).
+  redirect('/dashboard/student');
 }

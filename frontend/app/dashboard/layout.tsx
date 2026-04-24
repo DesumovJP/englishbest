@@ -1,29 +1,26 @@
-'use client';
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+/**
+ * /dashboard layout — server-side auth gate.
+ *
+ * Anonymous callers are 302'd to /login before any HTML is rendered, so the
+ * browser never lands on a blank /dashboard. kids/adult are bounced to
+ * /kids/dashboard (the sidebar dashboard is for staff only: teacher / parent
+ * / admin).
+ *
+ * Kept as an RSC on purpose — the previous client-guarded version caused a
+ * visible "Перенаправлення на вхід…" flicker on prod because the redirect
+ * waited for `/api/auth/me` to resolve before firing.
+ */
+import { redirect } from 'next/navigation';
 import { Sidebar } from '@/components/molecules/Sidebar';
-import { useSession } from '@/lib/session-context';
+import { getSession } from '@/lib/auth-server';
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const router = useRouter();
-  const { session, status } = useSession();
+export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const session = await getSession();
 
-  useEffect(() => {
-    if (status === 'loading') return;
-    if (status === 'anonymous' || !session) {
-      router.replace('/login?next=/dashboard');
-      return;
-    }
-    const role = session.profile.role;
-    if (role === 'kids' || role === 'adult') {
-      router.replace('/kids/dashboard');
-    }
-  }, [router, session, status]);
+  if (!session) redirect('/login?next=/dashboard');
 
-  if (status === 'loading') return <AuthLoading label="Завантаження…" />;
-  if (status === 'anonymous' || !session) return <AuthLoading label="Перенаправлення на вхід…" />;
   const role = session.profile.role;
-  if (role === 'kids' || role === 'adult') return <AuthLoading label="Відкриваємо Kids Zone…" />;
+  if (role === 'kids' || role === 'adult') redirect('/kids/dashboard');
 
   return (
     <div className="flex min-h-svh bg-surface items-start">
@@ -33,15 +30,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {children}
         </div>
       </main>
-    </div>
-  );
-}
-
-function AuthLoading({ label }: { label: string }) {
-  return (
-    <div className="min-h-svh flex flex-col items-center justify-center gap-3 bg-surface text-ink-muted">
-      <div className="w-8 h-8 rounded-full border-2 border-primary/30 border-t-primary animate-spin" aria-hidden />
-      <p className="text-sm font-semibold">{label}</p>
     </div>
   );
 }
