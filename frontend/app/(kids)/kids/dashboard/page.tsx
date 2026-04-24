@@ -91,6 +91,101 @@ function LootBoxWidget({
   );
 }
 
+const MONTHS_SHORT_UA = ['СІЧ', 'ЛЮТ', 'БЕР', 'КВІ', 'ТРА', 'ЧЕР', 'ЛИП', 'СЕР', 'ВЕР', 'ЖОВ', 'ЛИС', 'ГРУ'];
+const WEEKDAYS_UA = ['Нд', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+
+function MobileTopHud({
+  streak,
+  coins,
+  freeBoxes,
+  onOpenCalendar,
+  onOpenBox,
+}: {
+  streak: number;
+  coins: number;
+  freeBoxes: number;
+  onOpenCalendar: () => void;
+  onOpenBox: () => void;
+}) {
+  const now = new Date();
+  const day = now.getDate();
+  const monthShort = MONTHS_SHORT_UA[now.getMonth()];
+  const weekday = WEEKDAYS_UA[now.getDay()];
+  const canAffordBox = freeBoxes > 0 || coins >= 50;
+
+  return (
+    <div className="sm:hidden absolute z-20 top-[env(safe-area-inset-top,8px)] left-2 right-2 flex items-stretch gap-1.5">
+      {/* Calendar — wide with date chip + title + weekday */}
+      <button
+        type="button"
+        onClick={onOpenCalendar}
+        aria-label="Розклад"
+        className="flex-1 min-w-0 h-12 rounded-2xl bg-surface-raised/95 backdrop-blur-sm shadow-card-md flex items-center gap-2 pl-1.5 pr-3 active:scale-[0.97] transition-transform"
+      >
+        <span className="flex-shrink-0 w-9 h-9 rounded-xl bg-danger flex flex-col items-center justify-center shadow-[0_2px_0_rgba(185,28,28,0.8)]">
+          <span className="font-black text-white leading-none text-[13px] tabular-nums">{day}</span>
+          <span className="font-black text-white/90 leading-none text-[7px] tracking-wider mt-0.5">{monthShort}</span>
+        </span>
+        <span className="flex-1 min-w-0 text-left">
+          <span className="block font-black text-[13px] text-ink leading-tight truncate">Розклад</span>
+          <span className="block text-[10px] text-ink-muted leading-tight truncate">{weekday}, сьогодні</span>
+        </span>
+      </button>
+
+      {/* Streak */}
+      <button
+        type="button"
+        onClick={onOpenCalendar}
+        aria-label={`Стрік ${streak} днів`}
+        className="h-12 px-2.5 rounded-2xl bg-surface-raised/95 backdrop-blur-sm shadow-card-md flex items-center gap-1 active:scale-[0.97] transition-transform"
+      >
+        <span className="text-[18px] leading-none" aria-hidden>🔥</span>
+        <span className="font-black text-[15px] text-accent-dark leading-none tabular-nums">{streak}</span>
+      </button>
+
+      {/* Daily goals */}
+      <button
+        type="button"
+        onClick={onOpenCalendar}
+        aria-label="Щоденні завдання"
+        className="relative h-12 px-2.5 rounded-2xl bg-surface-raised/95 backdrop-blur-sm shadow-card-md flex items-center gap-1 active:scale-[0.97] transition-transform"
+      >
+        <span className="text-[17px] leading-none" aria-hidden>🎯</span>
+        <span className="font-black text-[13px] text-ink leading-none tabular-nums">1/3</span>
+        <span aria-hidden className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-danger" />
+      </button>
+
+      {/* Mystery box */}
+      <button
+        type="button"
+        onClick={onOpenBox}
+        aria-label="Mystery Box"
+        className="relative h-12 px-2 rounded-2xl bg-surface-raised/95 backdrop-blur-sm shadow-card-md flex items-center gap-1 active:scale-[0.97] transition-transform"
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/mystery-box.png" alt="" aria-hidden width={22} height={22}
+          className={`object-contain ${canAffordBox ? '' : 'grayscale opacity-60'}`}
+        />
+        {freeBoxes > 0 ? (
+          <span className="font-black text-[11px] text-purple leading-none">FREE</span>
+        ) : (
+          <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/coin.png" alt="" aria-hidden width={12} height={12} className="object-contain" />
+            <span className="font-black text-[12px] text-accent-dark leading-none tabular-nums">50</span>
+          </>
+        )}
+        {freeBoxes > 0 && (
+          <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-1 rounded-full bg-purple text-white font-black text-[9px] flex items-center justify-center ring-2 ring-surface-raised">
+            {freeBoxes}
+          </span>
+        )}
+      </button>
+    </div>
+  );
+}
+
 function PlacedItemsLayer({
   items,
   editMode,
@@ -294,53 +389,14 @@ export default function KidsDashboardPage() {
         <ContinueLessonWidget compact />
       </div>
 
-      {/* Mobile top pills — full width now that the settings gear is gone. */}
-      <div className="sm:hidden absolute z-20 top-[env(safe-area-inset-top,8px)] left-2 right-2 flex gap-1.5">
-        <button
-          type="button"
-          onClick={() => setCalendarOpen(true)}
-          className="h-11 rounded-2xl bg-surface-raised/95 backdrop-blur-sm shadow-card-md flex items-center gap-1.5 px-3 active:scale-95 transition-transform"
-          aria-label="Розклад"
-        >
-          <span className="text-[15px] leading-none">📅</span>
-          <span className="font-black text-[13px] text-ink leading-none">Розклад</span>
-        </button>
-        <div className="flex-1 h-11 rounded-2xl bg-surface-raised/95 backdrop-blur-sm shadow-card-md flex items-center gap-1.5 px-3">
-          {streak >= 3 && (
-            <>
-              <span className="text-[16px] leading-none">🔥</span>
-              <span className="font-black text-[14px] text-accent-dark leading-none tabular-nums">{streak}</span>
-              <span className="font-bold text-[10px] text-ink-muted">днів</span>
-              <span className="text-ink-faint mx-1" aria-hidden>·</span>
-            </>
-          )}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/coin.png" alt="" aria-hidden width={13} height={13} className="object-contain" />
-          <span className="font-black text-[13px] text-coin leading-none tabular-nums">{coins > 9999 ? "9999+" : coins}</span>
-        </div>
-        <button
-          onClick={() => setOpenBox("common")}
-          className="relative h-11 rounded-2xl bg-surface-raised/95 backdrop-blur-sm shadow-card-md flex items-center gap-1 px-2.5 active:scale-95 transition-transform"
-          aria-label="Mystery Box"
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/mystery-box.png" alt="" aria-hidden width={20} height={20} className={`object-contain ${freeBoxes > 0 || coins >= 50 ? "" : "grayscale opacity-60"}`} />
-          {freeBoxes > 0 ? (
-            <span className="font-black text-[11px] text-purple leading-none">FREE</span>
-          ) : (
-            <>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/coin.png" alt="" aria-hidden width={11} height={11} className="object-contain" />
-              <span className="font-black text-[12px] text-accent-dark leading-none">50</span>
-            </>
-          )}
-          {freeBoxes > 0 && (
-            <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-purple text-white font-black text-[9px] flex items-center justify-center ring-2 ring-surface-raised">
-              {freeBoxes}
-            </span>
-          )}
-        </button>
-      </div>
+      {/* Mobile top HUD — 4 separate pills (calendar · streak · goals · mystery box) */}
+      <MobileTopHud
+        streak={streak}
+        coins={coins}
+        freeBoxes={freeBoxes}
+        onOpenCalendar={() => setCalendarOpen(true)}
+        onOpenBox={() => setOpenBox("common")}
+      />
 
       {/* Mobile continue-lesson ribbon — above bottom nav */}
       <div className="sm:hidden absolute z-20 left-2 right-2 bottom-[calc(env(safe-area-inset-bottom,0px)+72px)]">

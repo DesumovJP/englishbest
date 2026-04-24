@@ -209,9 +209,9 @@ export default function SchoolPage() {
   const { level: kidsLevel } = useKidsIdentity();
 
   return (
-    <div className="flex flex-col h-[100dvh] bg-surface-raised">
-      <div className="flex flex-shrink-0 items-center gap-4 px-4 border-b border-border pt-[env(safe-area-inset-top,8px)]">
-        <div className="flex">
+    <div className="flex flex-col h-[100dvh] bg-surface-raised overflow-hidden">
+      <div className="flex flex-shrink-0 items-center gap-2 sm:gap-4 px-3 sm:px-4 border-b border-border pt-[env(safe-area-inset-top,8px)]">
+        <div className="flex flex-shrink-0">
           {([
             { id: 'lessons', label: 'Уроки',      emoji: '📚' },
             { id: 'library', label: 'Бібліотека', emoji: '🎓' },
@@ -220,10 +220,10 @@ export default function SchoolPage() {
             return (
               <button key={t.id} onClick={() => setTab(t.id)}
                 className={[
-                  'flex items-center gap-2 py-3 px-1 mr-6 font-black transition-colors text-sm border-b-[2.5px] -mb-px',
+                  'flex items-center gap-1.5 sm:gap-2 py-3 px-1 mr-3 sm:mr-6 font-black transition-colors text-[13px] sm:text-sm border-b-[2.5px] -mb-px',
                   active ? 'text-ink border-primary' : 'text-ink-faint border-transparent',
                 ].join(' ')}>
-                <span className="text-base">{t.emoji}</span>
+                <span className="text-[15px] sm:text-base">{t.emoji}</span>
                 {t.label}
               </button>
             );
@@ -231,7 +231,7 @@ export default function SchoolPage() {
         </div>
 
         {tab === 'lessons' && (
-          <div className="ml-auto inline-flex rounded-full bg-surface-muted border border-border p-1">
+          <div className="ml-auto inline-flex rounded-full bg-surface-muted border border-border p-0.5 sm:p-1 flex-shrink-0">
             {([
               { id: 'carousel', label: 'Карусель' },
               { id: 'list',     label: 'Список' },
@@ -242,7 +242,7 @@ export default function SchoolPage() {
                   key={v.id}
                   onClick={() => setLessonView(v.id)}
                   className={[
-                    'px-3.5 py-1.5 rounded-full font-black text-[12.5px] transition-colors',
+                    'px-2.5 sm:px-3.5 py-1 sm:py-1.5 rounded-full font-black text-[11px] sm:text-[12.5px] transition-colors',
                     active ? 'bg-primary text-white shadow-card-sm' : 'text-ink-muted',
                   ].join(' ')}
                 >
@@ -257,7 +257,7 @@ export default function SchoolPage() {
       <div className="flex-1 overflow-hidden flex flex-col">
         {tab === 'lessons' ? (
           lessonView === 'carousel' ? (
-            <div className="flex-1 min-h-0 w-full">
+            <div className="flex-1 min-h-0 w-full overflow-hidden pb-[calc(env(safe-area-inset-bottom,0px)+72px)]">
               <LessonCarouselSection level={kidsLevel} />
             </div>
           ) : (

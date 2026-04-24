@@ -122,12 +122,63 @@ export async function fetchMyProgress(
 }
 
 /**
- * The single "continue here" lesson: most recent inProgress row.
- * Falls back to null if the learner has not started anything.
+ * The single "continue here" lesson. Resolution order:
+ *   1. Most recent inProgress row
+ *   2. Most recent row of any status (re-enter last visited lesson)
+ *   3. First lesson of the first available course (synthetic row, score=0)
+ * Returns null only if the catalog itself is empty.
  */
 export async function fetchContinueLesson(): Promise<UserProgressRow | null> {
-  const rows = await fetchMyProgress({ status: 'inProgress', pageSize: 1 });
-  return rows[0] ?? null;
+  const inProgress = await fetchMyProgress({ status: 'inProgress', pageSize: 1 });
+  if (inProgress[0]?.lesson?.courseSlug) return inProgress[0];
+
+  const any = await fetchMyProgress({ pageSize: 1 });
+  if (any[0]?.lesson?.courseSlug) return any[0];
+
+  return fetchFirstStartableLesson();
+}
+
+async function fetchFirstStartableLesson(): Promise<UserProgressRow | null> {
+  const params = new URLSearchParams();
+  params.set('pagination[pageSize]', '1');
+  params.set('sort[0]', 'orderIndex:asc');
+  params.set('populate[course]', 'true');
+
+  const res = await fetch(`/api/lessons?${params.toString()}`, {
+    credentials: 'include',
+    cache: 'no-store',
+  });
+  if (!res.ok) return null;
+  const json = await res.json().catch(() => ({}));
+  const raw = Array.isArray(json?.data) ? json.data[0] : null;
+  if (!raw?.slug || !raw?.course?.slug) return null;
+
+  return {
+    documentId: '',
+    status: 'notStarted',
+    score: 0,
+    attempts: 0,
+    completedAt: null,
+    lastAttemptAt: null,
+    timeSpentSec: 0,
+    updatedAt: '',
+    lesson: {
+      documentId: raw.documentId ?? '',
+      slug: raw.slug,
+      title: raw.title,
+      orderIndex: raw.orderIndex ?? 0,
+      type: raw.type ?? 'video',
+      courseSlug: raw.course.slug,
+      courseDocumentId: raw.course.documentId,
+    },
+    course: {
+      documentId: raw.course.documentId ?? '',
+      slug: raw.course.slug,
+      title: raw.course.title,
+      level: raw.course.level,
+      iconEmoji: raw.course.iconEmoji,
+    },
+  };
 }
 
 /**

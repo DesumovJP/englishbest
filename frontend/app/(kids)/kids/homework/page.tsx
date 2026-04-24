@@ -96,10 +96,10 @@ export default function KidsHomeworkListPage() {
         {status === "ready" && visible.length === 0 && (
           <KidsCard variant="hero" className="p-8 text-center">
             <span className="text-5xl" aria-hidden>🎉</span>
-            <p className="font-black text-white text-lg mt-3">
+            <p className="font-black text-ink text-lg mt-3">
               {tab === "active" ? "Домашки немає" : "Поки порожньо"}
             </p>
-            <p className="text-white/80 text-[13px] mt-1">
+            <p className="text-ink-muted text-[13px] mt-1">
               {tab === "active" ? "Відпочинь або вчися далі" : "Завдання з’являться тут"}
             </p>
           </KidsCard>

@@ -106,17 +106,17 @@ export default function KidsHomeworkDetailPage({
           <>
             {/* Brief */}
             <KidsCard variant="hero" className="p-5">
-              <p className="text-white/85 text-[11px] font-black uppercase tracking-wider">
+              <p className="text-primary-dark text-[11px] font-black uppercase tracking-wider">
                 {statusLabel(sub.status)}
               </p>
-              <h2 className="font-black text-white text-xl leading-tight mt-1">
+              <h2 className="font-black text-ink text-xl leading-tight mt-1">
                 {sub.homework?.title ?? "Без назви"}
               </h2>
-              <p className="text-white/80 text-[12px] font-bold mt-1">
+              <p className="text-ink-muted text-[12px] font-bold mt-1">
                 {dueLabel(sub.homework?.dueAt ?? null)}
               </p>
               {sub.homework?.description && (
-                <p className="text-white text-[13px] mt-3 leading-snug whitespace-pre-wrap">
+                <p className="text-ink text-[13px] mt-3 leading-snug whitespace-pre-wrap">
                   {sub.homework.description}
                 </p>
               )}
