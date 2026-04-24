@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
 import KidsFooter from "@/components/kids/KidsFooter";
 import RotateHint from "@/components/kids/RotateHint";
-import { KidsSettingsMenu } from "@/components/kids/KidsSettingsMenu";
+import { KidsProfileWidget } from "@/components/kids/KidsProfileWidget";
 import { getSession } from "@/lib/auth-server";
 
 export default async function KidsLayout({ children }: { children: ReactNode }) {
@@ -17,7 +17,7 @@ export default async function KidsLayout({ children }: { children: ReactNode }) 
   return (
     <div className="toca">
       {children}
-      <KidsSettingsMenu />
+      <KidsProfileWidget />
       <KidsFooter />
       <RotateHint />
     </div>

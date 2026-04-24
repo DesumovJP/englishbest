@@ -33,8 +33,8 @@ import {
 } from '@/lib/teacher-profile';
 
 const ROLE_LABEL: Record<UserProfile['role'], string> = {
-  kids:    'Учень (молодший)',
-  adult:   'Учень (дорослий)',
+  kids:    'Учень',
+  adult:   'Учень',
   teacher: 'Вчитель',
   admin:   'Адміністратор',
   parent:  'Батьки',

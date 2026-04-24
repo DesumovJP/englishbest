@@ -1,0 +1,221 @@
+import type { CourseSeed } from './types';
+
+export const oxford1: CourseSeed = {
+  slug: 'oxford-1',
+  lessons: [
+    {
+      slug: 'oxford1-biff-chip-kipper',
+      title: 'Meet the Biff family',
+      orderIndex: 0,
+      type: 'reading',
+      durationMin: 8,
+      xp: 15,
+      sectionSlug: 'oxford1-intro',
+      sectionTitle: 'Частина 1 · Знайомство',
+      sectionOrder: 0,
+      isFree: true,
+      topic: 'characters',
+      steps: [
+        {
+          id: 'theory-1',
+          type: 'theory',
+          title: 'Sight-words: перші 10 🔑',
+          body: 'Sight-words — це слова, які треба впізнавати одразу, не літеруючи. Ось перші десять, які зустрінуться в історії.',
+          examples: [
+            { en: 'the', ua: 'означений артикль' },
+            { en: 'a', ua: 'неозначений артикль' },
+            { en: 'is', ua: 'є (3 ос.)' },
+            { en: 'in', ua: 'в' },
+            { en: 'and', ua: 'і' },
+            { en: 'said', ua: 'сказав' },
+          ],
+          tip: '💡 Sight-words трапляються в майже кожному англійському тексті. Вивчаючи їх, ти швидше читаєш.',
+        },
+        {
+          id: 'reading-1',
+          type: 'reading',
+          title: 'A magic key',
+          text:
+            'Biff, Chip and Kipper were in the garden. Floppy was there too. "Look!" said Biff. A magic key began to glow. It was a big adventure day. "Come on, Floppy!" said Chip. The children ran to the old tree, and the key opened a new world.',
+          vocabulary: [
+            { word: 'garden', translation: 'сад' },
+            { word: 'magic key', translation: 'чарівний ключ' },
+            { word: 'glow', translation: 'сяяти' },
+            { word: 'adventure', translation: 'пригода' },
+            { word: 'old tree', translation: 'старе дерево' },
+            { word: 'new world', translation: 'новий світ' },
+          ],
+          questions: [
+            {
+              id: 'q1',
+              question: 'Хто знаходиться у саду?',
+              options: [
+                'тільки Biff',
+                'Biff, Chip, Kipper і Floppy',
+                'Мама і Тато',
+                'Chip і його кіт',
+              ],
+              correctIndex: 1,
+            },
+            {
+              id: 'q2',
+              question: 'Що робить магічний ключ?',
+              options: ['танцює', 'співає', 'починає сяяти', 'стає великим'],
+              correctIndex: 2,
+            },
+            {
+              id: 'q3',
+              question: 'Куди біжать діти?',
+              options: ['до будинку', 'до річки', 'до старого дерева', 'до школи'],
+              correctIndex: 2,
+            },
+          ],
+        },
+        {
+          id: 'match-1',
+          type: 'match-pairs',
+          prompt: "З'єднай персонажа з роллю:",
+          pairs: [
+            { left: 'Biff', right: 'дівчинка' },
+            { left: 'Chip', right: 'хлопчик' },
+            { left: 'Kipper', right: 'молодший брат' },
+            { left: 'Floppy', right: 'пес' },
+          ],
+        },
+      ],
+    },
+    {
+      slug: 'oxford1-the-dragon',
+      title: 'The dragon tree',
+      orderIndex: 1,
+      type: 'reading',
+      durationMin: 8,
+      xp: 15,
+      sectionSlug: 'oxford1-adventure',
+      sectionTitle: 'Частина 2 · Пригода',
+      sectionOrder: 1,
+      topic: 'adventure',
+      steps: [
+        {
+          id: 'theory-1',
+          type: 'theory',
+          title: 'Описові слова 🐉',
+          body: "У цій історії багато прикметників. Вони роблять текст яскравим. Ось декілька нових:",
+          examples: [
+            { en: 'big', ua: 'великий' },
+            { en: 'small', ua: 'маленький' },
+            { en: 'old', ua: 'старий' },
+            { en: 'scared', ua: 'наляканий' },
+            { en: 'friendly', ua: 'дружній' },
+          ],
+        },
+        {
+          id: 'reading-1',
+          type: 'reading',
+          title: 'A very big tree',
+          text:
+            "They came to a very big, very old tree. Kipper was a bit scared. But Chip smiled: \"It's only a tree.\" Then a small dragon came out. He was green and friendly. \"Hello,\" said the dragon. \"I like your dog.\" Floppy wagged his tail.",
+          vocabulary: [
+            { word: 'a bit scared', translation: 'трохи наляканий' },
+            { word: 'only', translation: 'лише' },
+            { word: 'wagged his tail', translation: 'махнув хвостом' },
+          ],
+          questions: [
+            {
+              id: 'q1',
+              question: 'Хто трохи злякався?',
+              options: ['Biff', 'Chip', 'Kipper', 'Floppy'],
+              correctIndex: 2,
+            },
+            {
+              id: 'q2',
+              question: 'Як виглядає дракон?',
+              options: [
+                'величезний і червоний',
+                'маленький, зелений, дружній',
+                'невидимий',
+                'чорний і злий',
+              ],
+              correctIndex: 1,
+            },
+          ],
+        },
+        {
+          id: 'fill-1',
+          type: 'fill-blank',
+          before: 'The dragon was ',
+          after: ' and friendly.',
+          answer: 'green',
+          hint: 'Колір дракона…',
+        },
+        {
+          id: 'mc-1',
+          type: 'multiple-choice',
+          question: 'Що сказав дракон дітям?',
+          options: ['"Go away"', '"Hello"', '"Boo!"', '"Goodbye"'],
+          correctIndex: 1,
+        },
+      ],
+    },
+    {
+      slug: 'oxford1-home',
+      title: 'Back home',
+      orderIndex: 2,
+      type: 'reading',
+      durationMin: 7,
+      xp: 15,
+      sectionSlug: 'oxford1-adventure',
+      sectionTitle: 'Частина 2 · Пригода',
+      sectionOrder: 1,
+      topic: 'adventure',
+      steps: [
+        {
+          id: 'reading-1',
+          type: 'reading',
+          title: 'Home for tea',
+          text:
+            'The key began to glow again. The children and Floppy jumped back through the tree. They were home in the garden. Mum called: "Come in for tea!" Biff, Chip and Kipper smiled at each other. What an adventure! But it was a secret — no one would believe them.',
+          vocabulary: [
+            { word: 'jumped back', translation: 'стрибнули назад' },
+            { word: 'tea time', translation: 'час чаю' },
+            { word: 'secret', translation: 'таємниця' },
+            { word: 'believe', translation: 'вірити' },
+          ],
+          questions: [
+            {
+              id: 'q1',
+              question: 'Куди повернулись діти?',
+              options: ['до школи', 'додому, у сад', 'до магазину', 'до річки'],
+              correctIndex: 1,
+            },
+            {
+              id: 'q2',
+              question: 'Чи розповіли діти про пригоду?',
+              options: ['так, усім', 'ні, це була таємниця', 'тільки татові', 'тільки Floppy'],
+              correctIndex: 1,
+            },
+          ],
+        },
+        {
+          id: 'tr-1',
+          type: 'translate',
+          prompt: 'Перекладіть англійською:',
+          sentence: 'Це була таємниця.',
+          answer: 'It was a secret.',
+          acceptedAnswers: ['It was a secret.', 'It was a secret', 'it was a secret.'],
+        },
+        {
+          id: 'match-1',
+          type: 'match-pairs',
+          prompt: "З'єднай слова з історії:",
+          pairs: [
+            { left: 'home', right: 'дім' },
+            { left: 'garden', right: 'сад' },
+            { left: 'tea', right: 'чай' },
+            { left: 'secret', right: 'таємниця' },
+          ],
+        },
+      ],
+    },
+  ],
+};

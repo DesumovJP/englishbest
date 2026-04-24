@@ -101,7 +101,10 @@ export interface LootResult {
   item: LootItem | null;
   duplicate: boolean;
   boxType: "common" | "silver" | "gold" | "legendary";
+  /** Coin cost actually debited (0 when `usedFreeBox` is true). */
   cost: number;
+  /** True when the server consumed a free mystery-box credit instead of coins. */
+  usedFreeBox?: boolean;
 }
 
 export interface KidsState {
@@ -129,6 +132,8 @@ export interface KidsState {
   equippedItemIds: string[];
   /** Items placed on the dashboard home canvas. */
   placedItems: PlacedItem[];
+  /** Number of free mystery-box opens the user can spend without paying coins. */
+  freeLootBoxes: number;
   /** Seed version — used to re-apply new DEFAULT_STATE fields to existing installs. */
   seedVersion?: number;
 }
@@ -274,6 +279,7 @@ export const DEFAULT_STATE: KidsState = {
   ownedItemIds: [],
   placedItems: [],
   equippedItemIds: [],
+  freeLootBoxes: 0,
   seedVersion: 0,
 };
 
@@ -282,6 +288,7 @@ type InventoryDto = {
   outfit?: KidsState["outfit"] | null;
   placedItems?: PlacedItem[] | null;
   seedVersion?: number | null;
+  freeLootBoxes?: number | null;
   ownedShopItems?: Array<{ slug: string }>;
   equippedItems?: Array<{ slug: string }>;
   ownedCharacters?: Array<{ slug: string }>;
@@ -415,6 +422,7 @@ async function fetchState(): Promise<KidsState> {
     activeRoomId: i?.activeRoom?.slug ?? undefined,
     outfit: (i?.outfit as KidsState["outfit"]) ?? {},
     placedItems: Array.isArray(i?.placedItems) ? (i!.placedItems as PlacedItem[]) : [],
+    freeLootBoxes: toNum(i?.freeLootBoxes),
     seedVersion: toNum(i?.seedVersion),
   };
   return state;

@@ -71,7 +71,11 @@ export function InventoryMobile(props: InventoryMobileProps) {
                 className="absolute pointer-events-none -translate-x-1/2 text-[14px] drop-shadow-[0_2px_3px_rgba(0,0,0,0.2)]"
                 style={{ top: pos.top, left: pos.left }}
               >
-                {item.emoji}
+                {item.customImageIdle ? (
+                  <img src={item.customImageIdle} alt="" aria-hidden width={22} height={22} className="object-contain" draggable={false} />
+                ) : (
+                  item.emoji
+                )}
               </div>
             );
           })}
@@ -94,10 +98,14 @@ export function InventoryMobile(props: InventoryMobileProps) {
                   <button
                     key={id}
                     onClick={() => onToggleEquip(id)}
-                    className="flex-shrink-0 rounded-lg bg-gray-100 border border-gray-200 px-1.5 py-0.5 text-base leading-none active:scale-90 transition-transform"
+                    className="flex-shrink-0 rounded-lg bg-gray-100 border border-gray-200 px-1.5 py-0.5 text-base leading-none active:scale-90 transition-transform flex items-center justify-center"
                     aria-label={`Remove ${item.nameEn}`}
                   >
-                    {item.emoji}
+                    {item.customImageIdle ? (
+                      <img src={item.customImageIdle} alt="" aria-hidden width={18} height={18} className="object-contain" draggable={false} />
+                    ) : (
+                      item.emoji
+                    )}
                   </button>
                 ) : null;
               })
@@ -205,9 +213,14 @@ export function InventoryMobile(props: InventoryMobileProps) {
                     isLocked ? 'opacity-45' : 'opacity-100',
                   ].join(' ')}
                 >
-                  <span className={['text-[26px] leading-none', isLocked && 'grayscale'].filter(Boolean).join(' ')}>
-                    {item.emoji}
-                  </span>
+                  {item.customImageIdle ? (
+                    <img src={item.customImageIdle} alt={item.nameEn} width={32} height={32}
+                      className={['object-contain', isLocked && 'grayscale'].filter(Boolean).join(' ')} draggable={false} />
+                  ) : (
+                    <span className={['text-[26px] leading-none', isLocked && 'grayscale'].filter(Boolean).join(' ')}>
+                      {item.emoji}
+                    </span>
+                  )}
                   <p className={[
                     'font-black leading-tight text-[10px] truncate w-full',
                     isEquipped ? 'text-green-600' : 'text-gray-700',

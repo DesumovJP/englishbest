@@ -3,7 +3,7 @@
  *
  * Production source of truth is the authenticated session
  * (`profile.role` from `/api/auth/me`). Anonymous visitors resolve to
- * `'adult'` so marketing pages render a sensible default.
+ * `'kids'` so marketing pages render a sensible default.
  *
  * Demo-mode override (`setRole`) only activates when
  * `NEXT_PUBLIC_ROLE_SWITCHER=1`. Otherwise `setRole` is a no-op — the
@@ -54,7 +54,7 @@ type UseRoleValue = {
 export function useRole(): UseRoleValue {
   const override = useContext(RoleOverrideContext);
   const { session, status } = useSession();
-  const sessionRole: Role = session?.profile?.role ?? 'adult';
+  const sessionRole: Role = session?.profile?.role ?? 'kids';
   const resolvedRole: Role =
     DEMO_ENABLED && override?.override ? override.override : sessionRole;
 

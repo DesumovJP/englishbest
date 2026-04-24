@@ -22,8 +22,8 @@ const GROUPS = [
   },
   {
     id: "adult",
-    emoji: "👨",
-    label: "Дорослий",
+    emoji: "🎓",
+    label: "Самостійний учень",
     age: "18+ років",
     description: "Бізнес-англійська, Speaking Club та база знань",
     tone: "accent" as const,

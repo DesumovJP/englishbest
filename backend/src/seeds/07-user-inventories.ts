@@ -11,11 +11,14 @@
  */
 const INVENTORY_UID = 'api::user-inventory.user-inventory';
 const PROFILE_UID = 'api::user-profile.user-profile';
+const KIDS_PROFILE_UID = 'api::kids-profile.kids-profile';
 const CHARACTER_UID = 'api::character.character';
 const ROOM_UID = 'api::room.room';
 
 const STARTER_CHARACTER_SLUG = 'fox';
 const STARTER_ROOM_SLUG = 'bedroom';
+const STARTER_COINS = 500;
+const STARTER_FREE_LOOT_BOXES = 1;
 
 async function findDocIdBySlug(strapi: any, uid: string, slug: string): Promise<string | null> {
   const [doc] = await strapi.documents(uid).findMany({
@@ -68,6 +71,12 @@ export async function up(strapi: any) {
       if (bedroomDocId && !(existing as any).activeRoom) {
         patch.activeRoom = bedroomDocId;
       }
+      // One-time starter mystery box — only granted when the counter is
+      // still at seed default (null/undefined). Kids who have already
+      // spent or been granted something via `freeLootBoxes` are left alone.
+      if ((existing as any).freeLootBoxes == null) {
+        patch.freeLootBoxes = STARTER_FREE_LOOT_BOXES;
+      }
 
       if (Object.keys(patch).length > 0) {
         await strapi.documents(INVENTORY_UID).update({
@@ -89,6 +98,7 @@ export async function up(strapi: any) {
         outfit: {},
         placedItems: [],
         seedVersion: 0,
+        freeLootBoxes: STARTER_FREE_LOOT_BOXES,
         ownedCharacters: foxDocId ? [foxDocId] : [],
         activeCharacter: foxDocId ?? null,
         unlockedRooms: bedroomDocId ? [bedroomDocId] : [],
@@ -98,7 +108,23 @@ export async function up(strapi: any) {
     created += 1;
   }
 
+  // Starter coins — grant STARTER_COINS to any kids-profile whose totalCoins
+  // is still 0. Kids who have earned/spent anything are untouched.
+  let coinsGranted = 0;
+  const kidsProfileDocs = await strapi.documents(KIDS_PROFILE_UID).findMany({
+    filters: { totalCoins: { $eq: 0 } },
+    fields: ['documentId', 'totalCoins'],
+    limit: 1000,
+  });
+  for (const kp of kidsProfileDocs) {
+    await strapi.documents(KIDS_PROFILE_UID).update({
+      documentId: (kp as any).documentId,
+      data: { totalCoins: STARTER_COINS },
+    });
+    coinsGranted += 1;
+  }
+
   strapi.log.info(
-    `[seed] user-inventories: created=${created}, backfilled=${backfilled}, skipped=${skipped}, kids=${kidsProfiles.length}`,
+    `[seed] user-inventories: created=${created}, backfilled=${backfilled}, skipped=${skipped}, coinsGranted=${coinsGranted}, kids=${kidsProfiles.length}`,
   );
 }

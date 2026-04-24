@@ -520,7 +520,9 @@ export default {
 
     const cost = BOX_COST[boxType];
     const balance = toInt((kp as any).totalCoins) ?? 0;
-    if (balance < cost) return ctx.badRequest('insufficient coins');
+    // Fetch free-box counter from the (yet-to-be-created-or-fetched) inventory
+    // below; we need the inventory populated before we can check it. The
+    // actual gating uses `effectiveCost` once we have it (see below).
 
     const itemRarity = BOX_ITEM_RARITY[boxType as keyof typeof BOX_ITEM_RARITY];
     const poolItems: any[] = await strapi.documents(SHOP_ITEM_UID).findMany({
@@ -538,6 +540,11 @@ export default {
     }
 
     const inventory = await getOrCreateInventory(strapi, profile.documentId);
+    const freeBoxes = toInt((inventory as any).freeLootBoxes) ?? 0;
+    const useFreeBox = freeBoxes > 0;
+    const effectiveCost = useFreeBox ? 0 : cost;
+    if (!useFreeBox && balance < cost) return ctx.badRequest('insufficient coins');
+
     const ownedItemSlugs = new Set(
       ((inventory as any).ownedShopItems ?? []).map((i: any) => i.slug),
     );
@@ -585,7 +592,8 @@ export default {
     }
 
     if (candidates.length === 0) {
-      // User already owns every eligible reward — no debit, no award.
+      // User already owns every eligible reward — no debit, no award,
+      // and the free box (if any) is preserved for a future roll.
       const fresh = await strapi.documents(INVENTORY_UID).findOne({
         documentId: (inventory as any).documentId,
         populate: POPULATE,
@@ -599,39 +607,53 @@ export default {
     const picked = candidates[Math.floor(Math.random() * candidates.length)];
 
     // Award first, then debit (same compensating order as purchase actions).
+    // When `useFreeBox`, we decrement freeLootBoxes instead of debiting coins
+    // and skip the coin update entirely.
     if (picked.kind === 'shop-item') {
       const prev = ((inventory as any).ownedShopItems ?? []).map((i: any) => i.documentId);
+      const inventoryPatch: Record<string, unknown> = {
+        ownedShopItems: [...prev, picked.documentId],
+      };
+      if (useFreeBox) inventoryPatch.freeLootBoxes = freeBoxes - 1;
       await strapi.documents(INVENTORY_UID).update({
         documentId: (inventory as any).documentId,
-        data: { ownedShopItems: [...prev, picked.documentId] },
+        data: inventoryPatch,
       });
       try {
-        await strapi.documents(KIDS_PROFILE_UID).update({
-          documentId: (kp as any).documentId,
-          data: { totalCoins: balance - cost },
-        });
+        if (!useFreeBox) {
+          await strapi.documents(KIDS_PROFILE_UID).update({
+            documentId: (kp as any).documentId,
+            data: { totalCoins: balance - cost },
+          });
+        }
       } catch (err) {
         await strapi.documents(INVENTORY_UID).update({
           documentId: (inventory as any).documentId,
-          data: { ownedShopItems: prev },
+          data: { ownedShopItems: prev, ...(useFreeBox ? { freeLootBoxes: freeBoxes } : {}) },
         });
         throw err;
       }
     } else {
       const prev = ((inventory as any).ownedCharacters ?? []).map((c: any) => c.documentId);
+      const inventoryPatch: Record<string, unknown> = {
+        ownedCharacters: [...prev, picked.documentId],
+      };
+      if (useFreeBox) inventoryPatch.freeLootBoxes = freeBoxes - 1;
       await strapi.documents(INVENTORY_UID).update({
         documentId: (inventory as any).documentId,
-        data: { ownedCharacters: [...prev, picked.documentId] },
+        data: inventoryPatch,
       });
       try {
-        await strapi.documents(KIDS_PROFILE_UID).update({
-          documentId: (kp as any).documentId,
-          data: { totalCoins: balance - cost },
-        });
+        if (!useFreeBox) {
+          await strapi.documents(KIDS_PROFILE_UID).update({
+            documentId: (kp as any).documentId,
+            data: { totalCoins: balance - cost },
+          });
+        }
       } catch (err) {
         await strapi.documents(INVENTORY_UID).update({
           documentId: (inventory as any).documentId,
-          data: { ownedCharacters: prev },
+          data: { ownedCharacters: prev, ...(useFreeBox ? { freeLootBoxes: freeBoxes } : {}) },
         });
         throw err;
       }
@@ -654,7 +676,8 @@ export default {
         },
         duplicate: false,
         boxType,
-        cost,
+        cost: effectiveCost,
+        usedFreeBox: useFreeBox,
       },
     };
   },

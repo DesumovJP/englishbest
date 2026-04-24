@@ -37,6 +37,11 @@
       "type": "integer",
       "default": 0
     },
+    "freeLootBoxes": {
+      "type": "integer",
+      "default": 1,
+      "min": 0
+    },
     "ownedCharacters": {
       "type": "relation",
       "relation": "manyToMany",

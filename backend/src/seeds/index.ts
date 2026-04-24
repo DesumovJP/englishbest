@@ -17,6 +17,9 @@ import * as userInventories from './07-user-inventories';
 import * as characters from './08-characters';
 import * as rooms from './09-rooms';
 import * as libraryItems from './10-library-items';
+import * as realLessons from './11-real-lessons';
+import * as realHomework from './12-real-homework';
+import * as kidsSessions from './13-kids-sessions';
 
 const SEEDS: { name: string; up: (strapi: any) => Promise<void> }[] = [
   { name: '00-roles', up: roles.up },
@@ -32,6 +35,14 @@ const SEEDS: { name: string; up: (strapi: any) => Promise<void> }[] = [
   { name: '09-rooms', up: rooms.up },
   { name: '07-user-inventories', up: userInventories.up },
   { name: '10-library-items', up: libraryItems.up },
+  // real-lessons runs after library-items so it can attach lessons to the
+  // already-existing kids/A1 library courses (caterpillar, peppa, …).
+  { name: '11-real-lessons', up: realLessons.up },
+  // real-homework runs last so it can find seeded teacher + lessons + demo kid.
+  { name: '12-real-homework', up: realHomework.up },
+  // kids-sessions runs after real-homework so it can reuse the seed teacher
+  // and demo-kid profile to populate the calendar widget with real events.
+  { name: '13-kids-sessions', up: kidsSessions.up },
 ];
 
 export async function runSeeds(strapi: any) {

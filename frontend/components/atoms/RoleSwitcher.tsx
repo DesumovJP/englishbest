@@ -4,8 +4,7 @@ import { useRole } from "@/lib/roleContext";
 import type { Role } from "@/lib/types";
 
 const ROLES: { value: Role; label: string; emoji: string }[] = [
-  { value: "kids",    label: "Дитина",   emoji: "🐣" },
-  { value: "adult",   label: "Дорослий", emoji: "🎓" },
+  { value: "kids",    label: "Учень",    emoji: "🦊" },
   { value: "teacher", label: "Вчитель",  emoji: "👩‍🏫" },
   { value: "parent",  label: "Батьки",   emoji: "👨‍👩‍👧" },
   { value: "admin",   label: "Адмін",    emoji: "⚙️" },

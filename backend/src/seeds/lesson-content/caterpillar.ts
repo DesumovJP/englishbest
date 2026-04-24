@@ -1,0 +1,352 @@
+import type { CourseSeed } from './types';
+
+/**
+ * "The Very Hungry Caterpillar" by Eric Carle.
+ *
+ * Library-seeded course (kind=book). We attach reading-style lessons that
+ * walk through the book in chunks with vocabulary + comprehension quizzes.
+ */
+export const caterpillar: CourseSeed = {
+  slug: 'caterpillar',
+  lessons: [
+    {
+      slug: 'caterpillar-ch1',
+      title: 'Chapter 1: The little egg',
+      orderIndex: 0,
+      type: 'reading',
+      durationMin: 8,
+      xp: 15,
+      sectionSlug: 'caterpillar-part-1',
+      sectionTitle: 'Частина 1 · Гусениця вилуплюється',
+      sectionOrder: 0,
+      isFree: true,
+      topic: 'storybook',
+      steps: [
+        {
+          id: 'theory-1',
+          type: 'theory',
+          title: 'Слова до історії 🥚',
+          body: 'Перед читанням подивімось на декілька нових слів. Вони зустрінуться у тексті.',
+          examples: [
+            { en: 'egg', ua: 'яйце' },
+            { en: 'leaf', ua: 'листок' },
+            { en: 'moon', ua: 'місяць' },
+            { en: 'sun', ua: 'сонце' },
+            { en: 'caterpillar', ua: 'гусениця' },
+          ],
+          tip: '💡 "Pop!" — звук, який лунає, коли щось відкривається. У книжці гусениця "вилуплюється" зі звуком "pop!".',
+        },
+        {
+          id: 'reading-1',
+          type: 'reading',
+          title: 'In the light of the moon…',
+          text:
+            "In the light of the moon a little egg lay on a leaf. One Sunday morning the warm sun came up and — pop! — out of the egg came a tiny and very hungry caterpillar. He started to look for some food.",
+          vocabulary: [
+            { word: 'in the light of the moon', translation: 'у світлі місяця' },
+            { word: 'lay on a leaf', translation: 'лежало на листку' },
+            { word: 'came up', translation: 'зійшло' },
+            { word: 'tiny', translation: 'крихітний' },
+            { word: 'hungry', translation: 'голодний' },
+            { word: 'look for food', translation: 'шукати їжу' },
+          ],
+          questions: [
+            {
+              id: 'q1',
+              question: 'Де лежало яйце?',
+              options: ['на камені', 'на листку', 'у пташиному гнізді', 'у траві'],
+              correctIndex: 1,
+            },
+            {
+              id: 'q2',
+              question: 'Коли прокинулась гусениця?',
+              options: [
+                'у суботу ввечері',
+                'у неділю вранці',
+                'у понеділок вночі',
+                'у пʼятницю опівдні',
+              ],
+              correctIndex: 1,
+              explanation: 'У тексті: "One Sunday morning the warm sun came up".',
+            },
+            {
+              id: 'q3',
+              question: 'Якою була гусениця?',
+              options: ['великою і сильною', 'крихітною і голодною', 'зеленою і сонною', 'товстою і швидкою'],
+              correctIndex: 1,
+            },
+          ],
+        },
+        {
+          id: 'match-1',
+          type: 'match-pairs',
+          prompt: "З'єднай слова:",
+          pairs: [
+            { left: 'egg', right: 'яйце' },
+            { left: 'leaf', right: 'листок' },
+            { left: 'moon', right: 'місяць' },
+            { left: 'hungry', right: 'голодний' },
+          ],
+        },
+      ],
+    },
+    {
+      slug: 'caterpillar-ch2',
+      title: 'Chapter 2: Monday to Friday',
+      orderIndex: 1,
+      type: 'reading',
+      durationMin: 10,
+      xp: 20,
+      sectionSlug: 'caterpillar-part-2',
+      sectionTitle: 'Частина 2 · Тиждень ненаситної гусениці',
+      sectionOrder: 1,
+      topic: 'storybook',
+      steps: [
+        {
+          id: 'theory-1',
+          type: 'theory',
+          title: 'Дні тижня 📅',
+          body: 'У цій частині історії гусениця їсть щодня новий фрукт. Давай запам\'ятаємо дні тижня!',
+          examples: [
+            { en: 'Monday', ua: 'понеділок' },
+            { en: 'Tuesday', ua: 'вівторок' },
+            { en: 'Wednesday', ua: 'середа' },
+            { en: 'Thursday', ua: 'четвер' },
+            { en: 'Friday', ua: 'пʼятниця' },
+          ],
+          tip: "💡 Усі дні тижня в англійській пишуться з великої літери!",
+        },
+        {
+          id: 'reading-1',
+          type: 'reading',
+          title: 'The hungry week',
+          text:
+            "On Monday he ate through one apple. But he was still hungry. On Tuesday he ate through two pears, but he was still hungry. On Wednesday he ate through three plums. On Thursday he ate through four strawberries. On Friday he ate through five oranges. But he was still hungry!",
+          vocabulary: [
+            { word: 'ate through', translation: 'проїв наскрізь' },
+            { word: 'still hungry', translation: 'все ще голодний' },
+            { word: 'pear', translation: 'груша' },
+            { word: 'plum', translation: 'слива' },
+            { word: 'strawberry', translation: 'полуниця' },
+            { word: 'orange', translation: 'апельсин' },
+          ],
+          questions: [
+            {
+              id: 'q1',
+              question: 'Скільки груш зʼіла гусениця у вівторок?',
+              options: ['одну', 'дві', 'три', 'пʼять'],
+              correctIndex: 1,
+            },
+            {
+              id: 'q2',
+              question: 'Що гусениця їла у пʼятницю?',
+              options: ['яблука', 'груші', 'сливи', 'апельсини'],
+              correctIndex: 3,
+            },
+            {
+              id: 'q3',
+              question: 'Чи була гусениця сита після пʼятниці?',
+              options: [
+                'так, їй вистачило',
+                'ні, вона все ще була голодна',
+                'у тексті не сказано',
+                'вона захворіла',
+              ],
+              correctIndex: 1,
+              explanation: 'Кінець абзацу: "But he was still hungry!".',
+            },
+          ],
+        },
+        {
+          id: 'mc-1',
+          type: 'multiple-choice',
+          question: 'Який день тижня йде після Monday?',
+          options: ['Sunday', 'Wednesday', 'Tuesday', 'Friday'],
+          correctIndex: 2,
+        },
+        {
+          id: 'fill-1',
+          type: 'fill-blank',
+          before: 'On Wednesday he ate three ',
+          after: '.',
+          answer: 'plums',
+          hint: "Фіолетові фрукти, що ростуть на дереві…",
+        },
+        {
+          id: 'match-1',
+          type: 'match-pairs',
+          prompt: "З'єднай дні тижня:",
+          pairs: [
+            { left: 'Monday', right: 'понеділок' },
+            { left: 'Wednesday', right: 'середа' },
+            { left: 'Friday', right: 'пʼятниця' },
+            { left: 'Tuesday', right: 'вівторок' },
+          ],
+        },
+      ],
+    },
+    {
+      slug: 'caterpillar-ch3',
+      title: 'Chapter 3: A big stomach-ache',
+      orderIndex: 2,
+      type: 'reading',
+      durationMin: 10,
+      xp: 20,
+      sectionSlug: 'caterpillar-part-2',
+      sectionTitle: 'Частина 2 · Тиждень ненаситної гусениці',
+      sectionOrder: 1,
+      topic: 'storybook',
+      steps: [
+        {
+          id: 'theory-1',
+          type: 'theory',
+          title: 'Субота-перегладка 🍰',
+          body: 'У суботу гусениця зʼїла забагато. Розглянемо довгий список їжі — і дізнаємось, що таке "stomach-ache".',
+          examples: [
+            { en: 'chocolate cake', ua: 'шоколадний торт' },
+            { en: 'ice cream', ua: 'морозиво' },
+            { en: 'pickle', ua: 'солоний огірок' },
+            { en: 'cheese', ua: 'сир' },
+            { en: 'salami', ua: 'салямі' },
+            { en: 'cupcake', ua: 'кекс' },
+            { en: 'watermelon', ua: 'кавун' },
+          ],
+          tip: '💡 "Stomach-ache" — біль у животі. "Head-ache" — головний біль. "Tooth-ache" — зубний біль.',
+        },
+        {
+          id: 'reading-1',
+          type: 'reading',
+          title: 'That night he had a stomach-ache!',
+          text:
+            "On Saturday he ate through one piece of chocolate cake, one ice-cream cone, one pickle, one slice of Swiss cheese, one slice of salami, one lollipop, one piece of cherry pie, one sausage, one cupcake and one slice of watermelon. That night he had a stomach-ache!",
+          vocabulary: [
+            { word: 'piece of cake', translation: 'шматок торта' },
+            { word: 'slice', translation: 'скибка' },
+            { word: 'lollipop', translation: 'льодяник на паличці' },
+            { word: 'cherry pie', translation: 'пиріг з вишнею' },
+            { word: 'sausage', translation: 'ковбаска' },
+            { word: 'that night', translation: 'тієї ночі' },
+          ],
+          questions: [
+            {
+              id: 'q1',
+              question: 'Що сталося з гусеницею вночі у суботу?',
+              options: [
+                'вона померла',
+                'у неї заболів живіт',
+                'вона побачила сон',
+                'вона виросла',
+              ],
+              correctIndex: 1,
+            },
+            {
+              id: 'q2',
+              question: 'Яку з цих страв гусениця НЕ зʼїла?',
+              options: ['шоколадний торт', 'морозиво', 'банан', 'кекс'],
+              correctIndex: 2,
+              explanation: 'Банана у списку немає — перевіряй уважно.',
+            },
+          ],
+        },
+        {
+          id: 'mc-1',
+          type: 'multiple-choice',
+          question: 'Як англійською "болить живіт"?',
+          options: ['head-ache', 'tooth-ache', 'stomach-ache', 'back-ache'],
+          correctIndex: 2,
+        },
+        {
+          id: 'match-1',
+          type: 'match-pairs',
+          prompt: "З'єднай десерти:",
+          pairs: [
+            { left: 'cake', right: 'торт' },
+            { left: 'ice cream', right: 'морозиво' },
+            { left: 'cupcake', right: 'кекс' },
+            { left: 'lollipop', right: 'льодяник' },
+          ],
+        },
+      ],
+    },
+    {
+      slug: 'caterpillar-ch4',
+      title: 'Chapter 4: Beautiful butterfly',
+      orderIndex: 3,
+      type: 'reading',
+      durationMin: 8,
+      xp: 20,
+      sectionSlug: 'caterpillar-part-3',
+      sectionTitle: 'Частина 3 · Чарівне перетворення',
+      sectionOrder: 2,
+      topic: 'storybook',
+      steps: [
+        {
+          id: 'theory-1',
+          type: 'theory',
+          title: 'Перетворення 🦋',
+          body: 'У фіналі гусениця стає метеликом! Запамʼятай основні слова про цей процес.',
+          examples: [
+            { en: 'cocoon', ua: 'кокон' },
+            { en: 'inside', ua: 'всередині' },
+            { en: 'butterfly', ua: 'метелик' },
+            { en: 'beautiful', ua: 'красивий' },
+            { en: 'more than a week', ua: 'понад тиждень' },
+          ],
+          tip: "💡 Caterpillar → cocoon → butterfly — класична тема для уроків природознавства.",
+        },
+        {
+          id: 'reading-1',
+          type: 'reading',
+          title: 'He was a beautiful butterfly!',
+          text:
+            "The next day was Sunday again. The caterpillar ate through one nice green leaf, and after that he felt much better. Now he wasn't hungry any more — and he wasn't a little caterpillar any more. He was a big, fat caterpillar. He built a small house, called a cocoon, around himself. He stayed inside for more than two weeks. Then he nibbled a hole in the cocoon, pushed his way out and… he was a beautiful butterfly!",
+          vocabulary: [
+            { word: 'not any more', translation: 'вже ні' },
+            { word: 'fat', translation: 'товстий' },
+            { word: 'built', translation: 'побудував' },
+            { word: 'stayed inside', translation: 'залишався всередині' },
+            { word: 'nibbled a hole', translation: 'прогриз дірку' },
+            { word: 'pushed his way out', translation: 'виліз назовні' },
+          ],
+          questions: [
+            {
+              id: 'q1',
+              question: 'Скільки тижнів гусениця провела в коконі?',
+              options: ['один', 'понад два', 'пʼять', 'не сказано'],
+              correctIndex: 1,
+            },
+            {
+              id: 'q2',
+              question: 'Ким стала гусениця в кінці?',
+              options: ['жабою', 'великою гусеницею', 'метеликом', 'пташкою'],
+              correctIndex: 2,
+            },
+          ],
+        },
+        {
+          id: 'tr-1',
+          type: 'translate',
+          prompt: 'Перекладіть англійською:',
+          sentence: 'Він був красивим метеликом.',
+          answer: 'He was a beautiful butterfly.',
+          acceptedAnswers: [
+            'He was a beautiful butterfly.',
+            'He was a beautiful butterfly',
+            'he was a beautiful butterfly.',
+          ],
+        },
+        {
+          id: 'match-1',
+          type: 'match-pairs',
+          prompt: "З'єднай етапи перетворення:",
+          pairs: [
+            { left: 'egg', right: 'яйце' },
+            { left: 'caterpillar', right: 'гусениця' },
+            { left: 'cocoon', right: 'кокон' },
+            { left: 'butterfly', right: 'метелик' },
+          ],
+        },
+      ],
+    },
+  ],
+};

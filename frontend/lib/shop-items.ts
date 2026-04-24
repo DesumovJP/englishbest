@@ -115,6 +115,9 @@ function toCatalogShape(s: ServerShopItem): CatalogShopItem {
     category: s.category,
     levelRequired: s.levelRequired,
     isNew: s.isNew,
+    imageIdle: s.imageIdle,
+    imageHover: s.imageHover,
+    imageActive: s.imageActive,
   };
 }
 

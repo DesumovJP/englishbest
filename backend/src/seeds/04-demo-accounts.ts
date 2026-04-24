@@ -1,9 +1,14 @@
 /**
  * Seed: public demo accounts.
  *
- * Creates one user per app role (kids/adult/teacher/parent) with a
+ * Creates one user per app role (kids/teacher/parent) with a
  * deterministic email + shared password so the login page can advertise
  * "try-it" credentials. Idempotent: skipped if the user already exists.
+ *
+ * The legacy `adult` role was folded into `kids` — students are a single
+ * unified account, ageGroup on the kids-profile differentiates child vs
+ * adult learners. Existing demo-adult accounts continue to work for any
+ * already-seeded environment.
  *
  * Opt-in via `SEED_DEMO_ACCOUNTS=1` — never create these without an
  * explicit signal from the operator, since the password is published.
@@ -14,7 +19,7 @@ const ORG_UID = 'api::organization.organization';
 const PROFILE_UID = 'api::user-profile.user-profile';
 
 type DemoAccount = {
-  role: 'kids' | 'adult' | 'teacher' | 'parent';
+  role: 'kids' | 'teacher' | 'parent';
   email: string;
   username: string;
   firstName: string;
@@ -37,21 +42,6 @@ const DEMO_ACCOUNTS: DemoAccount[] = [
         companionAnimal: 'fox',
         companionName: 'Foxie',
         ageGroup: 'age7to11',
-      },
-    },
-  },
-  {
-    role: 'adult',
-    email: 'demo-adult@englishbest.app',
-    username: 'demo-adult',
-    firstName: 'Alex',
-    lastName: 'Demo',
-    roleProfile: {
-      uid: 'api::adult-profile.adult-profile',
-      data: {
-        goal: 'travel',
-        currentLevel: 'B1',
-        targetLevel: 'B2',
       },
     },
   },

@@ -36,7 +36,7 @@ function normalize(raw: any): UserProfile | null {
   if (!raw?.documentId || typeof raw.role !== 'string') return null;
   const role = (['kids', 'adult', 'teacher', 'parent', 'admin'].includes(raw.role)
     ? raw.role
-    : 'adult') as UserRole;
+    : 'kids') as UserRole;
 
   const avatarUrl = typeof raw.avatar?.url === 'string' ? raw.avatar.url : null;
   const org = raw.organization && typeof raw.organization === 'object'

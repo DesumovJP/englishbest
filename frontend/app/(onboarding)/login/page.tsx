@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useSession } from '@/lib/session-context';
 import { apiErrorMessage } from '@/lib/fetcher';
 
-type DemoRole = 'kids' | 'adult' | 'teacher' | 'parent';
+type DemoRole = 'kids' | 'teacher' | 'parent';
 
 interface DemoAccount {
   role: DemoRole;
@@ -24,20 +24,11 @@ const DEMO_ACCOUNTS: DemoAccount[] = [
   {
     role: 'kids',
     emoji: '🦊',
-    label: 'Kids',
-    sublabel: 'Учень / дитина',
+    label: 'Student',
+    sublabel: 'Учень',
     email: 'demo-kids@englishbest.app',
     password: DEMO_PASSWORD,
     tone: 'primary',
-  },
-  {
-    role: 'adult',
-    emoji: '🎓',
-    label: 'Adult',
-    sublabel: 'Дорослий учень',
-    email: 'demo-adult@englishbest.app',
-    password: DEMO_PASSWORD,
-    tone: 'accent',
   },
   {
     role: 'teacher',

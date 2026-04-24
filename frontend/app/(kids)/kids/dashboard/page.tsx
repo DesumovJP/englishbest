@@ -41,11 +41,25 @@ function StreakWidget({ streak }: { streak: number }) {
   );
 }
 
-function LootBoxWidget({ coins, onOpen }: { coins: number; onOpen: () => void }) {
-  const canAfford = coins >= 50;
+function LootBoxWidget({
+  coins,
+  freeBoxes,
+  onOpen,
+}: {
+  coins: number;
+  freeBoxes: number;
+  onOpen: () => void;
+}) {
+  const hasFreeBox = freeBoxes > 0;
+  const canAfford = hasFreeBox || coins >= 50;
   return (
     <button onClick={onOpen} className="w-full text-left">
-      <HudCard className="p-2.5 sm:p-3.5 flex flex-col gap-2 sm:gap-3">
+      <HudCard className="p-2.5 sm:p-3.5 flex flex-col gap-2 sm:gap-3 relative overflow-hidden">
+        {hasFreeBox && (
+          <span className="absolute -top-1 -right-1 px-2 py-0.5 rounded-bl-lg rounded-tr-lg bg-purple text-white font-black text-[9px] sm:text-[10px] uppercase tracking-wider shadow-card-sm">
+            Безкоштовно
+          </span>
+        )}
         <div className="flex items-center gap-2 sm:gap-3">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -56,10 +70,16 @@ function LootBoxWidget({ coins, onOpen }: { coins: number; onOpen: () => void })
           <div className="flex-1 min-w-0">
             <p className="font-black text-[12px] sm:text-sm text-ink">Mystery Box</p>
             <div className="flex items-center gap-1 mt-0.5">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/coin.png" alt="" aria-hidden width={12} height={12} className="object-contain" />
-              <span className={`font-black text-[11px] sm:text-xs ${canAfford ? "text-accent-dark" : "text-ink-muted"}`}>50</span>
-              {!canAfford && <span className="font-medium text-[10px] text-ink-muted">мало</span>}
+              {hasFreeBox ? (
+                <span className="font-black text-[11px] sm:text-xs text-purple">Відкрити без монет</span>
+              ) : (
+                <>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/coin.png" alt="" aria-hidden width={12} height={12} className="object-contain" />
+                  <span className={`font-black text-[11px] sm:text-xs ${canAfford ? "text-accent-dark" : "text-ink-muted"}`}>50</span>
+                  {!canAfford && <span className="font-medium text-[10px] text-ink-muted">мало</span>}
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -155,7 +175,19 @@ function PlacedItemsLayer({
               fontSize: `${64 * scale}px`,
             }}
           >
-            <span aria-hidden>{catalog?.emoji ?? "❔"}</span>
+            {catalog?.imageIdle ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={catalog.imageIdle}
+                alt=""
+                aria-hidden
+                style={{ width: 64 * scale, height: 64 * scale }}
+                className="object-contain"
+                draggable={false}
+              />
+            ) : (
+              <span aria-hidden>{catalog?.emoji ?? "❔"}</span>
+            )}
             {editMode && (
               <button
                 type="button"
@@ -187,9 +219,10 @@ export default function KidsDashboardPage() {
   const [editMode, setEditMode]     = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
 
-  const coins   = kidsState.coins ?? 0;
-  const streak  = kidsState.streak ?? 0;
-  const emotion = EMOTION_CYCLE[emotionIdx];
+  const coins      = kidsState.coins ?? 0;
+  const streak     = kidsState.streak ?? 0;
+  const freeBoxes  = kidsState.freeLootBoxes ?? 0;
+  const emotion    = EMOTION_CYCLE[emotionIdx];
 
   const handleTap = useCallback(() => {
     setEmotionIdx(prev => {
@@ -231,7 +264,8 @@ export default function KidsDashboardPage() {
           aria-label={editMode ? "Готово" : "Пересунути предмети"}
           className={[
             "absolute z-30 rounded-full w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center shadow-card-md transition-colors",
-            "bottom-[calc(env(safe-area-inset-bottom,0px)+100px)] right-3 sm:bottom-[calc(env(safe-area-inset-bottom,0px)+78px)] sm:right-[14px]",
+            // Pinned to the bottom-LEFT so the KidsProfileWidget (bottom-right) has room.
+            "bottom-[calc(env(safe-area-inset-bottom,0px)+76px)] left-3",
             editMode ? "bg-primary text-white" : "bg-surface-raised/95 text-ink border border-border",
           ].join(" ")}
         >
@@ -252,7 +286,7 @@ export default function KidsDashboardPage() {
       <div className="hidden sm:flex absolute z-20 flex-col gap-2 md:gap-2.5 top-[env(safe-area-inset-top,10px)] md:top-[env(safe-area-inset-top,14px)] left-2 md:left-3 w-[min(185px,42vw)] md:w-[min(210px,46vw)]">
         <CalendarWidget />
         {streak >= 3 && <StreakWidget streak={streak} />}
-        <LootBoxWidget coins={coins} onOpen={() => setOpenBox("common")} />
+        <LootBoxWidget coins={coins} freeBoxes={freeBoxes} onOpen={() => setOpenBox("common")} />
       </div>
 
       {/* Desktop/tablet HUD — right column: continue-lesson */}
@@ -260,8 +294,8 @@ export default function KidsDashboardPage() {
         <ContinueLessonWidget compact />
       </div>
 
-      {/* Mobile top pills — right-14 leaves room for the KidsSettingsMenu gear */}
-      <div className="sm:hidden absolute z-20 top-[env(safe-area-inset-top,8px)] left-2 right-14 flex gap-1.5">
+      {/* Mobile top pills — full width now that the settings gear is gone. */}
+      <div className="sm:hidden absolute z-20 top-[env(safe-area-inset-top,8px)] left-2 right-2 flex gap-1.5">
         <button
           type="button"
           onClick={() => setCalendarOpen(true)}
@@ -286,14 +320,25 @@ export default function KidsDashboardPage() {
         </div>
         <button
           onClick={() => setOpenBox("common")}
-          className="h-11 rounded-2xl bg-surface-raised/95 backdrop-blur-sm shadow-card-md flex items-center gap-1 px-2.5 active:scale-95 transition-transform"
+          className="relative h-11 rounded-2xl bg-surface-raised/95 backdrop-blur-sm shadow-card-md flex items-center gap-1 px-2.5 active:scale-95 transition-transform"
           aria-label="Mystery Box"
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/mystery-box.png" alt="" aria-hidden width={20} height={20} className={`object-contain ${coins >= 50 ? "" : "grayscale opacity-60"}`} />
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/coin.png" alt="" aria-hidden width={11} height={11} className="object-contain" />
-          <span className="font-black text-[12px] text-accent-dark leading-none">50</span>
+          <img src="/mystery-box.png" alt="" aria-hidden width={20} height={20} className={`object-contain ${freeBoxes > 0 || coins >= 50 ? "" : "grayscale opacity-60"}`} />
+          {freeBoxes > 0 ? (
+            <span className="font-black text-[11px] text-purple leading-none">FREE</span>
+          ) : (
+            <>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/coin.png" alt="" aria-hidden width={11} height={11} className="object-contain" />
+              <span className="font-black text-[12px] text-accent-dark leading-none">50</span>
+            </>
+          )}
+          {freeBoxes > 0 && (
+            <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-purple text-white font-black text-[9px] flex items-center justify-center ring-2 ring-surface-raised">
+              {freeBoxes}
+            </span>
+          )}
         </button>
       </div>
 
@@ -328,7 +373,18 @@ export default function KidsDashboardPage() {
                     className="absolute pointer-events-none -translate-x-1/2 z-20 text-[54px] sm:text-[84px] drop-shadow-[0_4px_8px_rgba(0,0,0,0.22)]"
                     style={{ top: pos.top, left: pos.left }}
                   >
-                    {item.emoji}
+                    {item.imageIdle ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={item.imageIdle}
+                        alt=""
+                        aria-hidden
+                        className="w-[54px] h-[54px] sm:w-[84px] sm:h-[84px] object-contain"
+                        draggable={false}
+                      />
+                    ) : (
+                      item.emoji
+                    )}
                   </div>
                 );
               })}

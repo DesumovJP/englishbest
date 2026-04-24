@@ -10,10 +10,12 @@ import {
   type LibTabId, type LibKind, type LibraryItem,
 } from '@/lib/library';
 import { LessonTreeSection } from '@/components/kids/LessonTreeSection';
+import { LessonCarouselSection } from '@/components/kids/LessonCarouselSection';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { EmptyState } from '@/components/ui/EmptyState';
 
 type PageTab = 'lessons' | 'library';
+type LessonView = 'carousel' | 'list';
 
 function LibListItem({ item, isLocked, onNavigate }: {
   item: LibraryItem; isLocked: boolean; onNavigate: () => void;
@@ -203,6 +205,7 @@ function LibraryCatalog() {
 
 export default function SchoolPage() {
   const [tab, setTab] = useState<PageTab>('lessons');
+  const [lessonView, setLessonView] = useState<LessonView>('carousel');
   const { level: kidsLevel } = useKidsIdentity();
 
   return (
@@ -228,8 +231,35 @@ export default function SchoolPage() {
 
       <div className="flex-1 overflow-hidden flex flex-col">
         {tab === 'lessons' ? (
-          <div className="flex-1 overflow-y-auto px-4 py-6 max-w-screen-md mx-auto w-full">
-            <LessonTreeSection level={kidsLevel} />
+          <div className="flex-1 overflow-y-auto max-w-screen-md mx-auto w-full">
+            <div className="sticky top-0 z-10 flex justify-center px-4 pt-4 pb-2 bg-surface-raised">
+              <div className="inline-flex rounded-full bg-surface-muted border border-border p-1">
+                {([
+                  { id: 'carousel', label: 'Мапа',   emoji: '🗺️' },
+                  { id: 'list',     label: 'Список', emoji: '📋' },
+                ] as { id: LessonView; label: string; emoji: string }[]).map(v => {
+                  const active = lessonView === v.id;
+                  return (
+                    <button
+                      key={v.id}
+                      onClick={() => setLessonView(v.id)}
+                      className={[
+                        'flex items-center gap-1.5 px-4 py-2 rounded-full font-black text-[12.5px] transition-colors',
+                        active ? 'bg-primary text-white shadow-card-sm' : 'text-ink-muted',
+                      ].join(' ')}
+                    >
+                      <span className="text-sm">{v.emoji}</span>
+                      {v.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            <div className="px-4 pb-6">
+              {lessonView === 'carousel'
+                ? <LessonCarouselSection level={kidsLevel} />
+                : <LessonTreeSection level={kidsLevel} />}
+            </div>
           </div>
         ) : <LibraryCatalog />}
       </div>

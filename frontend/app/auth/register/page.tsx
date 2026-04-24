@@ -5,12 +5,12 @@ import { useSession } from '@/lib/session-context';
 import { apiErrorMessage } from '@/lib/fetcher';
 
 const AGE_GROUPS = [
-  { value: '',        label: 'Вік дитини' },
+  { value: '',        label: 'Вік учня' },
   { value: '4-6',     label: '4–6 років' },
   { value: '7-9',     label: '7–9 років' },
   { value: '10-12',   label: '10–12 років' },
   { value: '13-15',   label: '13–15 років' },
-  { value: '16+',     label: '16+ / дорослий' },
+  { value: '16+',     label: '16+ (самостійний учень)' },
 ];
 
 export default function RegisterPage() {
@@ -35,11 +35,11 @@ export default function RegisterPage() {
         email: form.email.trim(),
         password: form.password,
         firstName: form.name.trim() || form.email.split('@')[0],
-        role: form.age === '16+' ? 'adult' : 'kids',
+        role: 'kids',
         ageGroup: form.age || undefined,
         phone: form.phone.trim() || undefined,
       });
-      window.location.href = '/dashboard';
+      window.location.href = '/kids/dashboard';
     } catch (err) {
       setError(apiErrorMessage(err, 'Не вдалося зареєструватися. Спробуйте ще раз.'));
       setLoading(false);
@@ -127,7 +127,7 @@ export default function RegisterPage() {
             <p className="text-ink-muted text-sm mt-1">
               {step === 1
                 ? 'Крок 1 з 2 — ваші дані'
-                : 'Крок 2 з 2 — вік дитини та телефон'}
+                : 'Крок 2 з 2 — вік учня та телефон'}
             </p>
           </div>
 
@@ -175,7 +175,7 @@ export default function RegisterPage() {
             ) : (
               <>
                 <div>
-                  <label className={labelCls}>Вік дитини</label>
+                  <label className={labelCls}>Вік учня</label>
                   <select
                     value={form.age}
                     onChange={e => update('age', e.target.value)}

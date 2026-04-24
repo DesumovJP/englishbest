@@ -26,6 +26,10 @@ export interface CatalogShopItem {
   category: ShopItemCategory;
   levelRequired: Level;
   isNew?: boolean;
+  /** Optional CDN URLs — when present, consumers should prefer images over emoji. */
+  imageIdle?: string | null;
+  imageHover?: string | null;
+  imageActive?: string | null;
 }
 
 const SEED_ITEMS: CatalogShopItem[] = [

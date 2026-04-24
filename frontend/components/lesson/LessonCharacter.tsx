@@ -22,6 +22,7 @@ function EquippedAvatar({
         const item = SHOP_ITEMS_BY_ID[id];
         if (!item) return null;
         const pos = SLOT_OFFSET[id] ?? { top: "0%", left: "50%" };
+        const px = size * 0.28;
         return (
           <div
             key={id}
@@ -29,12 +30,24 @@ function EquippedAvatar({
             style={{
               top: pos.top,
               left: pos.left,
-              fontSize: size * 0.28,
+              fontSize: px,
               filter: 'drop-shadow(0 3px 6px rgba(0,0,0,0.22))',
               zIndex: 20,
             }}
           >
-            {item.emoji}
+            {item.imageIdle ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={item.imageIdle}
+                alt=""
+                aria-hidden
+                style={{ width: px, height: px }}
+                className="object-contain"
+                draggable={false}
+              />
+            ) : (
+              item.emoji
+            )}
           </div>
         );
       })}

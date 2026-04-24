@@ -49,6 +49,7 @@ function toShopItem(s: ServerShopItem): ShopItem {
     tab: s.category,
     levelRequired: s.levelRequired,
     isNew: s.isNew,
+    customImageIdle: s.imageIdle ?? undefined,
   };
 }
 
@@ -105,7 +106,13 @@ function BuyModal({ item, onSuccess, onClose }: {
           <div className="relative flex flex-col items-center px-6 pt-6 pb-4 text-center border-b border-border">
             <button onClick={onClose}
               className="absolute right-4 top-4 w-8 h-8 flex items-center justify-center rounded-full bg-surface-muted text-ink-muted">✕</button>
-            <div className="text-5xl mb-3">{item.emoji}</div>
+            <div className="mb-3 flex items-center justify-center" style={{ height: 56 }}>
+              {item.customImageIdle ? (
+                <img src={item.customImageIdle} alt="" aria-hidden width={56} height={56} className="object-contain" draggable={false} />
+              ) : (
+                <span className="text-5xl">{item.emoji}</span>
+              )}
+            </div>
             <p className="font-black text-[22px] text-ink -tracking-[0.02em]">{item.nameEn}</p>
             <p className="font-medium italic text-[13px] text-ink-faint">{item.phonetic}</p>
             <p className="font-medium text-[13px] text-ink-muted">{item.nameUa}</p>
@@ -370,7 +377,11 @@ function CharacterDressRoom({ allItems, ownedIds, balance, dressChars, onBuyItem
               <div key={id}
                 className="absolute pointer-events-none -translate-x-1/2 text-[32px] z-10 drop-shadow-[0_3px_6px_rgba(0,0,0,0.2)]"
                 style={{ top: pos.top, left: pos.left }}>
-                {item.emoji}
+                {item.customImageIdle ? (
+                  <img src={item.customImageIdle} alt="" aria-hidden width={48} height={48} className="object-contain" draggable={false} />
+                ) : (
+                  item.emoji
+                )}
               </div>
             );
           })}
@@ -384,8 +395,12 @@ function CharacterDressRoom({ allItems, ownedIds, balance, dressChars, onBuyItem
               return item ? (
                 <button key={id} onClick={() => toggleEquip(id)}
                   title={`Remove ${item.nameEn}`}
-                  className="bg-surface-muted border border-border rounded-[14px] px-2.5 py-1 text-[22px] active:scale-90 transition-transform">
-                  {item.emoji}
+                  className="bg-surface-muted border border-border rounded-[14px] px-2.5 py-1 text-[22px] active:scale-90 transition-transform flex items-center justify-center">
+                  {item.customImageIdle ? (
+                    <img src={item.customImageIdle} alt="" aria-hidden width={28} height={28} className="object-contain" draggable={false} />
+                  ) : (
+                    item.emoji
+                  )}
                 </button>
               ) : null;
             })}
@@ -560,7 +575,12 @@ function CharacterDressRoom({ allItems, ownedIds, balance, dressChars, onBuyItem
                       toggleEquip(item.id);
                     }}
                   >
-                    <span className={["text-[30px]", isLocked && "grayscale"].filter(Boolean).join(" ")}>{item.emoji}</span>
+                    {item.customImageIdle ? (
+                      <img src={item.customImageIdle} alt={item.nameEn} width={36} height={36}
+                        className={["object-contain", isLocked && "grayscale"].filter(Boolean).join(" ")} draggable={false} />
+                    ) : (
+                      <span className={["text-[30px]", isLocked && "grayscale"].filter(Boolean).join(" ")}>{item.emoji}</span>
+                    )}
                     <p className={[
                       "font-black text-center leading-tight text-[10px] -tracking-[0.01em]",
                       isEquipped ? "text-success-dark" : "text-ink",
