@@ -8,6 +8,7 @@
  * NEVER import this from a "use client" module.
  */
 import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
 import {
   ACCESS_COOKIE,
   BACKEND_URL,
@@ -73,9 +74,10 @@ export async function requireRole(
   allowed: Array<Session['profile']['role']>,
   nextPath: string,
 ): Promise<Session> {
-  const { redirect } = await import('next/navigation');
   const session = await getSession();
-  if (!session) redirect(`/login?next=${encodeURIComponent(nextPath)}`);
+  if (!session) {
+    redirect(`/login?next=${encodeURIComponent(nextPath)}`);
+  }
   const role = session.profile.role;
   if (!allowed.includes(role)) {
     if (role === 'kids' || role === 'adult') redirect('/kids/dashboard');
