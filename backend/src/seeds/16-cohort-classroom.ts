@@ -1220,22 +1220,46 @@ async function upsertSession(
   attendeeProfileDocIds: string[],
 ): Promise<string | null> {
   const startAt = startAtISO(spec.daysFromNow, spec.hour, spec.minute ?? 0);
-  const day = startAt.slice(0, 10);
-  const dayStart = `${day}T00:00:00.000Z`;
-  const dayEnd = new Date(new Date(startAt).getTime() + 24 * 60 * 60 * 1000)
-    .toISOString()
-    .slice(0, 10);
-  const [existing] = await strapi.documents(SESSION_UID).findMany({
+
+  // Match by (teacher + title) only, NOT by date. The seed keys session
+  // timing off `Date.now()`, so re-running on a later date used to leave
+  // old sessions stuck at their original startAt and pile up duplicates
+  // — the attendance grid would then show 0 % on the current month even
+  // though the records existed (just on the wrong dates). Re-anchoring
+  // startAt on every run keeps existing attendance records valid (still
+  // pointing at the same sessionDocId) and shifts them onto the current
+  // month automatically.
+  const matches = await strapi.documents(SESSION_UID).findMany({
     filters: {
       title: spec.title,
-      startAt: { $gte: dayStart, $lt: `${dayEnd}T00:00:00.000Z` },
+      teacher: { documentId: { $eq: teacherProfileDocId } },
     },
     populate: {
       teacher: { fields: ['documentId'] },
       attendees: { fields: ['documentId'] },
     },
-    limit: 1,
+    sort: ['createdAt:asc'],
+    pagination: { pageSize: 50, page: 1 },
   });
+
+  // One-time dedupe pass for prior-run duplicates produced by the old
+  // date-windowed upsert. Keep the oldest (most likely to carry the real
+  // attendance history); orphan-delete the rest so the grid stops
+  // double-rendering past lessons across months.
+  let existing: any = matches[0] ?? null;
+  if (matches.length > 1) {
+    for (const dup of matches.slice(1)) {
+      try {
+        await strapi.documents(SESSION_UID).delete({
+          documentId: (dup as any).documentId,
+        });
+      } catch (err) {
+        strapi.log.warn(
+          `[seed] cohort-classroom: failed to drop duplicate session "${spec.title}" (${(dup as any).documentId}): ${(err as Error).message}`,
+        );
+      }
+    }
+  }
   if (existing) {
     const currentAttendeeIds: string[] = ((existing as any).attendees ?? [])
       .map((a: any) => a?.documentId)
@@ -1243,22 +1267,19 @@ async function upsertSession(
     const mergedAttendees = Array.from(
       new Set([...currentAttendeeIds, ...attendeeProfileDocIds]),
     );
-    const teacherMismatch =
-      (existing as any).teacher?.documentId !== teacherProfileDocId;
-    const attendeesDiffer =
-      mergedAttendees.length !== currentAttendeeIds.length;
-    const statusDiffers = (existing as any).status !== spec.status;
-    if (teacherMismatch || attendeesDiffer || statusDiffers) {
-      await strapi.documents(SESSION_UID).update({
-        documentId: (existing as any).documentId,
-        data: {
-          teacher: teacherProfileDocId,
-          attendees: mergedAttendees,
-          status: spec.status,
-          ...(spec.grade != null ? { grade: spec.grade } : {}),
-        },
-      });
-    }
+    await strapi.documents(SESSION_UID).update({
+      documentId: (existing as any).documentId,
+      data: {
+        teacher: teacherProfileDocId,
+        attendees: mergedAttendees,
+        status: spec.status,
+        startAt,
+        durationMin: spec.durationMin,
+        type: spec.type,
+        ...(spec.notes ? { notes: spec.notes } : {}),
+        ...(spec.grade != null ? { grade: spec.grade } : {}),
+      },
+    });
     return (existing as any).documentId;
   }
 

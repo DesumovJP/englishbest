@@ -10,6 +10,7 @@ const TABS = [
   { href: "/kids/dashboard", icon: "🏠", label: "Home"     },
   { href: "/kids/school",    icon: "📚", label: "School"   },
   { href: "/kids/homework",  icon: "📝", label: "Homework" },
+  { href: "/kids/chat",      icon: "💬", label: "Chat"     },
   { href: "/kids/shop",      icon: "🛍️", label: "Shop"    },
 ];
 
@@ -37,6 +38,7 @@ export default function KidsFooter() {
   function isActive(href: string) {
     if (href === "/kids/school")   return pathname.startsWith("/kids/school") || pathname.startsWith("/kids/lessons");
     if (href === "/kids/homework") return pathname.startsWith("/kids/homework");
+    if (href === "/kids/chat")     return pathname.startsWith("/kids/chat");
     if (href === "/kids/shop")     return pathname === "/kids/shop";
     return pathname === href;
   }

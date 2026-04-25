@@ -169,38 +169,54 @@ export default factories.createCoreController(MESSAGE_UID, ({ strapi }) => ({
         : data.replyTo && typeof data.replyTo === 'object' && typeof (data.replyTo as any).documentId === 'string'
           ? (data.replyTo as any).documentId
           : null;
-    const created = await strapi.documents(MESSAGE_UID).create({
-      data: {
-        thread: threadId,
-        author: profileId,
-        body: data.body,
-        ...(replyToId ? { replyTo: replyToId } : {}),
-      },
-      populate: {
-        author: {
-          fields: ['documentId', 'firstName', 'lastName', 'displayName'],
-          populate: { avatar: { fields: ['url'] } },
-        },
-        thread: { fields: ['documentId'] },
-      },
-    });
 
-    // Denormalize lastMessage* on thread.
-    const bodyPreview = data.body.toString().slice(0, 280);
+    // Single try/catch around the write path. Without this, an upstream
+    // hiccup (DB blip, populate failure during sanitize, replyTo pointing
+    // at a deleted message, etc.) bubbles as an uncaught 500 and Railway
+    // surfaces it to the client as a 502. Log the actor + thread on every
+    // failure so we can correlate against access logs.
     try {
-      await strapi.documents(THREAD_UID).update({
-        documentId: threadId,
+      const created = await strapi.documents(MESSAGE_UID).create({
         data: {
-          lastMessageAt: new Date().toISOString(),
-          lastMessageBody: bodyPreview,
+          thread: threadId,
+          author: profileId,
+          body: data.body,
+          ...(replyToId ? { replyTo: replyToId } : {}),
+        },
+        populate: {
+          author: {
+            fields: ['documentId', 'firstName', 'lastName', 'displayName'],
+            populate: { avatar: { fields: ['url'] } },
+          },
+          thread: { fields: ['documentId'] },
         },
       });
-    } catch (err) {
-      strapi.log.warn(`[message.create] failed to update thread.lastMessage*: ${(err as Error).message}`);
-    }
 
-    const sanitized = await sanitizeOutputTrusted(MESSAGE_UID, created);
-    return this.transformResponse(sanitized);
+      // Denormalize lastMessage* on thread.
+      const bodyPreview = data.body.toString().slice(0, 280);
+      try {
+        await strapi.documents(THREAD_UID).update({
+          documentId: threadId,
+          data: {
+            lastMessageAt: new Date().toISOString(),
+            lastMessageBody: bodyPreview,
+          },
+        });
+      } catch (err) {
+        strapi.log.warn(
+          `[message.create] failed to update thread.lastMessage* (thread=${threadId}, actor=${profileId}): ${(err as Error).message}`,
+        );
+      }
+
+      const sanitized = await sanitizeOutputTrusted(MESSAGE_UID, created);
+      return this.transformResponse(sanitized);
+    } catch (err) {
+      strapi.log.error(
+        `[message.create] write failed (thread=${threadId}, actor=${profileId}, role=${role}, replyTo=${replyToId ?? '-'}): ${(err as Error).message}`,
+      );
+      strapi.log.error((err as Error).stack ?? '');
+      return ctx.internalServerError('message create failed');
+    }
   },
 
   async update(ctx) {
