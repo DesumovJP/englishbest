@@ -206,6 +206,70 @@ const THREADS: ThreadSpec[] = [
       },
     ],
   },
+  {
+    title: 'Олена ↔ Ірина (мама Максима)',
+    kind: 'parent',
+    participantTags: ['teacher-olena', 'parent-iryna-l'],
+    messages: [
+      {
+        authorTag: 'parent-iryna-l',
+        body: 'Доброго дня! Як у Максима з домашніми завданнями? Він сам нічого не розповідає.',
+        hoursAgo: 50,
+      },
+      {
+        authorTag: 'teacher-olena',
+        body: 'Доброго дня! Максим часом запізнюється з ДЗ — Hello & Goodbye досі не закрили. Я надіслала йому шаблон.',
+        hoursAgo: 48,
+      },
+      {
+        authorTag: 'parent-iryna-l',
+        body: 'Дякую, що сказали. Сьогодні разом сядемо і доробимо.',
+        hoursAgo: 47,
+      },
+      {
+        authorTag: 'teacher-olena',
+        body: 'Дякую за підтримку! Загалом на уроках він активний, просто треба тримати ритм удома.',
+        hoursAgo: 46,
+      },
+      {
+        authorTag: 'parent-iryna-l',
+        body: 'Зрозуміла, будемо стежити. Гарного дня!',
+        hoursAgo: 10,
+      },
+    ],
+  },
+  {
+    title: 'Олена ↔ Віра (мама Катерини)',
+    kind: 'parent',
+    participantTags: ['teacher-olena', 'parent-vira'],
+    messages: [
+      {
+        authorTag: 'teacher-olena',
+        body: 'Вірочко, доброго дня! Катя готова до A2 — пропоную плавний перехід.',
+        hoursAgo: 80,
+      },
+      {
+        authorTag: 'parent-vira',
+        body: 'О, чудові новини! А це не буде для неї важко?',
+        hoursAgo: 78,
+      },
+      {
+        authorTag: 'teacher-olena',
+        body: 'Ні, базу A1 вона тримає на 95%. Стартуємо з прикметників — там цікаві ігри.',
+        hoursAgo: 77,
+      },
+      {
+        authorTag: 'parent-vira',
+        body: 'Окей, дякую що тримаєте мене в курсі.',
+        hoursAgo: 76,
+      },
+      {
+        authorTag: 'teacher-olena',
+        body: 'Завжди! Якщо буде складно — одразу зменшимо темп.',
+        hoursAgo: 75,
+      },
+    ],
+  },
 
   // ── Olena group chat
   {
@@ -392,6 +456,66 @@ const THREADS: ThreadSpec[] = [
         authorTag: 'parent-halyna',
         body: 'Він обіцяв сьогодні зробити.',
         hoursAgo: 11,
+      },
+    ],
+  },
+  {
+    title: 'Ірина ↔ Тетяна (мама Дарії)',
+    kind: 'parent',
+    participantTags: ['teacher-iryna', 'parent-tetiana'],
+    messages: [
+      {
+        authorTag: 'parent-tetiana',
+        body: 'Доброго дня! Дарія дуже хвилюється перед speaking-частиною, що порадите?',
+        hoursAgo: 40,
+      },
+      {
+        authorTag: 'teacher-iryna',
+        body: 'Доброго дня! Це нормально на її рівні. Я даю їй short-talk шаблони — будемо тренувати по 3 хвилини на уроці.',
+        hoursAgo: 38,
+      },
+      {
+        authorTag: 'parent-tetiana',
+        body: 'Дякую! Може ще вдома з нею проговорювати теми?',
+        hoursAgo: 37,
+      },
+      {
+        authorTag: 'teacher-iryna',
+        body: 'Так, дуже рекомендую — 5 хвилин щодня про що завгодно. Скину список тем у вихідні.',
+        hoursAgo: 36,
+      },
+      {
+        authorTag: 'parent-tetiana',
+        body: 'Чекатиму, дякую!',
+        hoursAgo: 35,
+      },
+    ],
+  },
+  {
+    title: 'Ірина ↔ Лариса (мама Ігоря)',
+    kind: 'parent',
+    participantTags: ['teacher-iryna', 'parent-larysa'],
+    messages: [
+      {
+        authorTag: 'teacher-iryna',
+        body: 'Ларисо, вітаю! Ігор тримає 22-денний streak — рекорд групи.',
+        hoursAgo: 6,
+        pinned: true,
+      },
+      {
+        authorTag: 'parent-larysa',
+        body: 'Ого! Він дуже відповідально ставиться. Дякую, що мотивуєте дітей.',
+        hoursAgo: 5,
+      },
+      {
+        authorTag: 'teacher-iryna',
+        body: 'Це його заслуга — я лише підказую напрямок. Думаю на 30-й день зробимо мініподарунок у групі.',
+        hoursAgo: 4,
+      },
+      {
+        authorTag: 'parent-larysa',
+        body: 'Чудова ідея! Готова допомогти з призами.',
+        hoursAgo: 3,
       },
     ],
   },
