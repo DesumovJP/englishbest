@@ -47,15 +47,87 @@ function toNum(v: unknown, fallback = 0): number {
   if (typeof v === 'string' && v !== '' && !Number.isNaN(Number(v))) return Number(v);
   return fallback;
 }
+// Bridge legacy player step (uses `type`, e.g. seeded lesson-content) to the
+// teacher-editor `LessonBlock` shape (uses `kind`). Read-only preview only —
+// platform/template lessons round-trip back as steps untouched because the
+// editor blocks them from saving.
+function legacyStepToBlock(raw: any, idx: number): LessonBlock | null {
+  const id = typeof raw.id === 'string' ? raw.id : `b${idx}`;
+  const t = raw.type;
+  if (typeof t !== 'string') return null;
+  if (t === 'theory') {
+    const examples = Array.isArray(raw.examples) ? raw.examples : [];
+    const tip = typeof raw.tip === 'string' ? `\n\n${raw.tip}` : '';
+    const examplesText = examples
+      .map((e: any) => (e?.en && e?.ua ? `• ${e.en} — ${e.ua}` : ''))
+      .filter(Boolean)
+      .join('\n');
+    const body = [raw.body, examplesText].filter(Boolean).join('\n\n') + tip;
+    return {
+      id,
+      kind: 'text',
+      title: typeof raw.title === 'string' ? raw.title : undefined,
+      body,
+    };
+  }
+  if (t === 'multiple-choice') {
+    const opts: string[] = Array.isArray(raw.options) ? raw.options : [];
+    const correctIndex = Number(raw.correctIndex);
+    return {
+      id,
+      kind: 'exercise-multiple-choice',
+      title: typeof raw.question === 'string' ? raw.question : undefined,
+      options: opts.map((text, i) => ({ text: String(text), correct: i === correctIndex })),
+    };
+  }
+  if (t === 'match-pairs') {
+    const pairs: any[] = Array.isArray(raw.pairs) ? raw.pairs : [];
+    return {
+      id,
+      kind: 'exercise-matching',
+      title: typeof raw.prompt === 'string' ? raw.prompt : undefined,
+      items: pairs
+        .filter(p => p && typeof p.left === 'string' && typeof p.right === 'string')
+        .map(p => ({ left: p.left, right: p.right })),
+    };
+  }
+  if (t === 'fill-blank') {
+    const before = typeof raw.before === 'string' ? raw.before : '';
+    const after = typeof raw.after === 'string' ? raw.after : '';
+    return {
+      id,
+      kind: 'exercise-fill-gap',
+      body: `${before}_____${after}`,
+      correctAnswer: typeof raw.answer === 'string' ? raw.answer : undefined,
+    };
+  }
+  if (t === 'word-order') {
+    const words: string[] = Array.isArray(raw.words) ? raw.words.map(String) : [];
+    return {
+      id,
+      kind: 'exercise-word-order',
+      title: typeof raw.prompt === 'string' ? raw.prompt : undefined,
+      body: typeof raw.translation === 'string' ? raw.translation : undefined,
+      words,
+      correctAnswer: Array.isArray(raw.answer) ? raw.answer.join('') : undefined,
+    };
+  }
+  return null;
+}
+
 function parseBlocks(v: unknown): LessonBlock[] {
   if (!Array.isArray(v)) return [];
   const out: LessonBlock[] = [];
   for (const raw of v) {
     if (!raw || typeof raw !== 'object') continue;
     const kind = (raw as any).kind;
-    if (typeof kind !== 'string' || !BLOCK_KINDS.includes(kind as BlockKind)) continue;
-    const id = typeof (raw as any).id === 'string' ? (raw as any).id : `b${out.length}`;
-    out.push({ ...(raw as LessonBlock), id, kind: kind as BlockKind });
+    if (typeof kind === 'string' && BLOCK_KINDS.includes(kind as BlockKind)) {
+      const id = typeof (raw as any).id === 'string' ? (raw as any).id : `b${out.length}`;
+      out.push({ ...(raw as LessonBlock), id, kind: kind as BlockKind });
+      continue;
+    }
+    const bridged = legacyStepToBlock(raw, out.length);
+    if (bridged) out.push(bridged);
   }
   return out;
 }

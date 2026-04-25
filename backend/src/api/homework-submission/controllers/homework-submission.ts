@@ -32,13 +32,13 @@ const FIND_POPULATE: any = {
     populate: { avatar: { fields: ['url'] } },
   },
   homework: {
-    fields: ['documentId', 'title', 'dueAt', 'status'],
+    fields: ['documentId', 'title', 'description', 'dueAt', 'status'],
     populate: {
       teacher: { fields: ['documentId'] },
       lesson: { fields: ['documentId', 'slug', 'title'] },
     },
   },
-  attachments: { fields: ['url', 'name'] },
+  attachments: { fields: ['url', 'name', 'mime'] },
 };
 
 function roleType(ctxUser: any): string {

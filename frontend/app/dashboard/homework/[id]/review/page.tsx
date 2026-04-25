@@ -276,18 +276,29 @@ function SubmissionBody({ submission }: { submission: Submission }) {
     );
   }
 
-  const answersText =
-    submission.answers && Object.keys(submission.answers).length > 0
-      ? JSON.stringify(submission.answers, null, 2)
+  const answers = submission.answers ?? null;
+  const bodyText = answers && typeof (answers as any).body === 'string' ? String((answers as any).body) : null;
+  const otherAnswers = answers
+    ? Object.fromEntries(Object.entries(answers).filter(([k]) => k !== 'body'))
+    : null;
+  const otherText =
+    otherAnswers && Object.keys(otherAnswers).length > 0
+      ? JSON.stringify(otherAnswers, null, 2)
       : null;
 
   return (
     <div className="flex flex-col gap-3">
-      {answersText ? (
+      {bodyText ? (
+        <div className="p-3.5 rounded-lg bg-surface-muted border border-border text-[13px] text-ink whitespace-pre-wrap leading-relaxed max-h-80 overflow-auto">
+          {bodyText}
+        </div>
+      ) : null}
+      {otherText ? (
         <pre className="p-3.5 rounded-lg bg-surface-muted border border-border text-[12px] text-ink whitespace-pre-wrap leading-relaxed max-h-80 overflow-auto">
-          {answersText}
+          {otherText}
         </pre>
-      ) : (
+      ) : null}
+      {!bodyText && !otherText && (
         <p className="text-[13px] text-ink-muted">Текст відповіді не надано.</p>
       )}
 

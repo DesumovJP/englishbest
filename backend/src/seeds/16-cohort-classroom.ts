@@ -1381,6 +1381,34 @@ async function upsertHomework(
   return draft.documentId;
 }
 
+// Plausible default-answer bodies for cohort demos. Picked deterministically
+// by hashing (homeworkTitle + studentTag) so each row gets a stable distinct
+// body across seed re-runs.
+const DEFAULT_ANSWER_BODIES = [
+  'Hello! My name is Sofia. I am 9 years old. I like school and I like to play with my friends. Goodbye!\n\n— Hi! / Hello!\n— What is your name? / My name is Maks.\n— How are you? / I am fine, thank you.\n— Goodbye! / See you tomorrow!',
+  'My family\nmother — мама\nfather — тато\nsister — сестра\nbrother — брат\ngrandma — бабуся\ngrandpa — дідусь\n\nThis is my mother. Her name is Olha. This is my father. He is a doctor. I have one sister.',
+  '1 — one\n2 — two\n3 — three\n4 — four\n5 — five\n6 — six\n7 — seven\n8 — eight\n9 — nine\n10 — ten\n\n(Аудіозапис на платформі прикріплено окремо.)',
+  'My hobby is drawing. I started two years ago. Last weekend I drew a big picture of my cat. It took me three hours. My mum loved it and we put it on the wall. I feel happy when I draw because I forget about everything else.',
+  'Hotel role-play phrases:\n1) I have a reservation under the name Petrenko.\n2) Could I get a room with a sea view, please?\n3) What time is breakfast served?\n4) Is Wi-Fi included in the price?\n5) Could you arrange a taxi to the airport?\n6) I would like to check out, please.',
+  'The line graph illustrates changes in the number of visitors to three London museums between 2010 and 2020. Overall, the British Museum remained the most popular, while the Tate Modern saw the steepest growth, overtaking the National Gallery by 2018. In 2010, the British Museum attracted around 6 million visitors, compared with 4 million for the Tate Modern…',
+  'Subject: Apology for delayed delivery\n\nDear Mr Carter,\n\nI am writing to apologise for the delay in delivering your order #4521. Due to an issue with our supplier, the parcel will reach you on 28 April, three days later than originally agreed. As a token of our apology, we will refund the shipping cost in full. Please let me know if there is anything else I can do.\n\nKind regards,\nO. Sydorenko',
+  'Animal sounds:\n1) cat — meow\n2) dog — woof\n3) cow — moo\n4) sheep — baa\n5) duck — quack\n6) horse — neigh\n\n(Audio recording attached separately.)',
+  'Reading passage 3 — answers:\n1) TRUE\n2) FALSE\n3) NOT GIVEN\n4) TRUE\n5) FALSE\n6) NOT GIVEN\n7) TRUE\n8) NOT GIVEN\n\nNotes: Question 3 was tricky — the text mentions the topic but does not confirm the claim, so I chose NOT GIVEN.',
+];
+
+function hashString(s: string): number {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) {
+    h = (h * 31 + s.charCodeAt(i)) | 0;
+  }
+  return Math.abs(h);
+}
+
+function defaultAnswersFor(hw: HomeworkSpec, tag: string): { body: string } {
+  const idx = hashString(`${hw.title}::${tag}`) % DEFAULT_ANSWER_BODIES.length;
+  return { body: DEFAULT_ANSWER_BODIES[idx] };
+}
+
 async function applySubmissionStates(
   strapi: any,
   homeworkDocId: string,
@@ -1389,6 +1417,7 @@ async function applySubmissionStates(
 ): Promise<{ updated: number; skipped: number }> {
   let updated = 0;
   let skipped = 0;
+  const STATES_WITH_ANSWERS = new Set(['submitted', 'reviewed', 'returned']);
   for (const [tag, state] of Object.entries(hw.states)) {
     const student = cohort.get(tag);
     if (!student) {
@@ -1400,26 +1429,32 @@ async function applySubmissionStates(
         homework: { documentId: { $eq: homeworkDocId } },
         student: { documentId: { $eq: student.profileDocId } },
       },
-      fields: ['documentId', 'status'],
+      fields: ['documentId', 'status', 'answers'],
       limit: 1,
     });
     if (!sub) {
       skipped += 1;
       continue;
     }
+    const effectiveAnswers =
+      state.answers ??
+      (STATES_WITH_ANSWERS.has(state.status) ? defaultAnswersFor(hw, tag) : undefined);
+    const hasExistingAnswers =
+      (sub as any).answers && Object.keys((sub as any).answers).length > 0;
     if ((sub as any).status === state.status) {
-      // Still re-write feedback/score on idempotent runs so seed updates
-      // propagate.
-      if (state.score != null || state.teacherFeedback) {
+      // Still re-write feedback/score/answers on idempotent runs so seed
+      // updates propagate. Don't overwrite real student answers if they
+      // already exist (only fill the blank ones with synthetics).
+      const update: Record<string, unknown> = {};
+      if (state.score != null) update.score = state.score;
+      if (state.teacherFeedback) update.teacherFeedback = state.teacherFeedback;
+      if (effectiveAnswers && (state.answers || !hasExistingAnswers)) {
+        update.answers = effectiveAnswers;
+      }
+      if (Object.keys(update).length > 0) {
         await strapi.documents(SUBMISSION_UID).update({
           documentId: (sub as any).documentId,
-          data: {
-            ...(state.score != null ? { score: state.score } : {}),
-            ...(state.teacherFeedback
-              ? { teacherFeedback: state.teacherFeedback }
-              : {}),
-            ...(state.answers ? { answers: state.answers } : {}),
-          },
+          data: update,
         });
       }
       skipped += 1;
@@ -1436,7 +1471,9 @@ async function applySubmissionStates(
     }
     if (state.score != null) data.score = state.score;
     if (state.teacherFeedback) data.teacherFeedback = state.teacherFeedback;
-    if (state.answers) data.answers = state.answers;
+    if (effectiveAnswers && (state.answers || !hasExistingAnswers)) {
+      data.answers = effectiveAnswers;
+    }
     await strapi.documents(SUBMISSION_UID).update({
       documentId: (sub as any).documentId,
       data,
