@@ -128,14 +128,14 @@ export function CalendarDialog({ open, onClose }: { open: boolean; onClose: () =
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-md"
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-md pt-3 px-3 pb-[calc(env(safe-area-inset-bottom,0px)+76px)] sm:p-4"
       role="dialog"
       aria-modal="true"
       aria-label="Розклад занять"
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-3xl max-h-[calc(100dvh-1.5rem)] sm:max-h-[90vh] overflow-y-auto sm:overflow-hidden bg-white rounded-3xl shadow-card-md flex flex-col sm:flex-row"
+        className="relative w-full max-w-3xl max-h-[calc(100dvh-env(safe-area-inset-bottom,0px)-92px)] sm:max-h-[90vh] overflow-y-auto sm:overflow-hidden bg-white rounded-3xl shadow-card-md flex flex-col sm:flex-row"
         onClick={(e) => e.stopPropagation()}
       >
         <button
