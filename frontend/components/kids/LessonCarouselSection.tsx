@@ -21,7 +21,6 @@ import Link from 'next/link';
 import { fetchCourses, fetchLessonsByCourse } from '@/lib/api';
 import type { Course, Lesson, Level, LessonType } from '@/lib/types';
 import { fetchMyProgress, type UserProgressRow } from '@/lib/user-progress';
-import { LoadingState } from '@/components/ui/LoadingState';
 import { EmptyState } from '@/components/ui/EmptyState';
 
 interface Props {
@@ -428,6 +427,77 @@ function flatten(courses: CourseData[]): {
   return { nodes, currentSlug: overallCurrent, completedTotal, lessonsTotal };
 }
 
+/**
+ * Loading skeleton that matches the carousel layout exactly: course ribbon
+ * up top, then a horizontal row of 5 portrait cards with the centre one
+ * scaled up — same `clamp(240px, 56vw, 360px)` width and 3:4 aspect as the
+ * real cards. Avoids the layout shift / "wait, where's the carousel?" gap
+ * that the previous generic list skeleton caused.
+ */
+function CarouselSkeleton() {
+  // Five placeholders: outermost barely visible, mid-flank slightly bigger,
+  // centre full-size — mirrors the scroll-snap focus state.
+  const slots = [
+    { scale: 0.72, opacity: 0.35 },
+    { scale: 0.84, opacity: 0.55 },
+    { scale: 1.00, opacity: 0.85 },
+    { scale: 0.84, opacity: 0.55 },
+    { scale: 0.72, opacity: 0.35 },
+  ];
+
+  return (
+    <section
+      className="flex flex-col h-full min-h-0"
+      role="status"
+      aria-label="Завантаження уроків"
+      aria-live="polite"
+    >
+      <div className="flex items-center gap-3 px-4 py-2.5 bg-surface-muted border-b border-border flex-shrink-0">
+        <div className="w-9 h-9 rounded-lg bg-surface-raised animate-pulse flex-shrink-0" />
+        <div className="flex-1 min-w-0">
+          <div className="h-3 w-32 rounded-md bg-surface-raised animate-pulse" />
+          <div className="flex items-center gap-2 mt-1.5">
+            <div className="flex-1 h-[4px] rounded-full bg-surface-raised animate-pulse" />
+            <div className="h-3 w-9 rounded-md bg-surface-raised animate-pulse" />
+          </div>
+        </div>
+      </div>
+
+      <div
+        className="flex-1 min-h-0 flex items-center overflow-hidden"
+        style={{
+          paddingLeft: 'calc(50% - clamp(120px, 28vw, 180px))',
+          paddingRight: 'calc(50% - clamp(120px, 28vw, 180px))',
+        }}
+      >
+        <div className="flex items-center gap-4">
+          {slots.map((s, i) => (
+            <div
+              key={i}
+              className="flex-shrink-0"
+              style={{
+                width: 'clamp(240px, 56vw, 360px)',
+                aspectRatio: '3/4',
+                transform: `scale(${s.scale})`,
+                opacity: s.opacity,
+              }}
+            >
+              <div className="relative w-full h-full rounded-[28px] overflow-hidden bg-surface-muted animate-pulse">
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 px-6">
+                  <div className="w-[72px] h-[72px] rounded-full bg-surface-raised/70" />
+                  <div className="h-5 w-3/4 rounded-md bg-surface-raised/70" />
+                  <div className="h-5 w-1/2 rounded-md bg-surface-raised/70" />
+                  <div className="h-7 w-24 rounded-full bg-surface-raised/70 mt-1" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export function LessonCarouselSection({ level }: Props) {
   const [data, setData] = useState<CourseData[] | null>(null);
   const [status, setStatus] = useState<'loading' | 'ready' | 'empty' | 'error'>(
@@ -506,7 +576,7 @@ export function LessonCarouselSection({ level }: Props) {
     };
   }, [level]);
 
-  if (status === 'loading') return <LoadingState shape="list" rows={4} />;
+  if (status === 'loading') return <CarouselSkeleton />;
   if (status === 'error') {
     return (
       <EmptyState
