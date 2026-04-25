@@ -86,7 +86,16 @@ export default factories.createCoreController(RECORD_UID, ({ strapi }) => ({
       if (!profileId) return ctx.forbidden();
       scopeFilter = { student: { documentId: { $eq: profileId } } };
     }
-    return scopedFind(ctx, this, RECORD_UID, scopeFilter);
+    // Trusted populate: teachers/students/parents lack `user-profile.find`, so
+    // `sanitizeQuery` would strip `populate.student` and the FE would receive
+    // records with no studentId — making the grid render empty. We've already
+    // scoped by ownership above, so it's safe to force the relations through.
+    return scopedFind(ctx, this, RECORD_UID, scopeFilter, {
+      populate: {
+        session: { fields: ['documentId', 'startAt'] },
+        student: { fields: ['documentId'] },
+      },
+    });
   },
 
   async findOne(ctx) {

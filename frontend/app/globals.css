@@ -90,10 +90,11 @@
   --ease-in-out:   cubic-bezier(0.4, 0, 0.2, 1);
 
   /* ── Z-index layering ───────────────────────────────────────── */
-  --z-sticky:  10;
-  --z-overlay: 40;
-  --z-modal:   50;
-  --z-toast:   60;
+  /* Tailwind 4 reads z-index utilities from the --z-index-* namespace. */
+  --z-index-sticky:  10;
+  --z-index-overlay: 40;
+  --z-index-modal:   50;
+  --z-index-toast:   60;
 
   /* ── Typography scale (fluid on mobile → desktop via clamp) ─── */
   --text-display: clamp(1.75rem, 5.5vw + 0.5rem, 3.5rem); /* 28→56 */

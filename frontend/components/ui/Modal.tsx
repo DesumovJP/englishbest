@@ -40,16 +40,32 @@ export function Modal({
   children,
 }: ModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
+  const onCloseRef = useRef(onClose);
   const resolvedSize: Size = size ?? width ?? "md";
 
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  });
+
+  // Auto-focus the first focusable on open. Must depend ONLY on isOpen — if we
+  // re-run on every render (e.g. from an unstable onClose), the call to
+  // focusable[0].focus() yanks focus out of inputs after every keystroke.
   useEffect(() => {
     if (!isOpen) return;
     const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
     focusable?.[0]?.focus();
+  }, [isOpen]);
 
+  useEffect(() => {
+    if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-      if (e.key === "Tab" && focusable && focusable.length > 0) {
+      if (e.key === "Escape") {
+        onCloseRef.current();
+        return;
+      }
+      if (e.key === "Tab") {
+        const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
+        if (!focusable || focusable.length === 0) return;
         const first = focusable[0];
         const last = focusable[focusable.length - 1];
         if (e.shiftKey ? document.activeElement === first : document.activeElement === last) {
@@ -60,7 +76,7 @@ export function Modal({
     };
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, onClose]);
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen) return;
