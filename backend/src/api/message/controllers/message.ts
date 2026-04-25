@@ -14,6 +14,7 @@
  *     - delete — author or admin.
  */
 import { factories } from '@strapi/strapi';
+import { scopedFind, sanitizeOutputTrusted } from '../../../lib/scoped-find';
 
 const MESSAGE_UID = 'api::message.message';
 const THREAD_UID = 'api::thread.thread';
@@ -21,6 +22,21 @@ const PROFILE_UID = 'api::user-profile.user-profile';
 const TEACHER_UID = 'api::teacher-profile.teacher-profile';
 const GROUP_UID = 'api::group.group';
 const SESSION_UID = 'api::session.session';
+
+// Server-trusted populate for find/findOne. Author is a user-profile relation,
+// and non-admin callers (teacher, parent, student) lack `find` on user-profile,
+// so default sanitizeOutput strips author from the payload — chat list ends
+// up with no sender names. Re-injecting at the document-service layer plus
+// schema-only sanitize on the way out preserves it.
+const FIND_POPULATE: any = {
+  author: {
+    fields: ['documentId', 'firstName', 'lastName', 'displayName'],
+    populate: { avatar: { fields: ['url'] } },
+  },
+  thread: { fields: ['documentId'] },
+  readBy: { fields: ['documentId'] },
+  replyTo: { fields: ['documentId'] },
+};
 
 type BroadcastAudience = 'all-students' | 'all-parents' | 'group' | 'level';
 
@@ -85,7 +101,9 @@ export default factories.createCoreController(MESSAGE_UID, ({ strapi }) => ({
     const participants = await threadParticipantIds(strapi, threadId);
     if (!participants.includes(profileId)) return ctx.forbidden();
 
-    return (super.find as any)(ctx);
+    // Trusted populate so `author` (user-profile) survives sanitizeOutput for
+    // non-admin teachers / parents / students who lack `find` on user-profile.
+    return scopedFind(ctx, this, MESSAGE_UID, {}, { populate: FIND_POPULATE });
   },
 
   async findOne(ctx) {
@@ -95,19 +113,24 @@ export default factories.createCoreController(MESSAGE_UID, ({ strapi }) => ({
 
     const entity = await strapi.documents(MESSAGE_UID).findOne({
       documentId: ctx.params.id,
-      populate: { thread: { populate: { participants: { fields: ['documentId'] } } } },
+      populate: {
+        ...FIND_POPULATE,
+        thread: { populate: { participants: { fields: ['documentId'] } } },
+      },
     });
     if (!entity) return ctx.notFound();
 
-    if (role === 'admin') return (super.findOne as any)(ctx);
+    if (role !== 'admin') {
+      const profileId = await callerProfileId(strapi, user.id);
+      if (!profileId) return ctx.forbidden();
+      const ids: string[] = ((entity as any).thread?.participants ?? [])
+        .map((p: any) => p?.documentId)
+        .filter(Boolean);
+      if (!ids.includes(profileId)) return ctx.forbidden();
+    }
 
-    const profileId = await callerProfileId(strapi, user.id);
-    if (!profileId) return ctx.forbidden();
-    const ids: string[] = ((entity as any).thread?.participants ?? [])
-      .map((p: any) => p?.documentId)
-      .filter(Boolean);
-    if (!ids.includes(profileId)) return ctx.forbidden();
-    return (super.findOne as any)(ctx);
+    const sanitized = await sanitizeOutputTrusted(MESSAGE_UID, entity);
+    return this.transformResponse(sanitized);
   },
 
   async create(ctx) {
@@ -135,13 +158,32 @@ export default factories.createCoreController(MESSAGE_UID, ({ strapi }) => ({
       if (!participants.includes(profileId)) return ctx.forbidden();
     }
 
-    data.thread = threadId;
-    data.author = profileId;
-    delete data.readBy;
-    delete data.pinned;
-    (ctx.request.body as any).data = data;
-
-    const result = await (super.create as any)(ctx);
+    // Bypass super.create — the core controller's input sanitizer strips the
+    // `author` relation for non-admin teachers (they have findOne but not
+    // find on user-profile), which then violates the not-null DB constraint
+    // and yields a 400. Use the document service directly with the
+    // server-validated data, then transform via the controller helpers.
+    const replyToId =
+      typeof data.replyTo === 'string'
+        ? data.replyTo
+        : data.replyTo && typeof data.replyTo === 'object' && typeof (data.replyTo as any).documentId === 'string'
+          ? (data.replyTo as any).documentId
+          : null;
+    const created = await strapi.documents(MESSAGE_UID).create({
+      data: {
+        thread: threadId,
+        author: profileId,
+        body: data.body,
+        ...(replyToId ? { replyTo: replyToId } : {}),
+      },
+      populate: {
+        author: {
+          fields: ['documentId', 'firstName', 'lastName', 'displayName'],
+          populate: { avatar: { fields: ['url'] } },
+        },
+        thread: { fields: ['documentId'] },
+      },
+    });
 
     // Denormalize lastMessage* on thread.
     const bodyPreview = data.body.toString().slice(0, 280);
@@ -156,7 +198,9 @@ export default factories.createCoreController(MESSAGE_UID, ({ strapi }) => ({
     } catch (err) {
       strapi.log.warn(`[message.create] failed to update thread.lastMessage*: ${(err as Error).message}`);
     }
-    return result;
+
+    const sanitized = await sanitizeOutputTrusted(MESSAGE_UID, created);
+    return this.transformResponse(sanitized);
   },
 
   async update(ctx) {

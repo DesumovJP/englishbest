@@ -12,7 +12,7 @@
  * (teachers cannot assign groups to peers; admin bypass applies).
  */
 import { factories } from '@strapi/strapi';
-import { scopedFind } from '../../../lib/scoped-find';
+import { scopedFind, sanitizeOutputTrusted } from '../../../lib/scoped-find';
 
 const GROUP_UID = 'api::group.group';
 const PROFILE_UID = 'api::user-profile.user-profile';
@@ -112,7 +112,7 @@ export default factories.createCoreController(GROUP_UID, ({ strapi }) => ({
     }
 
     // Return with server-trusted populate so non-admins see members too.
-    const sanitized = await this.sanitizeOutput(entity, ctx);
+    const sanitized = await sanitizeOutputTrusted(GROUP_UID, entity);
     return this.transformResponse(sanitized);
   },
 

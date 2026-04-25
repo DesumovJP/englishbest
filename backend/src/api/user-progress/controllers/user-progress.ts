@@ -15,6 +15,18 @@ import { scopedFind } from '../../../lib/scoped-find';
 const PROFILE_UID = 'api::user-profile.user-profile';
 const PROGRESS_UID = 'api::user-progress.user-progress';
 
+// Server-trusted populate. Non-admin teachers lack `find` on user-profile, so
+// sanitizeQuery strips populate[user]; lesson + course are public so those
+// pass through, but pinning the spec keeps the response consistent.
+const FIND_POPULATE: any = {
+  user: { fields: ['documentId', 'firstName', 'lastName', 'displayName'] },
+  lesson: {
+    fields: ['documentId', 'slug', 'title', 'orderIndex', 'type'],
+    populate: { course: { fields: ['documentId', 'slug', 'title', 'level', 'iconEmoji'] } },
+  },
+  course: { fields: ['documentId', 'slug', 'title', 'level', 'iconEmoji'] },
+};
+
 async function callerProfileId(strapi: any, userId: number | string): Promise<string | null> {
   const [profile] = await strapi.documents(PROFILE_UID).findMany({
     filters: { user: { id: userId } },
@@ -29,6 +41,21 @@ function isStaff(ctxUser: any): boolean {
   return role === 'teacher' || role === 'admin';
 }
 
+/**
+ * Pull `filters[user]` out of `ctx.query.filters` and return it. Mutates the
+ * input ctx so validateQuery (which doesn't know about the caller's scoped
+ * permission on user-profile) can't reject it. The extracted clause is
+ * re-attached at the document-service layer via scopedFind's scopeFilter arg.
+ */
+function extractUserFilter(ctx: any): unknown | null {
+  const filters = (ctx.query as any)?.filters;
+  if (!filters || typeof filters !== 'object') return null;
+  const node = filters.user;
+  if (node === undefined) return null;
+  delete filters.user;
+  return node;
+}
+
 export default factories.createCoreController(
   'api::user-progress.user-progress',
   ({ strapi }) => ({
@@ -37,15 +64,27 @@ export default factories.createCoreController(
       if (!user) return ctx.unauthorized();
 
       if (isStaff(user)) {
-        return (super.find as any)(ctx);
+        // Staff filter by `filters[user][documentId][$eq]=<profileId>` to read
+        // a specific learner's progress. The relation is rejected by
+        // validateQuery for non-admin teachers (no `find` on user-profile),
+        // so we extract it here and re-attach as a server-side scope.
+        const userFilter = extractUserFilter(ctx);
+        const scopeFilter = userFilter ? { user: userFilter } : {};
+        return scopedFind(ctx, this, PROGRESS_UID, scopeFilter, {
+          populate: FIND_POPULATE,
+        });
       }
 
       const profileId = await callerProfileId(strapi, user.id);
       if (!profileId) return ctx.forbidden('no user-profile');
 
-      return scopedFind(ctx, this, PROGRESS_UID, {
-        user: { documentId: { $eq: profileId } },
-      });
+      return scopedFind(
+        ctx,
+        this,
+        PROGRESS_UID,
+        { user: { documentId: { $eq: profileId } } },
+        { populate: FIND_POPULATE },
+      );
     },
 
     async findOne(ctx) {

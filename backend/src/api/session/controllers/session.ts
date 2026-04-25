@@ -12,7 +12,7 @@
  * Create/update/delete is staff-only (teacher + admin).
  */
 import { factories } from '@strapi/strapi';
-import { scopedFind } from '../../../lib/scoped-find';
+import { scopedFind, sanitizeOutputTrusted } from '../../../lib/scoped-find';
 
 const SESSION_UID = 'api::session.session';
 const PROFILE_UID = 'api::user-profile.user-profile';
@@ -130,7 +130,7 @@ export default factories.createCoreController(SESSION_UID, ({ strapi }) => ({
         if (!profileId || !attIds.includes(profileId)) return ctx.forbidden();
       }
     }
-    const sanitized = await this.sanitizeOutput(entity, ctx);
+    const sanitized = await sanitizeOutputTrusted(SESSION_UID, entity);
     return this.transformResponse(sanitized);
   },
 

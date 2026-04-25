@@ -15,6 +15,9 @@
  *      populated relation's content-type (e.g. teacher reading `groups` can
  *      see own group, but has no `find` on `user-profile`, so sanitizeQuery
  *      drops `populate[members]`). Providing `populate` here restores it.
+ *      When `options.populate` is set, output sanitization runs without auth
+ *      so the trusted relations aren't stripped on the way back out
+ *      (`sanitizeOutput` would otherwise call `removeRestrictedRelations`).
  *   4. Returns a Strapi-shaped `{ data, meta.pagination }` response.
  */
 type AnyCtx = any;
@@ -31,15 +34,29 @@ export async function scopedFind(
   await controller.validateQuery(ctx);
   const sanitized: any = await controller.sanitizeQuery(ctx);
   const filters = { ...(sanitized.filters ?? {}), ...scopeFilter };
-  const populate = options.populate ?? sanitized.populate;
+  const useTrustedPopulate = options.populate !== undefined;
+  const populate = useTrustedPopulate ? options.populate : sanitized.populate;
 
   const entries = await strapi.documents(uid).findMany({ ...sanitized, filters, populate });
   const total = await strapi.documents(uid).count({ filters });
 
   const page = Number(sanitized?.pagination?.page ?? 1);
   const pageSize = Number(sanitized?.pagination?.pageSize ?? 25);
-  const sanitizedResults = await controller.sanitizeOutput(entries, ctx);
+  const sanitizedResults = useTrustedPopulate
+    ? await strapi.contentAPI.sanitize.output(entries, strapi.contentType(uid))
+    : await controller.sanitizeOutput(entries, ctx);
   return controller.transformResponse(sanitizedResults, {
     pagination: { page, pageSize, pageCount: Math.ceil(total / Math.max(pageSize, 1)), total },
   });
+}
+
+/**
+ * Schema-only output sanitize — strips `private: true` fields but DOES NOT
+ * strip relations based on the caller's read permission. Use when you have
+ * already validated the caller's authorization and want the trusted populate
+ * to flow back to the client unchanged.
+ */
+export async function sanitizeOutputTrusted(uid: string, data: unknown) {
+  const strapi = (global as any).strapi;
+  return strapi.contentAPI.sanitize.output(data, strapi.contentType(uid));
 }

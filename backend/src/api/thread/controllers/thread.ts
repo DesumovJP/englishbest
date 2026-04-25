@@ -9,10 +9,21 @@
  *   - delete — admin only.
  */
 import { factories } from '@strapi/strapi';
-import { scopedFind } from '../../../lib/scoped-find';
+import { scopedFind, sanitizeOutputTrusted } from '../../../lib/scoped-find';
 
 const THREAD_UID = 'api::thread.thread';
 const PROFILE_UID = 'api::user-profile.user-profile';
+
+// Server-trusted populate: participants (user-profile) with display + avatar.
+// Non-admin callers lack `find` on api::user-profile.user-profile, so the
+// default sanitizeOutput would strip the populate after fetch. We re-inject
+// via document-service + schema-only output sanitize.
+const FIND_POPULATE: any = {
+  participants: {
+    fields: ['documentId', 'firstName', 'lastName', 'displayName', 'level'],
+    populate: { avatar: { fields: ['url'] } },
+  },
+};
 
 function roleType(ctxUser: any): string {
   return (ctxUser?.role?.type ?? '').toLowerCase();
@@ -50,9 +61,13 @@ export default factories.createCoreController(THREAD_UID, ({ strapi }) => ({
 
     // Non-admin callers lack permission on `participants` — scopedFind applies
     // the filter at the document-service layer.
-    return scopedFind(ctx, this, THREAD_UID, {
-      participants: { documentId: { $eq: profileId } },
-    });
+    return scopedFind(
+      ctx,
+      this,
+      THREAD_UID,
+      { participants: { documentId: { $eq: profileId } } },
+      { populate: FIND_POPULATE },
+    );
   },
 
   async findOne(ctx) {
@@ -60,14 +75,23 @@ export default factories.createCoreController(THREAD_UID, ({ strapi }) => ({
     if (!user) return ctx.unauthorized();
     const role = roleType(user);
 
-    if (role === 'admin') return (super.findOne as any)(ctx);
+    const entity = await strapi.documents(THREAD_UID).findOne({
+      documentId: ctx.params.id,
+      populate: FIND_POPULATE,
+    });
+    if (!entity) return ctx.notFound();
 
-    const profileId = await callerProfileId(strapi, user.id);
-    if (!profileId) return ctx.forbidden('no user-profile');
+    if (role !== 'admin') {
+      const profileId = await callerProfileId(strapi, user.id);
+      if (!profileId) return ctx.forbidden('no user-profile');
+      const ids: string[] = ((entity as any).participants ?? [])
+        .map((p: any) => p?.documentId)
+        .filter((x: unknown): x is string => typeof x === 'string');
+      if (!ids.includes(profileId)) return ctx.forbidden();
+    }
 
-    const ok = await isParticipant(strapi, ctx.params.id, profileId);
-    if (!ok) return ctx.forbidden();
-    return (super.findOne as any)(ctx);
+    const sanitized = await sanitizeOutputTrusted(THREAD_UID, entity);
+    return this.transformResponse(sanitized);
   },
 
   async create(ctx) {
