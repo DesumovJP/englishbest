@@ -128,20 +128,20 @@ export function CalendarDialog({ open, onClose }: { open: boolean; onClose: () =
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-md"
       role="dialog"
       aria-modal="true"
       aria-label="Розклад занять"
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-3xl max-h-[90vh] overflow-hidden bg-white rounded-3xl shadow-card-md flex flex-col sm:flex-row"
+        className="relative w-full max-w-3xl max-h-[calc(100dvh-1.5rem)] sm:max-h-[90vh] overflow-y-auto sm:overflow-hidden bg-white rounded-3xl shadow-card-md flex flex-col sm:flex-row"
         onClick={(e) => e.stopPropagation()}
       >
         <button
           type="button"
           onClick={onClose}
-          className="absolute top-3 right-3 z-10 w-9 h-9 rounded-full bg-surface-muted hover:bg-border flex items-center justify-center transition-colors"
+          className="absolute top-3 right-3 z-20 w-9 h-9 rounded-full bg-white shadow-card-md hover:bg-surface-muted flex items-center justify-center transition-colors"
           aria-label="Закрити"
         >
           <svg className="w-4 h-4 text-ink" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" aria-hidden>
@@ -150,7 +150,7 @@ export function CalendarDialog({ open, onClose }: { open: boolean; onClose: () =
         </button>
 
         <div className="flex-1 p-5 sm:p-6 border-b sm:border-b-0 sm:border-r border-border">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-4 pr-12 sm:pr-0">
             <button
               type="button"
               onClick={prevMonth}
@@ -209,7 +209,7 @@ export function CalendarDialog({ open, onClose }: { open: boolean; onClose: () =
           </div>
         </div>
 
-        <div className="flex-1 p-5 sm:p-6 overflow-y-auto min-h-[220px]">
+        <div className="flex-1 p-5 sm:p-6 sm:overflow-y-auto sm:min-h-[220px]">
           <div className="mb-3">
             <p className="font-black uppercase tracking-widest text-[10px] text-ink-faint">
               {selectedISO === todayISO ? 'Сьогодні' : WEEKDAYS_UA[selectedDate.getDay()]}

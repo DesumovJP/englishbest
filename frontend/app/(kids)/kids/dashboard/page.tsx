@@ -113,14 +113,16 @@ function MobileTopHud({
   const weekday = WEEKDAYS_UA[now.getDay()];
   const canAffordBox = freeBoxes > 0 || coins >= 50;
 
+  const showStreak = streak >= 3;
+
   return (
-    <div className="sm:hidden absolute z-20 top-[env(safe-area-inset-top,8px)] left-2 right-2 flex items-stretch gap-1.5">
-      {/* Calendar — wide with date chip + title + weekday */}
+    <div className="sm:hidden absolute z-20 top-[calc(env(safe-area-inset-top,0px)+12px)] left-2 right-2 flex items-stretch gap-1.5">
+      {/* Calendar — wide with date chip + title + weekday + (optional) streak */}
       <button
         type="button"
         onClick={onOpenCalendar}
-        aria-label="Розклад"
-        className="flex-1 min-w-0 h-12 rounded-2xl bg-surface-raised/95 backdrop-blur-sm shadow-card-md flex items-center gap-2 pl-1.5 pr-3 active:scale-[0.97] transition-transform"
+        aria-label={showStreak ? `Розклад · стрік ${streak} днів` : 'Розклад'}
+        className="flex-1 min-w-0 h-12 rounded-2xl bg-surface-raised/95 backdrop-blur-sm shadow-card-md flex items-center gap-2 pl-1.5 pr-2.5 active:scale-[0.97] transition-transform"
       >
         <span className="flex-shrink-0 w-9 h-9 rounded-xl bg-danger flex flex-col items-center justify-center shadow-[0_2px_0_rgba(185,28,28,0.8)]">
           <span className="font-black text-white leading-none text-[13px] tabular-nums">{day}</span>
@@ -130,17 +132,12 @@ function MobileTopHud({
           <span className="block font-black text-[13px] text-ink leading-tight truncate">Розклад</span>
           <span className="block text-[10px] text-ink-muted leading-tight truncate">{weekday}, сьогодні</span>
         </span>
-      </button>
-
-      {/* Streak */}
-      <button
-        type="button"
-        onClick={onOpenCalendar}
-        aria-label={`Стрік ${streak} днів`}
-        className="h-12 px-2.5 rounded-2xl bg-surface-raised/95 backdrop-blur-sm shadow-card-md flex items-center gap-1 active:scale-[0.97] transition-transform"
-      >
-        <span className="text-[18px] leading-none" aria-hidden>🔥</span>
-        <span className="font-black text-[15px] text-accent-dark leading-none tabular-nums">{streak}</span>
+        {showStreak && (
+          <span className="flex items-center gap-1 pl-2 ml-0.5 border-l border-border/70 flex-shrink-0">
+            <span className="text-[15px] leading-none" aria-hidden>🔥</span>
+            <span className="font-black text-[13px] text-accent-dark leading-none tabular-nums">{streak}</span>
+          </span>
+        )}
       </button>
 
       {/* Daily goals */}
@@ -155,27 +152,18 @@ function MobileTopHud({
         <span aria-hidden className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-danger" />
       </button>
 
-      {/* Mystery box */}
+      {/* Mystery box — image-only on mobile (no price) */}
       <button
         type="button"
         onClick={onOpenBox}
         aria-label="Mystery Box"
-        className="relative h-12 px-2 rounded-2xl bg-surface-raised/95 backdrop-blur-sm shadow-card-md flex items-center gap-1 active:scale-[0.97] transition-transform"
+        className="relative h-12 w-12 rounded-2xl bg-surface-raised/95 backdrop-blur-sm shadow-card-md flex items-center justify-center active:scale-[0.97] transition-transform"
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/mystery-box.png" alt="" aria-hidden width={22} height={22}
-          className={`object-contain ${canAffordBox ? '' : 'grayscale opacity-60'}`}
+          src="/mystery-box.png" alt="" aria-hidden width={28} height={28}
+          className={`w-7 h-7 object-contain ${canAffordBox ? '' : 'grayscale opacity-60'}`}
         />
-        {freeBoxes > 0 ? (
-          <span className="font-black text-[11px] text-purple leading-none">FREE</span>
-        ) : (
-          <>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/coin.png" alt="" aria-hidden width={12} height={12} className="object-contain" />
-            <span className="font-black text-[12px] text-accent-dark leading-none tabular-nums">50</span>
-          </>
-        )}
         {freeBoxes > 0 && (
           <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-1 rounded-full bg-purple text-white font-black text-[9px] flex items-center justify-center ring-2 ring-surface-raised">
             {freeBoxes}
@@ -378,14 +366,14 @@ export default function KidsDashboardPage() {
       )}
 
       {/* Desktop/tablet HUD — left column */}
-      <div className="hidden sm:flex absolute z-20 flex-col gap-2 md:gap-2.5 top-[env(safe-area-inset-top,10px)] md:top-[env(safe-area-inset-top,14px)] left-2 md:left-3 w-[min(185px,42vw)] md:w-[min(210px,46vw)]">
+      <div className="hidden sm:flex absolute z-20 flex-col gap-2 md:gap-2.5 top-[calc(env(safe-area-inset-top,0px)+18px)] md:top-[calc(env(safe-area-inset-top,0px)+24px)] left-3 md:left-4 w-[min(185px,42vw)] md:w-[min(210px,46vw)]">
         <CalendarWidget />
         {streak >= 3 && <StreakWidget streak={streak} />}
         <LootBoxWidget coins={coins} freeBoxes={freeBoxes} onOpen={() => setOpenBox("common")} />
       </div>
 
       {/* Desktop/tablet HUD — right column: continue-lesson */}
-      <div className="hidden sm:flex absolute z-20 flex-col gap-2 md:gap-2.5 top-[env(safe-area-inset-top,10px)] md:top-[env(safe-area-inset-top,14px)] right-2 md:right-3 w-[min(200px,42vw)] md:w-[min(230px,48vw)]">
+      <div className="hidden sm:flex absolute z-20 flex-col gap-2 md:gap-2.5 top-[calc(env(safe-area-inset-top,0px)+18px)] md:top-[calc(env(safe-area-inset-top,0px)+24px)] right-3 md:right-4 w-[min(200px,42vw)] md:w-[min(230px,48vw)]">
         <ContinueLessonWidget compact />
       </div>
 
@@ -399,7 +387,7 @@ export default function KidsDashboardPage() {
       />
 
       {/* Mobile continue-lesson ribbon — above bottom nav */}
-      <div className="sm:hidden absolute z-20 left-2 right-2 bottom-[calc(env(safe-area-inset-bottom,0px)+72px)]">
+      <div className="sm:hidden absolute z-20 left-2 right-2 bottom-[calc(env(safe-area-inset-bottom,0px)+84px)]">
         <ContinueLessonWidget compact />
       </div>
 
