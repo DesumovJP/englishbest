@@ -161,14 +161,14 @@ export default function HomePage() {
 
             {/* Right column — fox mascot */}
             <div className="relative">
-              <div className="relative rounded-[2rem] bg-gradient-to-br from-primary/10 via-surface to-accent/10 border border-border p-6 sm:p-10 overflow-hidden aspect-square flex items-center justify-center">
+              <div className="relative mx-auto max-w-[440px] lg:max-w-none rounded-[2rem] bg-gradient-to-br from-primary/10 via-surface to-accent/10 border border-border p-5 sm:p-8 lg:p-10 overflow-hidden aspect-[4/3] sm:aspect-[5/4] lg:aspect-square flex items-center justify-center">
                 <div aria-hidden className="pointer-events-none absolute -top-10 -right-10 w-48 h-48 rounded-full bg-primary/15 blur-3xl" />
                 <div aria-hidden className="pointer-events-none absolute -bottom-12 -left-8 w-56 h-56 rounded-full bg-accent/15 blur-3xl" />
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src="/characters/fox/hi.png"
                   alt="Лисеня EnglishBest"
-                  className="relative w-full max-w-[360px] object-contain drop-shadow-[0_20px_40px_rgba(21,128,61,0.25)]"
+                  className="relative w-full max-w-[260px] sm:max-w-[320px] lg:max-w-[360px] object-contain drop-shadow-[0_20px_40px_rgba(21,128,61,0.25)]"
                 />
               </div>
             </div>
@@ -236,9 +236,9 @@ export default function HomePage() {
             </div>
 
             {/* Bento: 6-col grid. Featured card spans 3, small cards 3. */}
-            <div className="grid grid-cols-1 md:grid-cols-6 gap-4 auto-rows-fr">
+            <div className="grid grid-cols-1 md:grid-cols-6 gap-4 md:auto-rows-fr">
               {/* Featured card */}
-              <div className="md:col-span-3 md:row-span-2 relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary to-primary-dark p-8 flex flex-col justify-between min-h-[300px]">
+              <div className="md:col-span-3 md:row-span-2 relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary to-primary-dark p-7 sm:p-8 flex flex-col justify-between min-h-[280px] md:min-h-[320px]">
                 <div aria-hidden className="pointer-events-none absolute -top-16 -right-16 w-60 h-60 rounded-full bg-white/10 blur-2xl" />
                 <div aria-hidden className="pointer-events-none absolute -bottom-16 -left-12 w-60 h-60 rounded-full bg-white/10 blur-2xl" />
 
@@ -322,21 +322,25 @@ export default function HomePage() {
               ].map(item => (
                 <div
                   key={item.n}
-                  className="md:col-span-3 bg-surface border border-border rounded-3xl p-6 flex items-center gap-4 hover:border-primary/30 transition-colors"
+                  className="md:col-span-3 group relative overflow-hidden bg-surface border border-border rounded-3xl p-6 sm:p-7 transition-all hover:border-primary/40 hover:shadow-card-md"
                 >
-                  <div className={`flex-shrink-0 w-11 h-11 rounded-xl flex items-center justify-center ${item.iconBg}`}>
-                    <span className="w-5 h-5 block">{item.icon}</span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-black text-ink-faint uppercase tracking-widest tabular-nums">
-                        {item.n}
-                      </span>
-                      <span className="h-px flex-1 bg-border" aria-hidden />
+                  {/* Decorative gradient blob — only visible on hover */}
+                  <div
+                    aria-hidden
+                    className="pointer-events-none absolute -top-20 -right-20 w-44 h-44 rounded-full bg-primary/0 group-hover:bg-primary/10 blur-3xl transition-colors"
+                  />
+
+                  <div className="relative flex items-start justify-between gap-3 mb-5">
+                    <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center ring-1 ring-black/[0.04] ${item.iconBg}`}>
+                      <span className="w-6 h-6 sm:w-7 sm:h-7 block">{item.icon}</span>
                     </div>
-                    <h3 className="font-black text-ink text-[15px] leading-snug mt-2">{item.title}</h3>
-                    <p className="text-[12.5px] text-ink-muted leading-relaxed mt-1">{item.sub}</p>
+                    <span className="inline-flex items-center px-2.5 h-6 rounded-full bg-surface-muted text-ink-faint font-black text-[10px] tracking-widest uppercase tabular-nums whitespace-nowrap">
+                      Принцип {item.n}
+                    </span>
                   </div>
+
+                  <h3 className="relative font-black text-ink text-[17px] sm:text-[19px] leading-tight tracking-tight">{item.title}</h3>
+                  <p className="relative text-[13.5px] sm:text-sm text-ink-muted leading-relaxed mt-2">{item.sub}</p>
                 </div>
               ))}
             </div>
@@ -592,7 +596,7 @@ export default function HomePage() {
               Онлайн-школа англійської для дітей та підлітків з 2019 року.
             </p>
           </div>
-          <div className="grid grid-cols-3 gap-10">
+          <div className="grid grid-cols-3 gap-6 sm:gap-10">
             {[
               { title: 'Навчання', links: ['Вчителі', 'Розклад', 'Ціни'] },
               { title: 'Компанія', links: ['Про нас', 'Блог', 'Вакансії'] },
@@ -611,7 +615,7 @@ export default function HomePage() {
             ))}
           </div>
         </div>
-        <div className={`${W} border-t border-white/10 mt-10 pt-6 flex items-center justify-between`}>
+        <div className={`${W} border-t border-white/10 mt-10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3`}>
           <p className="text-white/25 text-[11px]">© 2026 EnglishBest</p>
           <div className="flex gap-4">
             {['Instagram', 'Facebook', 'TikTok', 'Threads'].map(s => (
