@@ -1,9 +1,11 @@
 'use client';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useSession } from '@/lib/session-context';
 import {
-  fetchTeacherMonthSessions,
-  fetchMonthAttendance,
+  fetchTeacherMonthSessionsCached,
+  fetchMonthAttendanceCached,
+  peekTeacherMonthSessions,
+  peekMonthAttendance,
   upsertAttendance,
   deleteAttendance,
   type AttendanceRecord,
@@ -82,40 +84,34 @@ export default function AttendancePage() {
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth());
 
-  const [sessions, setSessions] = useState<SessionLite[]>([]);
-  const [records, setRecords] = useState<AttendanceRecord[]>([]);
-  const [loading, setLoading] = useState(false);
+  const cachedSessions = teacherId ? peekTeacherMonthSessions(teacherId, year, month) : null;
+  const cachedRecords = peekMonthAttendance(year, month);
+  const cachedAvailable = cachedSessions !== null && cachedRecords !== null;
+
+  const [sessions, setSessions] = useState<SessionLite[]>(cachedSessions ?? []);
+  const [records, setRecords] = useState<AttendanceRecord[]>(cachedRecords ?? []);
+  const [loading, setLoading] = useState(!cachedAvailable);
   const [error, setError] = useState<string | null>(null);
 
   const days = daysInMonth(year, month);
   const todayStr = dateKey(today.getFullYear(), today.getMonth(), today.getDate());
 
-  const loadData = useCallback(async () => {
-    if (!teacherId) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const [ss, rs] = await Promise.all([
-        fetchTeacherMonthSessions(teacherId, year, month),
-        fetchMonthAttendance(year, month),
-      ]);
-      setSessions(ss);
-      setRecords(rs);
-    } catch (e: any) {
-      setError(e?.message ?? 'Не вдалось завантажити дані');
-    } finally {
-      setLoading(false);
-    }
-  }, [teacherId, year, month]);
-
   useEffect(() => {
     let alive = true;
     if (!teacherId) return;
-    setLoading(true);
+    const peekedSessions = peekTeacherMonthSessions(teacherId, year, month);
+    const peekedRecords = peekMonthAttendance(year, month);
+    if (peekedSessions !== null && peekedRecords !== null) {
+      setSessions(peekedSessions);
+      setRecords(peekedRecords);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
     setError(null);
     Promise.all([
-      fetchTeacherMonthSessions(teacherId, year, month),
-      fetchMonthAttendance(year, month),
+      fetchTeacherMonthSessionsCached(teacherId, year, month),
+      fetchMonthAttendanceCached(year, month),
     ])
       .then(([ss, rs]) => {
         if (!alive) return;

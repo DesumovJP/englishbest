@@ -6,9 +6,15 @@
  * lifecycle; carries answers, submittedAt, score, teacherFeedback.
  *
  * Both hit their respective `/api/*` proxies which forward the auth cookie
- * to Strapi. No module-level cache — submissions mutate often and teachers
- * expect fresh state per page-view.
+ * to Strapi.
+ *
+ * SWR layer (`fetch*Cached`/`peek*`) keeps tab-back navigation instant.
+ * 30s TTL drives stale-while-revalidate for changes from elsewhere; every
+ * mutation (create/update/grade/delete/publish) calls the matching
+ * `reset*Cache()` so the next read sees fresh data.
  */
+
+import { createCachedFetcher } from "./data-cache";
 
 export type HomeworkStatus = 'draft' | 'published' | 'closed' | 'archived';
 export type SubmissionStatus =
@@ -176,6 +182,16 @@ export async function fetchSubmissions(): Promise<Submission[]> {
     .filter((s): s is Submission => s !== null);
 }
 
+const submissionsCache = createCachedFetcher<Submission[]>({
+  key: 'submissions',
+  ttlMs: 30 * 1000,
+  fetch: fetchSubmissions,
+});
+
+export const fetchSubmissionsCached = submissionsCache.get;
+export const peekSubmissions = submissionsCache.peek;
+export const resetSubmissionsCache = submissionsCache.reset;
+
 export async function fetchSubmission(documentId: string): Promise<Submission | null> {
   const res = await fetch(`/api/homework-submissions/${documentId}?${LIST_QUERY}`, { cache: 'no-store' });
   if (!res.ok) {
@@ -205,6 +221,7 @@ export async function gradeSubmission(
   const json = await res.json().catch(() => ({}));
   const n = normalizeSubmission(json?.data);
   if (!n) throw new Error('gradeSubmission: malformed response');
+  resetSubmissionsCache();
   return n;
 }
 
@@ -227,6 +244,7 @@ export async function updateMySubmission(
   const json = await res.json().catch(() => ({}));
   const n = normalizeSubmission(json?.data);
   if (!n) throw new Error('updateMySubmission: malformed response');
+  resetSubmissionsCache();
   return n;
 }
 
@@ -277,6 +295,21 @@ export async function fetchHomeworks(): Promise<Homework[]> {
     .filter((h): h is Homework => h !== null);
 }
 
+const homeworksCache = createCachedFetcher<Homework[]>({
+  key: 'homeworks',
+  ttlMs: 30 * 1000,
+  fetch: fetchHomeworks,
+});
+
+export const fetchHomeworksCached = homeworksCache.get;
+export const peekHomeworks = homeworksCache.peek;
+export const resetHomeworksCache = homeworksCache.reset;
+
+function invalidateHomeworkCaches(): void {
+  homeworksCache.reset();
+  submissionsCache.reset();
+}
+
 export interface HomeworkInput {
   title: string;
   description?: string;
@@ -297,6 +330,7 @@ export async function createHomework(input: HomeworkInput): Promise<Homework> {
   const json = await res.json().catch(() => ({}));
   const n = normalizeHomeworkFull(json?.data);
   if (!n) throw new Error('createHomework: malformed response');
+  invalidateHomeworkCaches();
   return n;
 }
 
@@ -310,6 +344,7 @@ export async function publishHomework(documentId: string): Promise<Homework> {
   const json = await res.json().catch(() => ({}));
   const n = normalizeHomeworkFull(json?.data);
   if (!n) throw new Error('publishHomework: malformed response');
+  invalidateHomeworkCaches();
   return n;
 }
 
@@ -334,12 +369,14 @@ export async function updateHomework(
   const json = await res.json().catch(() => ({}));
   const n = normalizeHomeworkFull(json?.data);
   if (!n) throw new Error('updateHomework: malformed response');
+  invalidateHomeworkCaches();
   return n;
 }
 
 export async function deleteHomework(documentId: string): Promise<void> {
   const res = await fetch(`/api/homeworks/${documentId}`, { method: 'DELETE' });
   if (!res.ok) throw new Error(`deleteHomework ${res.status}`);
+  invalidateHomeworkCaches();
 }
 
 function toHomeworkPayload(input: HomeworkInput): Record<string, unknown> {

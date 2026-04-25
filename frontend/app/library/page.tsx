@@ -7,7 +7,7 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { fetchCourses } from '@/lib/api';
+import { fetchCoursesCached, peekCourses } from '@/lib/api';
 import type { Course, Level } from '@/lib/types';
 
 type SortKey = 'rating' | 'lessons' | 'reviews';
@@ -38,7 +38,10 @@ function lessonsCountOf(course: Course): number {
 }
 
 export default function LibraryPage() {
-  const [courses,  setCourses]  = useState<Course[] | null>(null);
+  // Hydrate synchronously from the module-level cache so a return-visit
+  // skips the loading state entirely.
+  const cached = peekCourses({ kind: 'course' });
+  const [courses,  setCourses]  = useState<Course[] | null>(cached);
   const [error,    setError]    = useState<string | null>(null);
   const [level,    setLevel]    = useState<Level | 'Всі'>('Всі');
   const [query,    setQuery]    = useState('');
@@ -46,7 +49,7 @@ export default function LibraryPage() {
 
   useEffect(() => {
     let alive = true;
-    fetchCourses({ kind: 'course' })
+    fetchCoursesCached({ kind: 'course' })
       .then((rows) => { if (alive) setCourses(rows); })
       .catch((e) => { if (alive) setError(e instanceof Error ? e.message : 'failed'); });
     return () => { alive = false; };
@@ -56,6 +59,7 @@ export default function LibraryPage() {
     const rows = courses ?? [];
     return rows
       .filter((p) => {
+        if (p.status === 'comingSoon' || p.status === 'archived') return false;
         const matchLevel = level === 'Всі' || p.level === level;
         const matchQuery = query === '' || p.title.toLowerCase().includes(query.toLowerCase());
         return matchLevel && matchQuery;

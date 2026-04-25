@@ -10,8 +10,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
-import { fetchMyStudents, type TeacherStudent } from '@/lib/teacher-students';
-import { fetchGroups, type Group as TeacherGroup } from '@/lib/groups';
+import { fetchMyStudentsCached, type TeacherStudent } from '@/lib/teacher-students';
+import { fetchGroupsCached, type Group as TeacherGroup } from '@/lib/groups';
 import { broadcastMessage, type BroadcastAudience } from '@/lib/messaging';
 
 type Level = 'A0' | 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2';
@@ -50,7 +50,7 @@ export function MassMessageModal({ open, onClose, onSent }: MassMessageModalProp
     let alive = true;
     setLoadStatus('loading');
     setError(null);
-    Promise.all([fetchMyStudents(), fetchGroups()])
+    Promise.all([fetchMyStudentsCached(), fetchGroupsCached()])
       .then(([st, gr]) => {
         if (!alive) return;
         setStudents(st);

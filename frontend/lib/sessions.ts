@@ -211,6 +211,64 @@ export async function fetchSessions(
   return rows.map(normalize).filter((s): s is Session => s !== null);
 }
 
+// ─── Range-keyed SWR cache ──────────────────────────────────────────────────
+//
+// The schedule UI mounts/unmounts as the user navigates between tabs and
+// shifts week/month/day. Each unique range hits this cache; a fresh entry
+// (<10 s) is returned synchronously, otherwise a network round-trip refreshes
+// it. Mutations (create/update/delete) call `invalidateSessionsCache()` so the
+// next read is authoritative.
+
+interface CachedSessionsEntry {
+  rows: Session[];
+  storedAt: number;
+}
+
+const SESSIONS_TTL_MS = 10_000;
+const sessionsCache = new Map<string, CachedSessionsEntry>();
+const sessionsInflight = new Map<string, Promise<Session[]>>();
+
+function rangeKey(filter?: SessionRangeFilter): string {
+  if (!filter) return "*";
+  const status = Array.isArray(filter.status)
+    ? filter.status.slice().sort().join(",")
+    : (filter.status ?? "");
+  return `${filter.fromISO ?? ""}..${filter.toISO ?? ""}|${status}`;
+}
+
+export function peekSessions(filter?: SessionRangeFilter): Session[] | null {
+  const entry = sessionsCache.get(rangeKey(filter));
+  return entry ? entry.rows : null;
+}
+
+export async function fetchSessionsCached(
+  filter?: SessionRangeFilter,
+): Promise<Session[]> {
+  const key = rangeKey(filter);
+  const cached = sessionsCache.get(key);
+  if (cached && Date.now() - cached.storedAt < SESSIONS_TTL_MS) {
+    return cached.rows;
+  }
+  const inflight = sessionsInflight.get(key);
+  if (inflight) return inflight;
+  const p = fetchSessions(filter)
+    .then((rows) => {
+      sessionsCache.set(key, { rows, storedAt: Date.now() });
+      return rows;
+    })
+    .finally(() => {
+      sessionsInflight.delete(key);
+    });
+  sessionsInflight.set(key, p);
+  return p;
+}
+
+/** Drop every cached range. Call after create/update/delete. */
+export function invalidateSessionsCache(): void {
+  sessionsCache.clear();
+  sessionsInflight.clear();
+}
+
 export async function fetchSession(documentId: string): Promise<Session | null> {
   const res = await fetch(
     `/api/sessions/${documentId}?${POPULATE_QUERY}`,
@@ -262,6 +320,7 @@ export async function createSession(input: SessionInput): Promise<Session> {
   const json = await res.json().catch(() => ({}));
   const normalized = normalize(json?.data);
   if (!normalized) throw new Error("createSession: malformed response");
+  invalidateSessionsCache();
   return normalized;
 }
 
@@ -278,12 +337,14 @@ export async function updateSession(
   const json = await res.json().catch(() => ({}));
   const normalized = normalize(json?.data);
   if (!normalized) throw new Error("updateSession: malformed response");
+  invalidateSessionsCache();
   return normalized;
 }
 
 export async function deleteSession(documentId: string): Promise<void> {
   const res = await fetch(`/api/sessions/${documentId}`, { method: "DELETE" });
   if (!res.ok) throw new Error(`deleteSession ${res.status}`);
+  invalidateSessionsCache();
 }
 
 export function splitStartAt(startAt: string): { date: string; time: string } {

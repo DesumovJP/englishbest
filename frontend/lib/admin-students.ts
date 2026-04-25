@@ -8,6 +8,7 @@
 
 import type { GroupLevel } from '@/lib/groups';
 import type { TeacherStudentStatus } from '@/lib/teacher-students';
+import { createCachedFetcher } from './data-cache';
 
 export type AdminStudentRole = 'kids' | 'adult';
 
@@ -102,3 +103,13 @@ export async function fetchAdminStudents(): Promise<AdminStudent[]> {
     .map(normalize)
     .filter((s): s is AdminStudent => s !== null);
 }
+
+const adminStudentsCache = createCachedFetcher<AdminStudent[]>({
+  key: 'admin-students',
+  ttlMs: 60 * 1000,
+  fetch: fetchAdminStudents,
+});
+
+export const fetchAdminStudentsCached = adminStudentsCache.get;
+export const peekAdminStudents = adminStudentsCache.peek;
+export const resetAdminStudentsCache = adminStudentsCache.reset;

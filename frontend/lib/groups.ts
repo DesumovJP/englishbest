@@ -3,9 +3,15 @@
  *
  * Hits the `/api/groups` proxy which forwards auth cookie → Strapi. Backend
  * controller scopes by role (teacher sees own, student/parent sees members-of,
- * admin sees all). No module-level cache — groups mutate often and per-view
- * staleness would mislead teachers.
+ * admin sees all).
+ *
+ * SWR layer (`fetchGroupsCached` + `peekGroups`) keeps tab-back navigation
+ * instant. Mutations call `resetGroupsCache()` so create/update/delete are
+ * visible on the next read. 30s TTL covers stale-while-revalidate refresh
+ * for changes made elsewhere.
  */
+
+import { createCachedFetcher } from "./data-cache";
 
 export type GroupLevel = "A0" | "A1" | "A2" | "B1" | "B2" | "C1" | "C2";
 
@@ -143,6 +149,16 @@ export async function fetchGroups(): Promise<Group[]> {
   return rows.map(normalize).filter((g): g is Group => g !== null);
 }
 
+const groupsCache = createCachedFetcher<Group[]>({
+  key: "groups",
+  ttlMs: 30 * 1000,
+  fetch: fetchGroups,
+});
+
+export const fetchGroupsCached = groupsCache.get;
+export const peekGroups = groupsCache.peek;
+export const resetGroupsCache = groupsCache.reset;
+
 export async function fetchGroup(documentId: string): Promise<Group | null> {
   const res = await fetch(`/api/groups/${documentId}?${LIST_QUERY}`, { cache: "no-store" });
   if (!res.ok) {
@@ -173,6 +189,7 @@ export async function createGroup(input: GroupInput): Promise<Group> {
   const json = await res.json().catch(() => ({}));
   const normalized = normalize(json?.data);
   if (!normalized) throw new Error("createGroup: malformed response");
+  resetGroupsCache();
   return normalized;
 }
 
@@ -189,12 +206,14 @@ export async function updateGroup(
   const json = await res.json().catch(() => ({}));
   const normalized = normalize(json?.data);
   if (!normalized) throw new Error("updateGroup: malformed response");
+  resetGroupsCache();
   return normalized;
 }
 
 export async function deleteGroup(documentId: string): Promise<void> {
   const res = await fetch(`/api/groups/${documentId}`, { method: "DELETE" });
   if (!res.ok) throw new Error(`deleteGroup ${res.status}`);
+  resetGroupsCache();
 }
 
 function toPayload(input: Partial<GroupInput>): Record<string, unknown> {

@@ -15,8 +15,8 @@ import {
   type Session,
   type SessionType,
 } from '@/lib/sessions';
-import { fetchMyStudents, type TeacherStudent } from '@/lib/teacher-students';
-import { fetchGroups, type Group as TeacherGroup } from '@/lib/groups';
+import { fetchMyStudentsCached, type TeacherStudent } from '@/lib/teacher-students';
+import { fetchGroupsCached, type Group as TeacherGroup } from '@/lib/groups';
 
 interface CreateLessonModalProps {
   open: boolean;
@@ -81,7 +81,7 @@ export function CreateLessonModal({
       setTargetId(defaultTarget.id);
       setType(defaultTypeForTarget(defaultTarget.type));
     }
-    Promise.all([fetchMyStudents(), fetchGroups()])
+    Promise.all([fetchMyStudentsCached(), fetchGroupsCached()])
       .then(([st, gr]) => {
         if (!alive) return;
         setStudents(st);

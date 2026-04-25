@@ -17,7 +17,7 @@ import {
   type Group,
   type GroupLevel,
 } from '@/lib/groups';
-import { fetchMyStudents, type TeacherStudent } from '@/lib/teacher-students';
+import { fetchMyStudentsCached, type TeacherStudent } from '@/lib/teacher-students';
 
 interface CreateGroupModalProps {
   open: boolean;
@@ -62,7 +62,7 @@ export function CreateGroupModal({
     let alive = true;
     setLoadStatus('loading');
     setError(null);
-    fetchMyStudents()
+    fetchMyStudentsCached()
       .then((rows) => {
         if (!alive) return;
         setStudents(rows);

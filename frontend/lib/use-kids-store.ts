@@ -22,16 +22,16 @@ import {
   PlacedItem,
   DEFAULT_STATE,
 } from "./kids-store";
-import { fetchRooms, ServerRoom } from "./rooms";
-import { fetchCharacters, ServerCharacter } from "./character-catalog";
-import { fetchShopItems, ServerShopItem } from "./shop-items";
+import { fetchRooms, peekRooms, ServerRoom } from "./rooms";
+import { fetchCharacters, peekCharacters, ServerCharacter } from "./character-catalog";
+import { fetchShopItems, peekShopItems, ServerShopItem } from "./shop-items";
 import {
   fetchAchievements,
   fetchUserAchievements,
   ServerAchievement,
   ServerUserAchievement,
 } from "./achievements";
-import { fetchLibraryItems, LibraryItem } from "./library";
+import { fetchLibraryItems, peekLibraryItems, LibraryItem } from "./library";
 
 // ─── useCustomItems ───────────────────────────────────────────────────────────
 
@@ -102,8 +102,12 @@ export function useCustomRooms() {
 // is manually reset.
 
 export function useRoomCatalog() {
-  const [rooms, setRooms] = useState<ServerRoom[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Synchronous hydration from module-level cache: if a previous mount on this
+  // page-load already fetched the catalog, render immediately without flashing
+  // a skeleton. Background revalidate via `fetchRooms()` keeps it fresh.
+  const cached = peekRooms();
+  const [rooms, setRooms] = useState<ServerRoom[]>(cached ?? []);
+  const [loading, setLoading] = useState(cached === null);
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
@@ -134,8 +138,9 @@ export function useRoomCatalog() {
 // CharacterAvatar auto-renders admin-added characters.
 
 export function useCharacterCatalog() {
-  const [characters, setCharacters] = useState<ServerCharacter[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cached = peekCharacters();
+  const [characters, setCharacters] = useState<ServerCharacter[]>(cached ?? []);
+  const [loading, setLoading] = useState(cached === null);
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
@@ -166,8 +171,9 @@ export function useCharacterCatalog() {
 // equipped-overlay lookups resolve admin-uploaded items without a redeploy.
 
 export function useShopCatalog() {
-  const [items, setItems] = useState<ServerShopItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cached = peekShopItems();
+  const [items, setItems] = useState<ServerShopItem[]>(cached ?? []);
+  const [loading, setLoading] = useState(cached === null);
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
@@ -197,8 +203,9 @@ export function useShopCatalog() {
 // One call per page mount, cached at module level.
 
 export function useLibrary() {
-  const [items, setItems] = useState<LibraryItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cached = peekLibraryItems();
+  const [items, setItems] = useState<LibraryItem[]>(cached ?? []);
+  const [loading, setLoading] = useState(cached === null);
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {

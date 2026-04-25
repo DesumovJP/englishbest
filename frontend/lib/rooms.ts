@@ -61,4 +61,5 @@ const cache = createCachedFetcher<ServerRoom[]>({
 });
 
 export const fetchRooms = cache.get;
+export const peekRooms = cache.peek;
 export const resetRoomsCache = cache.reset;

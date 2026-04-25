@@ -2,7 +2,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  fetchGroups,
+  fetchGroupsCached,
+  peekGroups,
   type Group,
   type GroupMember,
 } from '@/lib/groups';
@@ -18,8 +19,9 @@ import { Avatar } from '@/components/ui/Avatar';
 export default function GroupsPage() {
   const router = useRouter();
   const [query, setQuery] = useState('');
-  const [groups, setGroups] = useState<Group[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cachedGroups = peekGroups();
+  const [groups, setGroups] = useState<Group[]>(cachedGroups ?? []);
+  const [loading, setLoading] = useState(cachedGroups === null);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<Group | null>(null);
   const [assignOpen, setAssignOpen] = useState(false);
@@ -31,7 +33,7 @@ export default function GroupsPage() {
     let alive = true;
     (async () => {
       try {
-        const rows = await fetchGroups();
+        const rows = await fetchGroupsCached();
         if (!alive) return;
         setGroups(rows);
         setError(null);

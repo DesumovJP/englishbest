@@ -15,8 +15,8 @@ import { Card } from '@/components/ui/Card';
 import { Avatar } from '@/components/ui/Avatar';
 import { LevelBadge } from '@/components/teacher/ui';
 import { useSession } from '@/lib/session-context';
-import { fetchAdminAnalytics, type AdminAnalyticsData } from '@/lib/analytics';
-import { fetchGroups, type Group, type GroupLevel } from '@/lib/groups';
+import { fetchAdminAnalyticsCached, peekAdminAnalytics, type AdminAnalyticsData } from '@/lib/analytics';
+import { fetchGroupsCached, peekGroups, type Group, type GroupLevel } from '@/lib/groups';
 
 interface DashboardData {
   analytics: AdminAnalyticsData;
@@ -40,17 +40,24 @@ export default function AdminDashboardPage() {
   const role = session?.profile?.role ?? null;
   const firstName = session?.profile?.firstName ?? '';
 
-  const [data,    setData]    = useState<DashboardData | null>(null);
-  const [loading, setLoading] = useState(false);
+  const cachedDashboard = useMemo<DashboardData | null>(() => {
+    if (role !== 'admin') return null;
+    const analytics = peekAdminAnalytics();
+    const groups = peekGroups();
+    if (analytics && groups) return { analytics, groups };
+    return null;
+  }, [role]);
+
+  const [data,    setData]    = useState<DashboardData | null>(cachedDashboard);
+  const [loading, setLoading] = useState(role === 'admin' && cachedDashboard === null);
   const [error,   setError]   = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     if (role !== 'admin') return;
     let alive = true;
-    setLoading(true);
     setError(null);
-    Promise.all([fetchAdminAnalytics(), fetchGroups()])
+    Promise.all([fetchAdminAnalyticsCached(), fetchGroupsCached()])
       .then(([analytics, groups]) => { if (alive) setData({ analytics, groups }); })
       .catch(e => { if (alive) setError(e?.message ?? 'Не вдалось завантажити'); })
       .finally(() => { if (alive) setLoading(false); });

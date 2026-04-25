@@ -5,7 +5,14 @@
  *   GET /api/parent/me/children/:kidDocId   — deep view for one child
  *
  * Both endpoints are parent-role-only (admin may impersonate via `?parentId=`).
+ *
+ * SWR layer (`fetchMyChildrenCached/peekMyChildren`) keeps tab-back to the
+ * parent dashboard instant. 60 s TTL: parent-side data shifts on session/HW
+ * lifecycle so we accept short-window staleness rather than per-mutation
+ * invalidation (parent app has no direct mutators here).
  */
+
+import { createCachedFetcher } from './data-cache';
 
 export type Level = 'A0' | 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2';
 
@@ -110,6 +117,16 @@ export async function fetchMyChildren(): Promise<ChildSummary[]> {
   const data = json?.data;
   return Array.isArray(data) ? (data as ChildSummary[]) : [];
 }
+
+const myChildrenCache = createCachedFetcher<ChildSummary[]>({
+  key: 'my-children',
+  ttlMs: 60 * 1000,
+  fetch: fetchMyChildren,
+});
+
+export const fetchMyChildrenCached = myChildrenCache.get;
+export const peekMyChildren = myChildrenCache.peek;
+export const resetMyChildrenCache = myChildrenCache.reset;
 
 export async function fetchChildDetail(kidDocId: string): Promise<ChildDetail> {
   const res = await fetch(

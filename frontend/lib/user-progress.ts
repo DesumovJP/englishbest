@@ -11,6 +11,7 @@
  * singular path — keep consumers calling `/api/user-progress` only.
  */
 import type { ProgressStatus } from './types';
+import { createCachedFetcher } from './data-cache';
 
 export interface ProgressLessonRef {
   documentId: string;
@@ -120,6 +121,23 @@ export async function fetchMyProgress(
   const data = Array.isArray(json?.data) ? json.data : [];
   return data.map(normalizeRow);
 }
+
+// ─── Cached my-progress (default shape) ─────────────────────────────────────
+//
+// Kids "Школа" tab fetches `fetchMyProgress({ pageSize: 200 })` on every
+// mount alongside the courses + lessons pulls. Caching this single shape
+// keeps tab-back navigation instant; mutations (createProgress) call
+// `resetMyProgressCache()` so completion writes invalidate the read.
+
+const myProgressCache = createCachedFetcher<UserProgressRow[]>({
+  key: 'my-progress',
+  ttlMs: 30 * 1000,
+  fetch: () => fetchMyProgress({ pageSize: 200 }),
+});
+
+export const fetchMyProgressCached = myProgressCache.get;
+export const peekMyProgress = myProgressCache.peek;
+export const resetMyProgressCache = myProgressCache.reset;
 
 /**
  * The single "continue here" lesson. Resolution order:

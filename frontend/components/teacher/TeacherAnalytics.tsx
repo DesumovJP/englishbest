@@ -2,7 +2,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { LevelBadge, PageHeader, SegmentedControl, type SegmentedControlOption } from '@/components/teacher/ui';
 import {
-  fetchTeacherAnalytics,
+  fetchTeacherAnalyticsCached,
+  peekTeacherAnalytics,
   type TeacherAnalyticsData,
   type Level,
 } from '@/lib/analytics';
@@ -33,15 +34,14 @@ function metricValue(point: TeacherAnalyticsData['timeSeries'][number], metric: 
 
 export function TeacherAnalytics() {
   const [metric, setMetric] = useState<Metric>('lessons');
-  const [data, setData] = useState<TeacherAnalyticsData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<TeacherAnalyticsData | null>(() => peekTeacherAnalytics() ?? null);
+  const [loading, setLoading] = useState(() => peekTeacherAnalytics() === null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
-    setLoading(true);
     setError(null);
-    fetchTeacherAnalytics()
+    fetchTeacherAnalyticsCached()
       .then(d => { if (alive) setData(d); })
       .catch(e => { if (alive) setError(e?.message ?? 'Не вдалось завантажити'); })
       .finally(() => { if (alive) setLoading(false); });

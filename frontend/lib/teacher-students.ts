@@ -3,11 +3,16 @@
  *
  * Hits `/api/teacher/me/students` (proxied to backend `api::teacher.teacher.students`)
  * which returns distinct students across the teacher's sessions, with
- * last/next session + homework stats. No module-level cache — student roster
- * mutates with every assigned/completed session.
+ * last/next session + homework stats.
+ *
+ * SWR layer (`fetchMyStudentsCached` + `peekMyStudents`) keeps tab-back
+ * navigation instant. The roster shifts when sessions or homework change,
+ * so the 60s TTL drives a stale-while-revalidate refresh — visible on the
+ * next render without blocking the cached one.
  */
 
 import type { GroupLevel } from "@/lib/groups";
+import { createCachedFetcher } from "./data-cache";
 
 export type TeacherStudentStatus = "active" | "paused" | "expired" | "trial";
 
@@ -92,3 +97,13 @@ export async function fetchMyStudents(): Promise<TeacherStudent[]> {
     .map(normalize)
     .filter((s): s is TeacherStudent => s !== null);
 }
+
+const myStudentsCache = createCachedFetcher<TeacherStudent[]>({
+  key: "my-students",
+  ttlMs: 60 * 1000,
+  fetch: fetchMyStudents,
+});
+
+export const fetchMyStudentsCached = myStudentsCache.get;
+export const peekMyStudents = myStudentsCache.peek;
+export const resetMyStudentsCache = myStudentsCache.reset;

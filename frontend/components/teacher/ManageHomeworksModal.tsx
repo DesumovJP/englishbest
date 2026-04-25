@@ -12,7 +12,7 @@ import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import {
   deleteHomework,
-  fetchHomeworks,
+  fetchHomeworksCached,
   updateHomework,
   type Homework,
   type HomeworkStatus,
@@ -54,7 +54,7 @@ export function ManageHomeworksModal({ open, onClose, onMutated }: ManageHomewor
     if (!open) return;
     let alive = true;
     setLoad('loading');
-    fetchHomeworks()
+    fetchHomeworksCached()
       .then((rows) => {
         if (!alive) return;
         setItems(rows);

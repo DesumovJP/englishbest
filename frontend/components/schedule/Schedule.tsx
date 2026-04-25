@@ -17,7 +17,8 @@ import { SegmentedControl, type SegmentedControlOption } from '@/components/teac
 import { CreateLessonModal } from '@/components/teacher/CreateLessonModal';
 import { LessonActionSheet } from '@/components/teacher/LessonActionSheet';
 import {
-  fetchSessions,
+  fetchSessionsCached,
+  peekSessions,
   splitStartAt,
   type Session,
   type SessionStatus,
@@ -115,13 +116,6 @@ export interface ScheduleProps {
 export function Schedule({ title, editable, initialView = 'week' }: ScheduleProps) {
   const [view, setView] = useState<View>(initialView);
   const [anchor, setAnchor] = useState<Date>(() => startOfDay(new Date()));
-  const [sessions, setSessions] = useState<Session[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [createOpen, setCreateOpen] = useState(false);
-  const [createDefaults, setCreateDefaults] = useState<{ date?: string; time?: string }>({});
-  const [selectedSession, setSelectedSession] = useState<Session | null>(null);
-  const [readOnlySelection, setReadOnlySelection] = useState<Session | null>(null);
 
   const range = useMemo(() => {
     if (view === 'day') {
@@ -141,11 +135,25 @@ export function Schedule({ title, editable, initialView = 'week' }: ScheduleProp
     return { start, end };
   }, [anchor, view]);
 
+  // Peek the SWR cache synchronously so a previously-visited range hydrates
+  // without flashing a skeleton. Effect below revalidates in the background.
+  const cachedRows = peekSessions({
+    fromISO: range.start.toISOString(),
+    toISO: range.end.toISOString(),
+  });
+  const [sessions, setSessions] = useState<Session[]>(cachedRows ?? []);
+  const [loading, setLoading] = useState(cachedRows === null);
+  const [error, setError] = useState<string | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createDefaults, setCreateDefaults] = useState<{ date?: string; time?: string }>({});
+  const [selectedSession, setSelectedSession] = useState<Session | null>(null);
+  const [readOnlySelection, setReadOnlySelection] = useState<Session | null>(null);
+
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const rows = await fetchSessions({
+      const rows = await fetchSessionsCached({
         fromISO: range.start.toISOString(),
         toISO: range.end.toISOString(),
       });
@@ -159,23 +167,32 @@ export function Schedule({ title, editable, initialView = 'week' }: ScheduleProp
 
   useEffect(() => {
     let alive = true;
-    (async () => {
+    const filter = {
+      fromISO: range.start.toISOString(),
+      toISO: range.end.toISOString(),
+    };
+    const peek = peekSessions(filter);
+    // If we already have fresh-ish data, render it instantly and revalidate
+    // silently in the background. Otherwise, show the skeleton.
+    if (peek) {
+      setSessions(peek);
+      setError(null);
+      setLoading(false);
+    } else {
       setLoading(true);
-      try {
-        const rows = await fetchSessions({
-          fromISO: range.start.toISOString(),
-          toISO: range.end.toISOString(),
-        });
+    }
+    fetchSessionsCached(filter)
+      .then((rows) => {
         if (!alive) return;
         setSessions(rows);
         setError(null);
-      } catch (e) {
+        setLoading(false);
+      })
+      .catch((e) => {
         if (!alive) return;
         setError(e instanceof Error ? e.message : 'failed');
-      } finally {
-        if (alive) setLoading(false);
-      }
-    })();
+        setLoading(false);
+      });
     return () => { alive = false; };
   }, [range.start, range.end]);
 

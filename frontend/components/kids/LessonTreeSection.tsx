@@ -17,9 +17,18 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { fetchCourses, fetchLessonsByCourse } from '@/lib/api';
+import {
+  fetchCoursesCached,
+  fetchLessonsByCourseCached,
+  peekCourses,
+  peekLessonsByCourse,
+} from '@/lib/api';
 import type { Course, Lesson, Level } from '@/lib/types';
-import { fetchMyProgress, type UserProgressRow } from '@/lib/user-progress';
+import {
+  fetchMyProgressCached,
+  peekMyProgress,
+  type UserProgressRow,
+} from '@/lib/user-progress';
 import { ProgressBar } from '@/components/kids/ui';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -35,25 +44,90 @@ interface CourseSummary {
   nextLesson: Lesson | null;
 }
 
+function buildSummaries(
+  allCourses: Course[],
+  progressRows: UserProgressRow[],
+  lessonsByCourse: Map<string, Lesson[]>,
+  level: Level,
+): CourseSummary[] {
+  const myCourses = allCourses.filter(
+    c => c.level === level && (!c.audience || c.audience === 'kids' || c.audience === 'any'),
+  );
+  const completedSet = new Set(
+    progressRows
+      .filter(r => r.status === 'completed' && r.lesson?.documentId)
+      .map(r => r.lesson!.documentId),
+  );
+  return myCourses.map((course): CourseSummary => {
+    const lessons = lessonsByCourse.get(course.slug) ?? [];
+    const sorted = [...lessons].sort(
+      (a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0),
+    );
+    const completedLessons = sorted.filter(l =>
+      completedSet.has(l.documentId),
+    ).length;
+    const nextLesson = sorted.find(l => !completedSet.has(l.documentId)) ?? null;
+    return {
+      course,
+      totalLessons: sorted.length,
+      completedLessons,
+      nextLesson,
+    };
+  });
+}
+
+/** Try to synthesize the result purely from caches. Returns null if anything misses. */
+function hydrateFromCaches(level: Level): {
+  summaries: CourseSummary[];
+  progress: UserProgressRow[];
+} | null {
+  const courses = peekCourses();
+  const progress = peekMyProgress();
+  if (!courses || !progress) return null;
+  const myCourses = courses.filter(
+    c => c.level === level && (!c.audience || c.audience === 'kids' || c.audience === 'any'),
+  );
+  const lessonsByCourse = new Map<string, Lesson[]>();
+  for (const c of myCourses) {
+    const lessons = peekLessonsByCourse(c.slug);
+    if (!lessons) return null;
+    lessonsByCourse.set(c.slug, lessons);
+  }
+  return {
+    summaries: buildSummaries(courses, progress, lessonsByCourse, level),
+    progress,
+  };
+}
+
 export function LessonTreeSection({ level }: Props) {
-  const [summaries, setSummaries] = useState<CourseSummary[] | null>(null);
-  const [progress, setProgress] = useState<UserProgressRow[]>([]);
-  const [status, setStatus] = useState<'loading' | 'ready' | 'empty' | 'error'>('loading');
+  const cachedHydration = hydrateFromCaches(level);
+  const [summaries, setSummaries] = useState<CourseSummary[] | null>(
+    cachedHydration?.summaries ?? null,
+  );
+  const [progress, setProgress] = useState<UserProgressRow[]>(
+    cachedHydration?.progress ?? [],
+  );
+  const [status, setStatus] = useState<'loading' | 'ready' | 'empty' | 'error'>(
+    cachedHydration
+      ? cachedHydration.summaries.length === 0
+        ? 'empty'
+        : 'ready'
+      : 'loading',
+  );
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
-    setStatus('loading');
-    setErrorMsg(null);
 
     (async () => {
       try {
         const [allCourses, progressRows] = await Promise.all([
-          fetchCourses(),
-          fetchMyProgress({ pageSize: 200 }),
+          fetchCoursesCached(),
+          fetchMyProgressCached(),
         ]);
 
         if (!alive) return;
+        setErrorMsg(null);
 
         const myCourses = allCourses.filter(
           c => c.level === level && (!c.audience || c.audience === 'kids' || c.audience === 'any'),
@@ -66,36 +140,24 @@ export function LessonTreeSection({ level }: Props) {
           return;
         }
 
-        const completedSet = new Set(
-          progressRows
-            .filter(r => r.status === 'completed' && r.lesson?.documentId)
-            .map(r => r.lesson!.documentId),
+        const lessonsArr = await Promise.all(
+          myCourses.map(c => fetchLessonsByCourseCached(c.slug)),
         );
+        if (!alive) return;
+        const lessonsByCourse = new Map<string, Lesson[]>();
+        myCourses.forEach((c, i) => lessonsByCourse.set(c.slug, lessonsArr[i]));
 
-        const summaryList = await Promise.all(
-          myCourses.map(async (course): Promise<CourseSummary> => {
-            const lessons = await fetchLessonsByCourse(course.slug);
-            const sorted = [...lessons].sort(
-              (a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0),
-            );
-            const completedLessons = sorted.filter(l =>
-              completedSet.has(l.documentId),
-            ).length;
-            const nextLesson =
-              sorted.find(l => !completedSet.has(l.documentId)) ?? null;
-            return {
-              course,
-              totalLessons: sorted.length,
-              completedLessons,
-              nextLesson,
-            };
-          }),
+        const summaryList = buildSummaries(
+          allCourses,
+          progressRows,
+          lessonsByCourse,
+          level,
         );
 
         if (!alive) return;
         setSummaries(summaryList);
         setProgress(progressRows);
-        setStatus('ready');
+        setStatus(summaryList.length === 0 ? 'empty' : 'ready');
       } catch (e) {
         if (!alive) return;
         setErrorMsg(e instanceof Error ? e.message : 'Помилка завантаження');

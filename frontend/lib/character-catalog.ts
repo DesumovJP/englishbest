@@ -110,4 +110,5 @@ const cache = createCachedFetcher<ServerCharacter[]>({
 });
 
 export const fetchCharacters = cache.get;
+export const peekCharacters = cache.peek;
 export const resetCharacterCatalogCache = cache.reset;

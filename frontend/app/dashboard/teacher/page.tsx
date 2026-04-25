@@ -21,9 +21,16 @@ import { Card } from '@/components/ui/Card';
 import { Avatar } from '@/components/ui/Avatar';
 import { LevelBadge } from '@/components/teacher/ui';
 import { useSession } from '@/lib/session-context';
-import { fetchMyStudents, type TeacherStudent } from '@/lib/teacher-students';
-import { fetchHomeworks, fetchSubmissions, type Homework, type Submission } from '@/lib/homework';
-import { fetchGroups, type Group, type GroupLevel } from '@/lib/groups';
+import { fetchMyStudentsCached, peekMyStudents, type TeacherStudent } from '@/lib/teacher-students';
+import {
+  fetchHomeworksCached,
+  fetchSubmissionsCached,
+  peekHomeworks,
+  peekSubmissions,
+  type Homework,
+  type Submission,
+} from '@/lib/homework';
+import { fetchGroupsCached, peekGroups, type Group, type GroupLevel } from '@/lib/groups';
 
 interface DashboardData {
   students: TeacherStudent[];
@@ -52,17 +59,31 @@ export default function TeacherDashboardPage() {
   const role = session?.profile?.role ?? null;
   const firstName = session?.profile?.firstName ?? '';
 
-  const [data,    setData]    = useState<DashboardData | null>(null);
-  const [loading, setLoading] = useState(false);
+  const cachedDashboard = useMemo<DashboardData | null>(() => {
+    const students = peekMyStudents();
+    const homeworks = peekHomeworks();
+    const submissions = peekSubmissions();
+    const groups = peekGroups();
+    if (students && homeworks && submissions && groups) {
+      return { students, homeworks, submissions, groups };
+    }
+    return null;
+  }, []);
+
+  const [data,    setData]    = useState<DashboardData | null>(cachedDashboard);
+  const [loading, setLoading] = useState(cachedDashboard === null);
   const [error,   setError]   = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     if (role !== 'teacher') return;
     let alive = true;
-    setLoading(true);
-    setError(null);
-    Promise.all([fetchMyStudents(), fetchHomeworks(), fetchSubmissions(), fetchGroups()])
+    Promise.all([
+      fetchMyStudentsCached(),
+      fetchHomeworksCached(),
+      fetchSubmissionsCached(),
+      fetchGroupsCached(),
+    ])
       .then(([students, homeworks, submissions, groups]) => {
         if (alive) setData({ students, homeworks, submissions, groups });
       })

@@ -22,8 +22,17 @@ import {
   type FilterChipOption,
 } from '@/components/teacher/ui';
 import { useSession } from '@/lib/session-context';
-import { fetchMyStudents, type TeacherStudent, type TeacherStudentStatus } from '@/lib/teacher-students';
-import { fetchAdminStudents, type AdminStudent } from '@/lib/admin-students';
+import {
+  fetchMyStudentsCached,
+  peekMyStudents,
+  type TeacherStudent,
+  type TeacherStudentStatus,
+} from '@/lib/teacher-students';
+import {
+  fetchAdminStudentsCached,
+  peekAdminStudents,
+  type AdminStudent,
+} from '@/lib/admin-students';
 import type { GroupLevel } from '@/lib/groups';
 
 type SortKey = 'name' | 'level' | 'lastLesson' | 'nextLesson';
@@ -121,8 +130,20 @@ export default function StudentsPage() {
   const { session, status: sessionStatus } = useSession();
   const role = session?.profile?.role ?? null;
 
-  const [students, setStudents]   = useState<StudentRow[]>([]);
-  const [loading,  setLoading]    = useState(false);
+  const cachedRoster = useMemo<StudentRow[] | null>(() => {
+    if (role === 'admin') {
+      const rows = peekAdminStudents();
+      return rows ? rows.map(toStudentRow) : null;
+    }
+    if (role === 'teacher') {
+      const rows = peekMyStudents();
+      return rows ? rows.map(toStudentRow) : null;
+    }
+    return null;
+  }, [role]);
+
+  const [students, setStudents]   = useState<StudentRow[]>(cachedRoster ?? []);
+  const [loading,  setLoading]    = useState(cachedRoster === null);
   const [error,    setError]      = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
 
@@ -135,11 +156,9 @@ export default function StudentsPage() {
   useEffect(() => {
     if (role !== 'teacher' && role !== 'admin') return;
     let alive = true;
-    setLoading(true);
-    setError(null);
     const loader = role === 'admin'
-      ? fetchAdminStudents().then((rows) => rows.map(toStudentRow))
-      : fetchMyStudents().then((rows) => rows.map(toStudentRow));
+      ? fetchAdminStudentsCached().then((rows) => rows.map(toStudentRow))
+      : fetchMyStudentsCached().then((rows) => rows.map(toStudentRow));
     loader
       .then((rows) => { if (alive) setStudents(rows); })
       .catch((e) => { if (alive) setError(e?.message ?? 'Не вдалось завантажити'); })

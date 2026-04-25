@@ -18,9 +18,18 @@
 'use client';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import { fetchCourses, fetchLessonsByCourse } from '@/lib/api';
+import {
+  fetchCoursesCached,
+  fetchLessonsByCourseCached,
+  peekCourses,
+  peekLessonsByCourse,
+} from '@/lib/api';
 import type { Course, Lesson, Level, LessonType } from '@/lib/types';
-import { fetchMyProgress, type UserProgressRow } from '@/lib/user-progress';
+import {
+  fetchMyProgressCached,
+  peekMyProgress,
+  type UserProgressRow,
+} from '@/lib/user-progress';
 import { EmptyState } from '@/components/ui/EmptyState';
 
 interface Props {
@@ -498,25 +507,82 @@ function CarouselSkeleton() {
   );
 }
 
+function buildCourseData(
+  allCourses: Course[],
+  progressRows: UserProgressRow[],
+  lessonsByCourse: Map<string, Lesson[]>,
+  level: Level,
+): CourseData[] {
+  const myCourses = allCourses.filter(
+    c =>
+      c.level === level &&
+      (!c.audience || c.audience === 'kids' || c.audience === 'any'),
+  );
+  const completedByCourse = new Map<string, Set<string>>();
+  for (const row of progressRows) {
+    const courseSlug = row.lesson?.courseSlug;
+    const lessonSlug = row.lesson?.slug;
+    if (!courseSlug || !lessonSlug) continue;
+    if (row.status !== 'completed') continue;
+    const set = completedByCourse.get(courseSlug) ?? new Set<string>();
+    set.add(lessonSlug);
+    completedByCourse.set(courseSlug, set);
+  }
+  return myCourses
+    .map((course): CourseData => {
+      const sorted = [...(lessonsByCourse.get(course.slug) ?? [])].sort(
+        (a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0),
+      );
+      const completedSlugs =
+        completedByCourse.get(course.slug) ?? new Set<string>();
+      const current = sorted.find(l => !completedSlugs.has(l.slug)) ?? null;
+      return {
+        course,
+        lessons: sorted,
+        completedSlugs,
+        currentSlug: current?.slug ?? null,
+      };
+    })
+    .filter(g => g.lessons.length > 0);
+}
+
+function hydrateCarouselFromCaches(level: Level): CourseData[] | null {
+  const courses = peekCourses();
+  const progress = peekMyProgress();
+  if (!courses || !progress) return null;
+  const myCourses = courses.filter(
+    c =>
+      c.level === level &&
+      (!c.audience || c.audience === 'kids' || c.audience === 'any'),
+  );
+  const lessonsByCourse = new Map<string, Lesson[]>();
+  for (const c of myCourses) {
+    const lessons = peekLessonsByCourse(c.slug);
+    if (!lessons) return null;
+    lessonsByCourse.set(c.slug, lessons);
+  }
+  return buildCourseData(courses, progress, lessonsByCourse, level);
+}
+
 export function LessonCarouselSection({ level }: Props) {
-  const [data, setData] = useState<CourseData[] | null>(null);
+  const cached = hydrateCarouselFromCaches(level);
+  const [data, setData] = useState<CourseData[] | null>(cached);
   const [status, setStatus] = useState<'loading' | 'ready' | 'empty' | 'error'>(
-    'loading',
+    cached === null ? 'loading' : cached.length === 0 ? 'empty' : 'ready',
   );
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
-    setStatus('loading');
-    setErrorMsg(null);
 
     (async () => {
       try {
         const [allCourses, progressRows] = await Promise.all([
-          fetchCourses(),
-          fetchMyProgress({ pageSize: 200 }),
+          fetchCoursesCached(),
+          fetchMyProgressCached(),
         ]);
         if (!alive) return;
+        setErrorMsg(null);
 
         const myCourses = allCourses.filter(
           c =>
@@ -530,40 +596,25 @@ export function LessonCarouselSection({ level }: Props) {
           return;
         }
 
-        const completedByCourse = new Map<string, Set<string>>();
-        for (const row of progressRows as UserProgressRow[]) {
-          const courseSlug = row.lesson?.courseSlug;
-          const lessonSlug = row.lesson?.slug;
-          if (!courseSlug || !lessonSlug) continue;
-          if (row.status !== 'completed') continue;
-          const set = completedByCourse.get(courseSlug) ?? new Set<string>();
-          set.add(lessonSlug);
-          completedByCourse.set(courseSlug, set);
-        }
+        const lessonsArr = await Promise.all(
+          myCourses.map(c => fetchLessonsByCourseCached(c.slug)),
+        );
+        if (!alive) return;
+        const lessonsByCourse = new Map<string, Lesson[]>();
+        myCourses.forEach((c, i) =>
+          lessonsByCourse.set(c.slug, lessonsArr[i]),
+        );
 
-        const populated: CourseData[] = await Promise.all(
-          myCourses.map(async (course): Promise<CourseData> => {
-            const lessons = await fetchLessonsByCourse(course.slug);
-            const sorted = [...lessons].sort(
-              (a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0),
-            );
-            const completedSlugs =
-              completedByCourse.get(course.slug) ?? new Set<string>();
-            const current =
-              sorted.find(l => !completedSlugs.has(l.slug)) ?? null;
-            return {
-              course,
-              lessons: sorted,
-              completedSlugs,
-              currentSlug: current?.slug ?? null,
-            };
-          }),
+        const populated = buildCourseData(
+          allCourses,
+          progressRows,
+          lessonsByCourse,
+          level,
         );
 
         if (!alive) return;
-        const nonEmpty = populated.filter(g => g.lessons.length > 0);
-        setData(nonEmpty);
-        setStatus(nonEmpty.length === 0 ? 'empty' : 'ready');
+        setData(populated);
+        setStatus(populated.length === 0 ? 'empty' : 'ready');
       } catch (e) {
         if (!alive) return;
         setErrorMsg(e instanceof Error ? e.message : 'Помилка завантаження');

@@ -11,7 +11,8 @@ import {
   cloneLesson,
   deleteLesson,
   fetchLesson,
-  fetchLessons,
+  fetchLessonsCached,
+  peekLessons,
   publishLesson,
   unpublishLesson,
 } from '@/lib/teacher-library';
@@ -59,8 +60,9 @@ export default function TeacherLibraryPage() {
   const [query, setQuery] = useState('');
   const [assignFor, setAssignFor] = useState<LibraryLesson | null>(null);
 
-  const [lessons, setLessons] = useState<LibraryLesson[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cachedLessons = peekLessons();
+  const [lessons, setLessons] = useState<LibraryLesson[]>(cachedLessons ?? []);
+  const [loading, setLoading] = useState(cachedLessons === null);
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
@@ -68,7 +70,7 @@ export default function TeacherLibraryPage() {
     let alive = true;
     (async () => {
       try {
-        const rows = await fetchLessons();
+        const rows = await fetchLessonsCached();
         if (!alive) return;
         setLessons(rows);
         setError(null);

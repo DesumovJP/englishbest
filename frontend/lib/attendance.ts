@@ -8,6 +8,12 @@
  * The BE scopes attendance-records by session ownership for teachers, and
  * the `create` endpoint is an upsert on the (session, student) pair so the
  * FE just calls `upsertAttendance()` on every cell click.
+ *
+ * Month-keyed SWR cache (teacher-month-sessions + month-attendance) keeps
+ * arrow-navigation between months instant on revisits. Cache is invalidated
+ * after every successful upsertAttendance/deleteAttendance so the next
+ * mount sees authoritative state — but the page itself maintains its own
+ * optimistic state during interaction so cell clicks never trigger a refetch.
  */
 
 export type AttendanceStatus = 'present' | 'absent' | 'late' | 'excused';
@@ -145,6 +151,107 @@ export async function fetchTeacherMonthSessions(
     .filter((s): s is SessionLite => s !== null);
 }
 
+// ─── Month-keyed caches ─────────────────────────────────────────────────────
+//
+// Teacher attendance grid revisits the same (teacherId, year, month) tuple
+// when arrows shuttle between months. Cache keeps that snappy; mutations
+// invalidate the whole map so the next mount is authoritative.
+
+const ATTENDANCE_TTL_MS = 30_000;
+
+interface CachedEntry<T> {
+  value: T;
+  storedAt: number;
+}
+
+const sessionsByMonth = new Map<string, CachedEntry<SessionLite[]>>();
+const sessionsInflight = new Map<string, Promise<SessionLite[]>>();
+const recordsByMonth = new Map<string, CachedEntry<AttendanceRecord[]>>();
+const recordsInflight = new Map<string, Promise<AttendanceRecord[]>>();
+
+function teacherMonthKey(teacherId: string, year: number, month: number): string {
+  return `${teacherId}|${year}-${month}`;
+}
+
+function monthKey(year: number, month: number): string {
+  return `${year}-${month}`;
+}
+
+function isFresh(entry: CachedEntry<unknown> | undefined): boolean {
+  return !!entry && Date.now() - entry.storedAt < ATTENDANCE_TTL_MS;
+}
+
+export function peekTeacherMonthSessions(
+  teacherId: string,
+  year: number,
+  month: number,
+): SessionLite[] | null {
+  const entry = sessionsByMonth.get(teacherMonthKey(teacherId, year, month));
+  return entry ? entry.value : null;
+}
+
+export async function fetchTeacherMonthSessionsCached(
+  teacherId: string,
+  year: number,
+  month: number,
+): Promise<SessionLite[]> {
+  const key = teacherMonthKey(teacherId, year, month);
+  const entry = sessionsByMonth.get(key);
+  if (entry && isFresh(entry)) return entry.value;
+  const inflight = sessionsInflight.get(key);
+  if (inflight) return inflight;
+  const promise = fetchTeacherMonthSessions(teacherId, year, month)
+    .then((rows) => {
+      sessionsByMonth.set(key, { value: rows, storedAt: Date.now() });
+      return rows;
+    })
+    .finally(() => {
+      sessionsInflight.delete(key);
+    });
+  sessionsInflight.set(key, promise);
+  // Stale-while-revalidate: if we have a stale entry, return it immediately
+  // and let the inflight refetch update the cache in the background.
+  if (entry) return entry.value;
+  return promise;
+}
+
+export function peekMonthAttendance(
+  year: number,
+  month: number,
+): AttendanceRecord[] | null {
+  const entry = recordsByMonth.get(monthKey(year, month));
+  return entry ? entry.value : null;
+}
+
+export async function fetchMonthAttendanceCached(
+  year: number,
+  month: number,
+): Promise<AttendanceRecord[]> {
+  const key = monthKey(year, month);
+  const entry = recordsByMonth.get(key);
+  if (entry && isFresh(entry)) return entry.value;
+  const inflight = recordsInflight.get(key);
+  if (inflight) return inflight;
+  const promise = fetchMonthAttendance(year, month)
+    .then((rows) => {
+      recordsByMonth.set(key, { value: rows, storedAt: Date.now() });
+      return rows;
+    })
+    .finally(() => {
+      recordsInflight.delete(key);
+    });
+  recordsInflight.set(key, promise);
+  if (entry) return entry.value;
+  return promise;
+}
+
+export function invalidateAttendanceCache(): void {
+  sessionsByMonth.clear();
+  sessionsInflight.clear();
+  recordsByMonth.clear();
+  recordsInflight.clear();
+}
+
 const RECORD_LIST_QUERY_BASE =
   'populate[session][fields][0]=documentId' +
   '&populate[session][fields][1]=startAt' +
@@ -207,6 +314,7 @@ export async function upsertAttendance(input: {
     // Response had no documentId AND no fallback — fail loud so caller can recover.
     throw new Error('upsertAttendance: missing documentId');
   }
+  invalidateAttendanceCache();
   return {
     documentId,
     status: input.status,
@@ -230,4 +338,5 @@ export async function deleteAttendance(documentId: string): Promise<void> {
   if (!res.ok && res.status !== 404) {
     throw new Error(`deleteAttendance ${res.status}`);
   }
+  invalidateAttendanceCache();
 }

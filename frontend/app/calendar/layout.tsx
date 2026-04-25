@@ -10,9 +10,13 @@ export default async function CalendarLayout({ children }: { children: React.Rea
   if (role === 'kids' || role === 'adult') redirect('/kids/dashboard');
 
   return (
-    <div className="flex min-h-svh bg-surface-muted items-start">
+    <div className="flex min-h-svh bg-surface items-start">
       <Sidebar />
-      <main className="flex-1 p-6 md:p-8 pt-16 md:pt-8 min-w-0 min-h-svh">{children}</main>
+      <main className="flex-1 min-w-0 min-h-svh pt-14 md:pt-0">
+        <div className="max-w-[1100px] mx-auto px-4 sm:px-6 md:px-8 py-6 md:py-8">
+          {children}
+        </div>
+      </main>
     </div>
   );
 }

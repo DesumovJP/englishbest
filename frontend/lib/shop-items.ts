@@ -139,4 +139,5 @@ const cache = createCachedFetcher<ServerShopItem[]>({
 });
 
 export const fetchShopItems = cache.get;
+export const peekShopItems = cache.peek;
 export const resetShopItemsCache = cache.reset;

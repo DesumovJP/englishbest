@@ -3,8 +3,8 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import type { Level } from '@/lib/types/teacher';
 import { LevelBadge } from '@/components/teacher/ui';
-import { fetchSessions, type Session } from '@/lib/sessions';
-import { fetchSubmissions, type Submission } from '@/lib/homework';
+import { fetchSessionsCached, type Session } from '@/lib/sessions';
+import { fetchSubmissionsCached, type Submission } from '@/lib/homework';
 import { fetchStudentProgress, type UserProgressRow } from '@/lib/user-progress';
 
 type AdminTab   = 'video';
@@ -231,8 +231,8 @@ export function StudentDetail({
     setLoadErr(null);
 
     Promise.all([
-      fetchSessions(),
-      isAdmin ? Promise.resolve<Submission[]>([]) : fetchSubmissions(),
+      fetchSessionsCached(),
+      isAdmin ? Promise.resolve<Submission[]>([]) : fetchSubmissionsCached(),
       isAdmin ? Promise.resolve<UserProgressRow[]>([]) : fetchStudentProgress(student.slug),
     ])
       .then(([sess, subRows, progRows]) => {

@@ -6,7 +6,13 @@
  *   GET /api/analytics/admin   — platform-wide dashboard (admin role)
  *
  * Both are protected server-side; callers without the right role get 403.
+ *
+ * SWR layer (`fetch*Cached/peek*`) keeps tab-back to admin/teacher dashboards
+ * instant. Analytics data is aggregated server-side over a wide window so a
+ * 60 s TTL is conservative — the next mount sees fresh-enough numbers.
  */
+
+import { createCachedFetcher } from './data-cache';
 
 export type Level = 'A0' | 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2';
 
@@ -96,3 +102,23 @@ export async function fetchAdminAnalytics(): Promise<AdminAnalyticsData> {
   const json = await res.json().catch(() => ({}));
   return json?.data as AdminAnalyticsData;
 }
+
+const teacherAnalyticsCache = createCachedFetcher<TeacherAnalyticsData>({
+  key: 'teacher-analytics',
+  ttlMs: 60 * 1000,
+  fetch: fetchTeacherAnalytics,
+});
+
+const adminAnalyticsCache = createCachedFetcher<AdminAnalyticsData>({
+  key: 'admin-analytics',
+  ttlMs: 60 * 1000,
+  fetch: fetchAdminAnalytics,
+});
+
+export const fetchTeacherAnalyticsCached = teacherAnalyticsCache.get;
+export const peekTeacherAnalytics = teacherAnalyticsCache.peek;
+export const resetTeacherAnalyticsCache = teacherAnalyticsCache.reset;
+
+export const fetchAdminAnalyticsCached = adminAnalyticsCache.get;
+export const peekAdminAnalytics = adminAnalyticsCache.peek;
+export const resetAdminAnalyticsCache = adminAnalyticsCache.reset;

@@ -100,6 +100,7 @@ const cache = createCachedFetcher<LibraryItem[]>({
 });
 
 export const fetchLibraryItems = cache.get;
+export const peekLibraryItems = cache.peek;
 export const resetLibraryCache = cache.reset;
 
 // ─── UI constants (co-located; only the library uses these) ──────────────────

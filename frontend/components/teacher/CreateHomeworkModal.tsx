@@ -11,8 +11,8 @@
 import { useEffect, useState } from 'react';
 import { Modal } from '@/components/ui/Modal';
 import { createHomework, type Homework } from '@/lib/homework';
-import { fetchMyStudents, type TeacherStudent } from '@/lib/teacher-students';
-import { fetchGroups, type Group as TeacherGroup } from '@/lib/groups';
+import { fetchMyStudentsCached, type TeacherStudent } from '@/lib/teacher-students';
+import { fetchGroupsCached, type Group as TeacherGroup } from '@/lib/groups';
 import { Button } from '@/components/ui/Button';
 
 interface CreateHomeworkModalProps {
@@ -61,7 +61,7 @@ export function CreateHomeworkModal({
       setTarget(defaultTarget.type);
       setTargetId(defaultTarget.id);
     }
-    Promise.all([fetchMyStudents(), fetchGroups()])
+    Promise.all([fetchMyStudentsCached(), fetchGroupsCached()])
       .then(([st, gr]) => {
         if (!alive) return;
         setStudents(st);

@@ -7,8 +7,14 @@
  *
  * Editor block array is stored in Strapi `steps` (json). Other scalars map
  * 1:1 with the FE `LibraryLesson` shape used by the existing UI.
+ *
+ * SWR layer (`fetchLessonsCached/peekLessons`) keeps tab-back to /dashboard/teacher-library
+ * instant; mutations call `resetTeacherLibraryCache()` so create/update/delete/publish/unpublish
+ * are visible on next read. The lesson-detail fetch is single-keyed and lower-value so it
+ * stays uncached.
  */
 
+import { createCachedFetcher } from './data-cache';
 import type {
   BlockKind,
   LessonBlock,
@@ -182,6 +188,16 @@ export async function fetchLessons(): Promise<LibraryLesson[]> {
   return rows.map(normalize).filter((l): l is LibraryLesson => l !== null);
 }
 
+const teacherLibraryCache = createCachedFetcher<LibraryLesson[]>({
+  key: 'teacher-library',
+  ttlMs: 60 * 1000,
+  fetch: fetchLessons,
+});
+
+export const fetchLessonsCached = teacherLibraryCache.get;
+export const peekLessons = teacherLibraryCache.peek;
+export const resetTeacherLibraryCache = teacherLibraryCache.reset;
+
 export interface LessonDetail extends LibraryLesson {
   blocks: LessonBlock[];
 }
@@ -224,6 +240,20 @@ function toPayload(input: LessonInput): Record<string, unknown> {
   return data;
 }
 
+// Lazy-resolved invalidator for the catalog/lessons SWR caches living in
+// `lib/api.ts`. Importing eagerly would create a cycle (api → user-progress →
+// data-cache); the dynamic import keeps the module graph acyclic.
+async function invalidateCatalogCaches(): Promise<void> {
+  teacherLibraryCache.reset();
+  try {
+    const mod = await import('./api');
+    mod.resetCoursesCache?.();
+    mod.resetLessonsByCourseCache?.();
+  } catch {
+    /* api module not yet loaded — no caches to clear */
+  }
+}
+
 export async function createLesson(input: LessonInput): Promise<LessonDetail> {
   const res = await fetch('/api/lessons', {
     method: 'POST',
@@ -234,6 +264,7 @@ export async function createLesson(input: LessonInput): Promise<LessonDetail> {
   const json = await res.json().catch(() => ({}));
   const n = normalize(json?.data);
   if (!n) throw new Error('createLesson: malformed response');
+  await invalidateCatalogCaches();
   return { ...n, blocks: parseBlocks(json?.data?.steps) };
 }
 
@@ -250,12 +281,14 @@ export async function updateLesson(
   const json = await res.json().catch(() => ({}));
   const n = normalize(json?.data);
   if (!n) throw new Error('updateLesson: malformed response');
+  await invalidateCatalogCaches();
   return { ...n, blocks: parseBlocks(json?.data?.steps) };
 }
 
 export async function deleteLesson(documentId: string): Promise<void> {
   const res = await fetch(`/api/lessons/${documentId}`, { method: 'DELETE' });
   if (!res.ok) throw new Error(`deleteLesson ${res.status}`);
+  await invalidateCatalogCaches();
 }
 
 export async function publishLesson(documentId: string): Promise<LibraryLesson> {
@@ -264,6 +297,7 @@ export async function publishLesson(documentId: string): Promise<LibraryLesson> 
   const json = await res.json().catch(() => ({}));
   const n = normalize(json?.data);
   if (!n) throw new Error('publishLesson: malformed response');
+  await invalidateCatalogCaches();
   return { ...n, published: true };
 }
 
@@ -273,6 +307,7 @@ export async function unpublishLesson(documentId: string): Promise<LibraryLesson
   const json = await res.json().catch(() => ({}));
   const n = normalize(json?.data);
   if (!n) throw new Error('unpublishLesson: malformed response');
+  await invalidateCatalogCaches();
   return { ...n, published: false };
 }
 

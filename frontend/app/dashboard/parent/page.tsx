@@ -12,7 +12,8 @@ import { Card } from '@/components/ui/Card';
 import { useSession } from '@/lib/session-context';
 import {
   childDisplayName,
-  fetchMyChildren,
+  fetchMyChildrenCached,
+  peekMyChildren,
   type ChildSummary,
   type SessionLite,
   type HomeworkPending,
@@ -228,18 +229,19 @@ export default function ParentPage() {
   const role = session?.profile?.role ?? null;
   const canView = role === 'parent' || role === 'admin';
 
-  const [children, setChildren]   = useState<ChildSummary[] | null>(null);
-  const [loading, setLoading]     = useState(false);
+  const cachedChildren = canView ? peekMyChildren() : null;
+  const [children, setChildren]   = useState<ChildSummary[] | null>(cachedChildren);
+  const [loading, setLoading]     = useState(canView && cachedChildren === null);
   const [error, setError]         = useState<string | null>(null);
-  const [activeId, setActiveId]   = useState<string | null>(null);
+  const [activeId, setActiveId]   = useState<string | null>(
+    cachedChildren && cachedChildren.length > 0 ? cachedChildren[0].child.documentId : null,
+  );
   const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     if (!canView) return;
     let alive = true;
-    setLoading(true);
-    setError(null);
-    fetchMyChildren()
+    fetchMyChildrenCached()
       .then(list => {
         if (!alive) return;
         setChildren(list);

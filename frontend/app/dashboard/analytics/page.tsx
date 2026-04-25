@@ -7,7 +7,8 @@ import { Card } from '@/components/ui/Card';
 import { Avatar } from '@/components/ui/Avatar';
 import { useSession } from '@/lib/session-context';
 import {
-  fetchAdminAnalytics,
+  fetchAdminAnalyticsCached,
+  peekAdminAnalytics,
   type AdminAnalyticsData,
 } from '@/lib/analytics';
 
@@ -48,17 +49,21 @@ export default function AnalyticsPage() {
   const { session, status } = useSession();
   const role = session?.profile?.role ?? null;
 
+  const cachedAnalytics = useMemo(
+    () => (role === 'admin' ? peekAdminAnalytics() : null),
+    [role],
+  );
+
   const [metric, setMetric] = useState<Metric>('revenue');
-  const [data, setData] = useState<AdminAnalyticsData | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [data, setData] = useState<AdminAnalyticsData | null>(cachedAnalytics ?? null);
+  const [loading, setLoading] = useState(role === 'admin' && cachedAnalytics === null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (role !== 'admin') return;
     let alive = true;
-    setLoading(true);
     setError(null);
-    fetchAdminAnalytics()
+    fetchAdminAnalyticsCached()
       .then(d => { if (alive) setData(d); })
       .catch(e => { if (alive) setError(e?.message ?? 'Не вдалось завантажити'); })
       .finally(() => { if (alive) setLoading(false); });

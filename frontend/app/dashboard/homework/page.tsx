@@ -2,7 +2,9 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import {
-  fetchSubmissions,
+  fetchSubmissionsCached,
+  peekSubmissions,
+  resetSubmissionsCache,
   type Submission,
   type SubmissionStatus,
 } from '@/lib/homework';
@@ -69,8 +71,9 @@ export default function HomeworkPage() {
   const [query, setQuery] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
   const [manageOpen, setManageOpen] = useState(false);
-  const [submissions, setSubmissions] = useState<Submission[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cachedSubs = peekSubmissions();
+  const [submissions, setSubmissions] = useState<Submission[]>(cachedSubs ?? []);
+  const [loading, setLoading] = useState(cachedSubs === null);
   const [error, setError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
 
@@ -78,7 +81,8 @@ export default function HomeworkPage() {
     let alive = true;
     (async () => {
       try {
-        const rows = await fetchSubmissions();
+        if (reloadKey > 0) resetSubmissionsCache();
+        const rows = await fetchSubmissionsCached();
         if (!alive) return;
         setSubmissions(rows);
         setError(null);

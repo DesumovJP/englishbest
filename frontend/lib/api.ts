@@ -18,6 +18,7 @@
  * Strapi envelopes.
  */
 import { fetcher, fetcherClient } from './fetcher';
+import { createCachedFetcher, type CachedFetcher } from './data-cache';
 import {
   normalizeCourses,
   normalizeCourse,
@@ -84,6 +85,43 @@ export async function fetchCourses(
   return normalizeCourses(env);
 }
 
+// ─── Cached courses (catalog) ───────────────────────────────────────────────
+//
+// /library reads the same course list on every mount. Wrap `fetchCourses`
+// in a per-kind SWR cache so tab-back to /library is instant. The 5 min
+// stale window matches our other catalog caches (rooms / shop / characters);
+// admin edits in Strapi take effect on next load or after `resetCoursesCache`.
+
+type CourseKind = 'course' | 'book' | 'video' | 'game';
+const courseCacheByKind = new Map<string, CachedFetcher<Course[]>>();
+
+function getCoursesCache(kind?: CourseKind): CachedFetcher<Course[]> {
+  const key = `courses:${kind ?? 'all'}`;
+  const existing = courseCacheByKind.get(key);
+  if (existing) return existing;
+  const cache = createCachedFetcher<Course[]>({
+    key,
+    ttlMs: 5 * 60 * 1000,
+    fetch: () => fetchCourses({ kind }),
+  });
+  courseCacheByKind.set(key, cache);
+  return cache;
+}
+
+export function fetchCoursesCached(
+  opts: { kind?: CourseKind } = {},
+): Promise<Course[]> {
+  return getCoursesCache(opts.kind).get();
+}
+
+export function peekCourses(opts: { kind?: CourseKind } = {}): Course[] | null {
+  return getCoursesCache(opts.kind).peek();
+}
+
+export function resetCoursesCache(): void {
+  for (const cache of courseCacheByKind.values()) cache.reset();
+}
+
 export async function fetchCourseBySlug(slug: string): Promise<Course | null> {
   const env = await fetcher<StrapiCollection<any>>(
     `${ORIGIN}/api/courses${q({ 'filters[slug][$eq]': slug })}&${COURSE_POPULATE}`,
@@ -102,6 +140,42 @@ export async function fetchLessonsByCourse(courseSlug: string): Promise<Lesson[]
     })}&${LESSON_POPULATE}`,
   );
   return normalizeLessons(env);
+}
+
+// ─── Cached lessons-by-course (per-slug SWR) ────────────────────────────────
+//
+// Kids "Школа" tab fans out a `fetchLessonsByCourse` per visible course on
+// every mount (see LessonTreeSection / LessonCarouselSection). Wrapping each
+// slug in its own cache makes return-visits instant.
+
+const lessonsByCourseCache = new Map<string, CachedFetcher<Lesson[]>>();
+
+function getLessonsByCourseCache(slug: string): CachedFetcher<Lesson[]> {
+  const existing = lessonsByCourseCache.get(slug);
+  if (existing) return existing;
+  const cache = createCachedFetcher<Lesson[]>({
+    key: `lessons:${slug}`,
+    ttlMs: 5 * 60 * 1000,
+    fetch: () => fetchLessonsByCourse(slug),
+  });
+  lessonsByCourseCache.set(slug, cache);
+  return cache;
+}
+
+export function fetchLessonsByCourseCached(courseSlug: string): Promise<Lesson[]> {
+  return getLessonsByCourseCache(courseSlug).get();
+}
+
+export function peekLessonsByCourse(courseSlug: string): Lesson[] | null {
+  return getLessonsByCourseCache(courseSlug).peek();
+}
+
+export function resetLessonsByCourseCache(slug?: string): void {
+  if (slug) {
+    lessonsByCourseCache.get(slug)?.reset();
+    return;
+  }
+  for (const cache of lessonsByCourseCache.values()) cache.reset();
 }
 
 export async function fetchLesson(
@@ -146,4 +220,12 @@ export async function createProgress(input: ProgressInput): Promise<void> {
       },
     },
   });
+  // Refreshing my-progress is the caller's job (we lazy-import to avoid a
+  // circular dep), but progress writes never affect the catalog caches.
+  try {
+    const mod = await import('./user-progress');
+    mod.resetMyProgressCache?.();
+  } catch {
+    /* progress cache module not loaded yet — nothing to invalidate */
+  }
 }
