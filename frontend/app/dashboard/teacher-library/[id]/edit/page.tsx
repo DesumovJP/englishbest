@@ -1,5 +1,5 @@
 'use client';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { LESSON_SOURCE_LABELS } from '@/lib/ui/teacher-labels';
@@ -14,6 +14,8 @@ import {
   createLesson,
   deleteLesson,
   fetchLesson,
+  publishLesson,
+  unpublishLesson,
   updateLesson,
 } from '@/lib/teacher-library';
 import { SegmentedControl, type SegmentedControlOption } from '@/components/teacher/ui';
@@ -96,8 +98,11 @@ export default function LessonEditorPage() {
   const [level, setLevel] = useState<Level>('A1');
   const [topic, setTopic] = useState('');
   const [durationMin, setDurationMin] = useState<number>(30);
+  const [tags, setTags] = useState<string[]>([]);
+  const [tagDraft, setTagDraft] = useState('');
   const [blocks, setBlocks] = useState<LessonBlock[]>([]);
   const [source, setSource] = useState<LessonSource>('own');
+  const [published, setPublished] = useState(false);
   const [loading, setLoading] = useState(!isNew);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -106,6 +111,7 @@ export default function LessonEditorPage() {
   const [savedAt, setSavedAt] = useState<Date | null>(null);
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [publishing, setPublishing] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
@@ -126,8 +132,10 @@ export default function LessonEditorPage() {
         setLevel(detail.level);
         setTopic(detail.topic);
         setDurationMin(detail.durationMin);
+        setTags(detail.tags ?? []);
         setBlocks(detail.blocks);
         setSource(detail.source);
+        setPublished(Boolean(detail.published));
         setSavedAt(new Date());
         setDirty(false);
       } catch (e) {
@@ -144,7 +152,7 @@ export default function LessonEditorPage() {
   useEffect(() => {
     if (loading) return;
     setDirty(true);
-  }, [title, level, topic, durationMin, blocks, loading]);
+  }, [title, level, topic, durationMin, tags, blocks, loading]);
 
   const savedLabel = useMemo(() => {
     if (saving) return 'Зберігаю…';
@@ -155,14 +163,16 @@ export default function LessonEditorPage() {
     return `Збережено ${Math.round(secs / 60)} хв тому`;
   }, [saving, dirty, savedAt]);
 
-  const save = useCallback(async () => {
+  const save = useCallback(async (opts?: { silent?: boolean }) => {
     if (readOnly) {
-      setToast('Урок тільки для читання — зробіть копію');
-      window.setTimeout(() => setToast(null), 1800);
+      if (!opts?.silent) {
+        setToast('Урок тільки для читання — зробіть копію');
+        window.setTimeout(() => setToast(null), 1800);
+      }
       return;
     }
     if (!title.trim()) {
-      setSaveError('Вкажіть назву уроку');
+      if (!opts?.silent) setSaveError('Вкажіть назву уроку');
       return;
     }
     setSaving(true);
@@ -174,6 +184,7 @@ export default function LessonEditorPage() {
           level,
           topic,
           durationMin,
+          tags,
           steps: blocks,
         });
         setSavedAt(new Date());
@@ -185,23 +196,94 @@ export default function LessonEditorPage() {
           level,
           topic,
           durationMin,
+          tags,
           steps: blocks,
           source: 'own',
         });
         setDocId(created.id);
         setSource(created.source);
+        setPublished(Boolean(created.published));
         setSavedAt(new Date());
         setDirty(false);
         router.replace(`/dashboard/teacher-library/${created.id}/edit`);
       }
-      setToast('Збережено');
-      window.setTimeout(() => setToast(null), 1500);
+      if (!opts?.silent) {
+        setToast('Збережено');
+        window.setTimeout(() => setToast(null), 1500);
+      }
     } catch (e) {
       setSaveError(e instanceof Error ? e.message : 'failed');
     } finally {
       setSaving(false);
     }
-  }, [docId, title, level, topic, durationMin, blocks, readOnly, router]);
+  }, [docId, title, level, topic, durationMin, tags, blocks, readOnly, router]);
+
+  // Keep latest `save` reference so debounced autosave doesn't re-arm on every keystroke.
+  const saveRef = useRef(save);
+  useEffect(() => { saveRef.current = save; });
+
+  // Debounced autosave: 1.5s after last edit, only when dirty + not loading + not read-only.
+  useEffect(() => {
+    if (loading || readOnly || !dirty) return;
+    if (!title.trim()) return;
+    const t = window.setTimeout(() => { void saveRef.current({ silent: true }); }, 1500);
+    return () => window.clearTimeout(t);
+  }, [dirty, loading, readOnly, title, level, topic, durationMin, tags, blocks]);
+
+  // Cmd/Ctrl+S → save now.
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        if (!readOnly) void saveRef.current();
+      }
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [readOnly]);
+
+  // Block accidental tab close while there are unsaved edits.
+  useEffect(() => {
+    if (!dirty || readOnly) return;
+    function onBeforeUnload(e: BeforeUnloadEvent) {
+      e.preventDefault();
+      e.returnValue = '';
+    }
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, [dirty, readOnly]);
+
+  async function togglePublish() {
+    if (!docId) return;
+    setPublishing(true);
+    try {
+      if (published) {
+        await unpublishLesson(docId);
+        setPublished(false);
+        setToast('Знято з публікації');
+      } else {
+        await publishLesson(docId);
+        setPublished(true);
+        setToast('Опубліковано');
+      }
+      window.setTimeout(() => setToast(null), 1500);
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : 'Не вдалося оновити публікацію');
+    } finally {
+      setPublishing(false);
+    }
+  }
+
+  function addTag(raw: string) {
+    const t = raw.trim().replace(/^#+/, '').slice(0, 24);
+    if (!t) return;
+    if (tags.includes(t)) { setTagDraft(''); return; }
+    setTags(prev => [...prev, t]);
+    setTagDraft('');
+  }
+  function removeTag(t: string) {
+    setTags(prev => prev.filter(x => x !== t));
+  }
 
   async function cloneAsCopy() {
     if (!docId) return;
@@ -296,8 +378,22 @@ export default function LessonEditorPage() {
               <Button onClick={cloneAsCopy}>Копіювати</Button>
             ) : (
               <>
-                <Button onClick={save} disabled={saving}>
-                  {saving ? 'Зберігаю…' : 'Зберегти'}
+                {docId && (
+                  <Button
+                    variant={published ? 'secondary' : 'primary'}
+                    onClick={togglePublish}
+                    disabled={publishing || saving || dirty}
+                    title={dirty ? 'Спершу збережи зміни' : undefined}
+                  >
+                    {publishing
+                      ? '…'
+                      : published
+                        ? 'Зняти з публікації'
+                        : 'Опублікувати'}
+                  </Button>
+                )}
+                <Button onClick={() => save()} disabled={saving || !dirty}>
+                  {saving ? 'Зберігаю…' : dirty ? 'Зберегти' : 'Збережено'}
                 </Button>
                 {docId && !isNew && (
                   <Button
@@ -352,13 +448,62 @@ export default function LessonEditorPage() {
               min={1}
               max={600}
               value={durationMin}
-              onChange={e => setDurationMin(Number(e.target.value))}
+              onChange={e => {
+                const n = Number(e.target.value);
+                if (!Number.isFinite(n)) return;
+                setDurationMin(Math.min(600, Math.max(1, Math.round(n))));
+              }}
               disabled={readOnly}
               aria-label="Тривалість (хв)"
               className="w-20 tabular-nums"
             />
             <span className="text-[12px] text-ink-muted tabular-nums">{blocks.length} блоків</span>
+            {published && (
+              <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-success/15 text-success-dark">
+                Опубліковано
+              </span>
+            )}
           </div>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            {tags.map(t => (
+              <span
+                key={t}
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary-dark text-[11px] font-bold"
+              >
+                #{t}
+                {!readOnly && (
+                  <button
+                    type="button"
+                    onClick={() => removeTag(t)}
+                    className="text-primary-dark/60 hover:text-danger-dark"
+                    aria-label={`Видалити тег ${t}`}
+                  >
+                    ×
+                  </button>
+                )}
+              </span>
+            ))}
+            {!readOnly && (
+              <input
+                type="text"
+                value={tagDraft}
+                onChange={e => setTagDraft(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' || e.key === ',') {
+                    e.preventDefault();
+                    addTag(tagDraft);
+                  } else if (e.key === 'Backspace' && !tagDraft && tags.length) {
+                    removeTag(tags[tags.length - 1]);
+                  }
+                }}
+                onBlur={() => tagDraft && addTag(tagDraft)}
+                placeholder={tags.length ? '+ ще тег' : '+ додати тег'}
+                className="text-[11px] font-semibold bg-transparent border-b border-transparent hover:border-border focus:border-primary focus:outline-none px-1 py-0.5 w-24"
+              />
+            )}
+          </div>
+
           {saveError && (
             <p className="text-[12px] text-danger-dark">{saveError}</p>
           )}

@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { BLOCK_KIND_ICONS } from '@/lib/ui/teacher-labels';
 import type { LessonBlock } from '@/lib/types/teacher';
 
@@ -111,24 +111,7 @@ function Renderer({ block }: { block: LessonBlock }) {
       );
 
     case 'exercise-word-order':
-      return (
-        <div>
-          <p className="text-sm font-bold text-ink mb-3">{block.title || 'Склади речення'}</p>
-          <div className="flex flex-wrap gap-1.5">
-            {[...(block.words ?? [])]
-              .sort(() => 0.5 - Math.random())
-              .map((w, i) => (
-                <span key={i} className="px-3 py-1.5 rounded-lg bg-white border border-border text-sm font-bold text-ink shadow-sm">
-                  {w || '—'}
-                </span>
-              ))}
-          </div>
-          <p className="mt-3 text-[11px] text-ink-faint">
-            Правильний порядок:{' '}
-            <span className="font-bold text-primary-dark">{(block.words ?? []).join(' ') || '—'}</span>
-          </p>
-        </div>
-      );
+      return <WordOrderPreview block={block} />;
 
     case 'exercise-fill-gap':
       return (
@@ -185,6 +168,34 @@ function Renderer({ block }: { block: LessonBlock }) {
         </div>
       );
   }
+}
+
+function WordOrderPreview({ block }: { block: LessonBlock }) {
+  const words = block.words ?? [];
+  const shuffled = useMemo(() => {
+    const arr = [...words];
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }, [words]);
+  return (
+    <div>
+      <p className="text-sm font-bold text-ink mb-3">{block.title || 'Склади речення'}</p>
+      <div className="flex flex-wrap gap-1.5">
+        {shuffled.map((w, i) => (
+          <span key={i} className="px-3 py-1.5 rounded-lg bg-white border border-border text-sm font-bold text-ink shadow-sm">
+            {w || '—'}
+          </span>
+        ))}
+      </div>
+      <p className="mt-3 text-[11px] text-ink-faint">
+        Правильний порядок:{' '}
+        <span className="font-bold text-primary-dark">{words.join(' ') || '—'}</span>
+      </p>
+    </div>
+  );
 }
 
 function MultipleChoicePreview({ block }: { block: LessonBlock }) {
