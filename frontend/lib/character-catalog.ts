@@ -15,6 +15,7 @@ import {
   CharacterRarity,
   registerServerCharacter,
 } from './characters';
+import { createCachedFetcher } from './data-cache';
 
 export interface ServerCharacter {
   slug: string;
@@ -44,9 +45,6 @@ const RARITIES = new Set<CharacterRarity>(['common', 'rare', 'epic', 'legendary'
 const EMOTIONS = new Set<CharacterEmotion>([
   'idle', 'happy', 'celebrate', 'sleepy', 'angry', 'sad', 'thinking', 'surprised',
 ]);
-
-let _cache: ServerCharacter[] | null = null;
-let _inflight: Promise<ServerCharacter[]> | null = null;
 
 function pickRarity(v: string | null | undefined): CharacterRarity {
   if (v && RARITIES.has(v as CharacterRarity)) return v as CharacterRarity;
@@ -84,42 +82,32 @@ function normalize(c: CharacterDto): ServerCharacter | null {
   };
 }
 
-export async function fetchCharacters(): Promise<ServerCharacter[]> {
-  if (_cache) return _cache;
-  if (_inflight) return _inflight;
+const cache = createCachedFetcher<ServerCharacter[]>({
+  key: 'characters',
+  ttlMs: 5 * 60 * 1000,
+  fetch: async () => {
+    const res = await fetch('/api/characters', { cache: 'no-store' });
+    if (!res.ok) throw new Error(`fetchCharacters failed (${res.status})`);
+    const json: { data?: CharacterDto[] } = await res.json();
+    return (json.data ?? [])
+      .map(normalize)
+      .filter((x): x is ServerCharacter => x !== null)
+      .sort((a, b) => a.orderIndex - b.orderIndex);
+  },
+  onFresh: (chars) => {
+    for (const c of chars) {
+      registerServerCharacter({
+        id: c.slug,
+        nameEn: c.nameEn,
+        nameUa: c.nameUa,
+        rarity: c.rarity,
+        description: c.description,
+        fallbackEmotion: c.fallbackEmotion,
+        emotions: c.emotions,
+      });
+    }
+  },
+});
 
-  _inflight = fetch('/api/characters', { cache: 'no-store' })
-    .then(async (res) => {
-      if (!res.ok) throw new Error(`fetchCharacters failed (${res.status})`);
-      const json: { data?: CharacterDto[] } = await res.json();
-      const chars = (json.data ?? [])
-        .map(normalize)
-        .filter((x): x is ServerCharacter => x !== null)
-        .sort((a, b) => a.orderIndex - b.orderIndex);
-
-      for (const c of chars) {
-        registerServerCharacter({
-          id: c.slug,
-          nameEn: c.nameEn,
-          nameUa: c.nameUa,
-          rarity: c.rarity,
-          description: c.description,
-          fallbackEmotion: c.fallbackEmotion,
-          emotions: c.emotions,
-        });
-      }
-
-      _cache = chars;
-      return chars;
-    })
-    .finally(() => {
-      _inflight = null;
-    });
-
-  return _inflight;
-}
-
-export function resetCharacterCatalogCache(): void {
-  _cache = null;
-  _inflight = null;
-}
+export const fetchCharacters = cache.get;
+export const resetCharacterCatalogCache = cache.reset;

@@ -29,8 +29,7 @@ type RoomDto = {
   orderIndex?: number | null;
 };
 
-let _cache: ServerRoom[] | null = null;
-let _inflight: Promise<ServerRoom[]> | null = null;
+import { createCachedFetcher } from './data-cache';
 
 function normalize(r: RoomDto): ServerRoom | null {
   if (!r?.slug || !r.nameEn) return null;
@@ -45,29 +44,21 @@ function normalize(r: RoomDto): ServerRoom | null {
   };
 }
 
-export async function fetchRooms(): Promise<ServerRoom[]> {
-  if (_cache) return _cache;
-  if (_inflight) return _inflight;
+const cache = createCachedFetcher<ServerRoom[]>({
+  key: 'rooms',
+  // Catalog data — admin-edited rarely. 5 min stale window keeps long
+  // sessions reasonably fresh without per-navigation refetch.
+  ttlMs: 5 * 60 * 1000,
+  fetch: async () => {
+    const res = await fetch('/api/rooms', { cache: 'no-store' });
+    if (!res.ok) throw new Error(`fetchRooms failed (${res.status})`);
+    const json: { data?: RoomDto[] } = await res.json();
+    return (json.data ?? [])
+      .map(normalize)
+      .filter((x): x is ServerRoom => x !== null)
+      .sort((a, b) => a.orderIndex - b.orderIndex);
+  },
+});
 
-  _inflight = fetch('/api/rooms', { cache: 'no-store' })
-    .then(async (res) => {
-      if (!res.ok) throw new Error(`fetchRooms failed (${res.status})`);
-      const json: { data?: RoomDto[] } = await res.json();
-      const rooms = (json.data ?? [])
-        .map(normalize)
-        .filter((x): x is ServerRoom => x !== null)
-        .sort((a, b) => a.orderIndex - b.orderIndex);
-      _cache = rooms;
-      return rooms;
-    })
-    .finally(() => {
-      _inflight = null;
-    });
-
-  return _inflight;
-}
-
-export function resetRoomsCache(): void {
-  _cache = null;
-  _inflight = null;
-}
+export const fetchRooms = cache.get;
+export const resetRoomsCache = cache.reset;

@@ -10,6 +10,7 @@
  * working for admin-added items without a redeploy.
  */
 import type { Level } from '@/lib/types';
+import { createCachedFetcher } from './data-cache';
 import {
   registerServerShopItem,
   type CatalogShopItem,
@@ -57,9 +58,6 @@ type ShopItemDto = {
 const CATEGORIES = new Set<ShopItemCategory>(['furniture', 'decor', 'outfit', 'special']);
 const RARITIES = new Set<ShopItemRarity>(['common', 'uncommon', 'rare', 'legendary']);
 const LEVELS = new Set<Level>(['A0', 'A1', 'A2', 'B1', 'B2', 'C1', 'C2']);
-
-let _cache: ServerShopItem[] | null = null;
-let _inflight: Promise<ServerShopItem[]> | null = null;
 
 function pickCategory(v: string | null | undefined): ShopItemCategory {
   return v && CATEGORIES.has(v as ShopItemCategory) ? (v as ShopItemCategory) : 'decor';
@@ -121,34 +119,24 @@ function toCatalogShape(s: ServerShopItem): CatalogShopItem {
   };
 }
 
-export async function fetchShopItems(): Promise<ServerShopItem[]> {
-  if (_cache) return _cache;
-  if (_inflight) return _inflight;
+const cache = createCachedFetcher<ServerShopItem[]>({
+  key: 'shop-items',
+  ttlMs: 5 * 60 * 1000,
+  fetch: async () => {
+    const res = await fetch('/api/shop-items', { cache: 'no-store' });
+    if (!res.ok) throw new Error(`fetchShopItems failed (${res.status})`);
+    const json: { data?: ShopItemDto[] } = await res.json();
+    return (json.data ?? [])
+      .map(normalize)
+      .filter((x): x is ServerShopItem => x !== null)
+      .sort((a, b) => a.price - b.price);
+  },
+  onFresh: (items) => {
+    for (const it of items) {
+      registerServerShopItem(toCatalogShape(it), it.slotOffset);
+    }
+  },
+});
 
-  _inflight = fetch('/api/shop-items', { cache: 'no-store' })
-    .then(async (res) => {
-      if (!res.ok) throw new Error(`fetchShopItems failed (${res.status})`);
-      const json: { data?: ShopItemDto[] } = await res.json();
-      const items = (json.data ?? [])
-        .map(normalize)
-        .filter((x): x is ServerShopItem => x !== null)
-        .sort((a, b) => a.price - b.price);
-
-      for (const it of items) {
-        registerServerShopItem(toCatalogShape(it), it.slotOffset);
-      }
-
-      _cache = items;
-      return items;
-    })
-    .finally(() => {
-      _inflight = null;
-    });
-
-  return _inflight;
-}
-
-export function resetShopItemsCache(): void {
-  _cache = null;
-  _inflight = null;
-}
+export const fetchShopItems = cache.get;
+export const resetShopItemsCache = cache.reset;

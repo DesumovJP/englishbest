@@ -82,35 +82,25 @@ function normalize(raw: any): LibraryItem | null {
   };
 }
 
-let _cache: LibraryItem[] | null = null;
-let _inflight: Promise<LibraryItem[]> | null = null;
+import { createCachedFetcher } from './data-cache';
 
-export async function fetchLibraryItems(): Promise<LibraryItem[]> {
-  if (_cache) return _cache;
-  if (_inflight) return _inflight;
+const LIBRARY_URL =
+  '/api/courses?filters[kind][$in][0]=book&filters[kind][$in][1]=video&filters[kind][$in][2]=game&filters[kind][$in][3]=course&pagination[pageSize]=200&sort=title:asc';
 
-  const url = `/api/courses?filters[kind][$in][0]=book&filters[kind][$in][1]=video&filters[kind][$in][2]=game&filters[kind][$in][3]=course&pagination[pageSize]=200&sort=title:asc`;
-
-  _inflight = (async () => {
-    const res = await fetch(url, { cache: "no-store" });
+const cache = createCachedFetcher<LibraryItem[]>({
+  key: 'library',
+  ttlMs: 5 * 60 * 1000,
+  fetch: async () => {
+    const res = await fetch(LIBRARY_URL, { cache: 'no-store' });
     if (!res.ok) throw new Error(`fetchLibraryItems ${res.status}`);
     const json = await res.json().catch(() => ({}));
     const rows: any[] = Array.isArray(json?.data) ? json.data : [];
-    const out = rows.map(normalize).filter((x): x is LibraryItem => x !== null);
-    _cache = out;
-    return out;
-  })();
+    return rows.map(normalize).filter((x): x is LibraryItem => x !== null);
+  },
+});
 
-  try {
-    return await _inflight;
-  } finally {
-    _inflight = null;
-  }
-}
-
-export function resetLibraryCache(): void {
-  _cache = null;
-}
+export const fetchLibraryItems = cache.get;
+export const resetLibraryCache = cache.reset;
 
 // ─── UI constants (co-located; only the library uses these) ──────────────────
 
