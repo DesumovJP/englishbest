@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useSession } from '@/lib/session-context';
 import { apiErrorMessage } from '@/lib/fetcher';
 
-type DemoRole = 'kids' | 'teacher' | 'parent';
+type DemoRole = 'kids' | 'teacher' | 'parent' | 'adult';
 
 interface DemoAccount {
   role: DemoRole;
@@ -17,12 +17,53 @@ interface DemoAccount {
   initials: string;
 }
 
+interface CohortAccount {
+  email: string;
+  name: string;
+  detail: string;
+}
+
 const DEMO_PASSWORD = 'Demo2026!';
 
 const DEMO_ACCOUNTS: DemoAccount[] = [
   { role: 'kids',    label: 'Student', sublabel: 'Учень',   email: 'demo-kids@englishbest.app',    bubble: 'bg-primary text-white',   initials: 'ST' },
   { role: 'teacher', label: 'Teacher', sublabel: 'Вчитель', email: 'demo-teacher@englishbest.app', bubble: 'bg-secondary text-white', initials: 'TE' },
   { role: 'parent',  label: 'Parent',  sublabel: 'Батьки',  email: 'demo-parent@englishbest.app',  bubble: 'bg-purple text-white',    initials: 'PA' },
+];
+
+const COHORT_TEACHERS: CohortAccount[] = [
+  { email: 'teacher-olena@englishbest.app',  name: 'Олена Коваленко',  detail: 'Kids · YLE · 7р.' },
+  { email: 'teacher-andriy@englishbest.app', name: 'Андрій Петренко',  detail: 'Adults · IELTS · 8р.' },
+  { email: 'teacher-iryna@englishbest.app',  name: 'Ірина Шевченко',   detail: 'Teen · Travel · 4р.' },
+];
+
+const COHORT_KIDS: CohortAccount[] = [
+  { email: 'kid-sofia@englishbest.app',      name: 'Софія Бондар',      detail: 'A1 · 7-11' },
+  { email: 'kid-maksym@englishbest.app',     name: 'Максим Лисенко',    detail: 'A1 · 7-11' },
+  { email: 'kid-kateryna@englishbest.app',   name: 'Катерина Ткаченко', detail: 'A2 · 7-11' },
+  { email: 'kid-bohdan@englishbest.app',     name: 'Богдан Гриценко',   detail: 'A0 · 4-7' },
+  { email: 'kid-yelyzaveta@englishbest.app', name: 'Єлизавета Шумило',  detail: 'A2 · 11+' },
+  { email: 'kid-artem@englishbest.app',      name: 'Артем Демченко',    detail: 'A2 · 11+' },
+  { email: 'kid-dariia@englishbest.app',     name: 'Дарія Марченко',    detail: 'A1 · 7-11' },
+  { email: 'kid-ihor@englishbest.app',       name: 'Ігор Романенко',    detail: 'B1 · 11+' },
+];
+
+const COHORT_ADULTS: CohortAccount[] = [
+  { email: 'adult-yulia@englishbest.app',     name: 'Юлія Павленко',     detail: 'A2→B2 · exam' },
+  { email: 'adult-oleg@englishbest.app',      name: 'Олег Сидоренко',    detail: 'B1→C1 · career' },
+  { email: 'adult-nataliia@englishbest.app',  name: 'Наталія Бабенко',   detail: 'A1→A2 · travel' },
+  { email: 'adult-volodymyr@englishbest.app', name: 'Володимир Сосницький', detail: 'B2→C1 · hobby' },
+];
+
+const COHORT_PARENTS: CohortAccount[] = [
+  { email: 'parent-olha@englishbest.app',      name: 'Ольга Бондар',     detail: '→ Софія' },
+  { email: 'parent-iryna-l@englishbest.app',   name: 'Ірина Лисенко',    detail: '→ Максим' },
+  { email: 'parent-vira@englishbest.app',      name: 'Віра Ткаченко',    detail: '→ Катерина' },
+  { email: 'parent-roman@englishbest.app',     name: 'Роман Гриценко',   detail: '→ Богдан' },
+  { email: 'parent-mykhailo@englishbest.app',  name: 'Михайло Шумило',   detail: '→ Єлизавета' },
+  { email: 'parent-halyna@englishbest.app',    name: 'Галина Демченко',  detail: '→ Артем' },
+  { email: 'parent-tetiana@englishbest.app',   name: 'Тетяна Марченко',  detail: '→ Дарія' },
+  { email: 'parent-larysa@englishbest.app',    name: 'Лариса Романенко', detail: '→ Ігор' },
 ];
 
 function redirectForRole(role: string | undefined): string {
@@ -54,6 +95,7 @@ export default function LoginPage() {
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showCohort, setShowCohort] = useState(false);
 
   useEffect(() => {
     if (status !== 'authenticated' || !session) return;
@@ -62,6 +104,12 @@ export default function LoginPage() {
   }, [status, session, router, searchParams]);
 
   function handleUseDemo(acc: DemoAccount) {
+    setEmail(acc.email);
+    setPassword(DEMO_PASSWORD);
+    setError(null);
+  }
+
+  function handleUseCohort(acc: CohortAccount) {
     setEmail(acc.email);
     setPassword(DEMO_PASSWORD);
     setError(null);
@@ -220,6 +268,62 @@ export default function LoginPage() {
                   </button>
                 ))}
               </div>
+
+              {/* ── Production cohort: 23 realistic accounts ── */}
+              <button
+                type="button"
+                onClick={() => setShowCohort(v => !v)}
+                className="mt-1 flex items-center justify-between gap-2 p-2 rounded-xl hover:bg-surface-muted transition-colors text-left"
+                aria-expanded={showCohort}
+              >
+                <span className="flex items-baseline gap-2">
+                  <span className="text-[10px] font-black text-ink-faint uppercase tracking-widest">
+                    Демо-когорта
+                  </span>
+                  <span className="text-[11px] text-ink-muted">3 вчителі · 8 дітей · 4 дорослих · 8 батьків</span>
+                </span>
+                <span className="text-[11px] text-ink-faint font-black">
+                  {showCohort ? '▲' : '▼'}
+                </span>
+              </button>
+
+              {showCohort && (
+                <div className="flex flex-col gap-3 pt-1">
+                  {([
+                    { title: 'Вчителі', tone: 'bg-secondary text-white', items: COHORT_TEACHERS },
+                    { title: 'Діти',    tone: 'bg-primary text-white',   items: COHORT_KIDS },
+                    { title: 'Дорослі', tone: 'bg-warning text-white',   items: COHORT_ADULTS },
+                    { title: 'Батьки',  tone: 'bg-purple text-white',    items: COHORT_PARENTS },
+                  ] as const).map(group => (
+                    <div key={group.title} className="flex flex-col gap-1">
+                      <p className="text-[10px] font-black text-ink-faint uppercase tracking-widest px-1">
+                        {group.title} <span className="text-ink-faint/70">· {group.items.length}</span>
+                      </p>
+                      <div className="flex flex-col">
+                        {group.items.map(acc => (
+                          <button
+                            key={acc.email}
+                            type="button"
+                            onClick={() => handleUseCohort(acc)}
+                            className="group flex items-center gap-2.5 p-1.5 rounded-lg hover:bg-surface-muted transition-colors text-left"
+                          >
+                            <span className={`w-6 h-6 rounded-md flex items-center justify-center font-black text-[10px] flex-shrink-0 ${group.tone}`}>
+                              {acc.name.charAt(0)}
+                            </span>
+                            <span className="flex-1 min-w-0 flex items-baseline gap-1.5 truncate">
+                              <span className="font-black text-ink text-[12px] truncate">{acc.name}</span>
+                              <span className="text-[10px] text-ink-muted truncate">· {acc.detail}</span>
+                            </span>
+                            <span className="text-[10px] text-ink-faint group-hover:text-primary-dark font-black transition-colors flex-shrink-0">
+                              →
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="flex flex-col gap-3 text-center">

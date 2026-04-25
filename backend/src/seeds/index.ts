@@ -21,6 +21,9 @@ import * as realLessons from './11-real-lessons';
 import * as realHomework from './12-real-homework';
 import * as kidsSessions from './13-kids-sessions';
 import * as demoWiring from './14-demo-wiring';
+import * as cohortAccounts from './15-cohort-accounts';
+import * as cohortClassroom from './16-cohort-classroom';
+import * as cohortChat from './17-cohort-chat';
 
 const SEEDS: { name: string; up: (strapi: any) => Promise<void> }[] = [
   { name: '00-roles', up: roles.up },
@@ -48,6 +51,12 @@ const SEEDS: { name: string; up: (strapi: any) => Promise<void> }[] = [
   // a group + mini-tasks to demo-teacher. Depends on the demo accounts
   // already existing (SEED_DEMO_ACCOUNTS=1 on first boot).
   { name: '14-demo-wiring', up: demoWiring.up },
+  // Production-grade demo cohort: 3 teachers, 8 kids + 8 parents, 4 adults.
+  // Gated by SEED_DEMO_ACCOUNTS=1. Order matters: accounts → classroom
+  // (groups/sessions/homework/progress) → chat (threads/messages).
+  { name: '15-cohort-accounts', up: cohortAccounts.up },
+  { name: '16-cohort-classroom', up: cohortClassroom.up },
+  { name: '17-cohort-chat', up: cohortChat.up },
 ];
 
 export async function runSeeds(strapi: any) {
