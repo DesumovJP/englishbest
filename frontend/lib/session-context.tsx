@@ -2,8 +2,9 @@
  * Session context — real-auth session state.
  *
  * Wraps the client tree to expose the current `{ user, profile }` fetched
- * from `/api/auth/me`. Provides `login`, `register`, `logout`, and `refresh`
- * helpers that go through our Next route handlers (which manage cookies).
+ * from `/api/auth/me`. Provides `login`, `logout`, and `refresh` helpers
+ * that go through our Next route handlers (which manage cookies). Self-
+ * registration is intentionally absent — accounts are issued, not signed up.
  *
  * Kept separate from the legacy mock `RoleContext` (lib/roleContext.tsx) to
  * avoid a big-bang swap. Phase 5 will migrate every `useRole()` consumer to
@@ -50,27 +51,10 @@ type Session = { user: SessionUser; profile: SessionProfile };
 
 type LoginInput = { identifier: string; password: string };
 
-type RegisterInput = {
-  email: string;
-  password: string;
-  role: Role;
-  firstName: string;
-  lastName?: string;
-  displayName?: string;
-  companionAnimal?: string;
-  companionName?: string;
-  ageGroup?: string;
-  goal?: string;
-  currentLevel?: string;
-  targetLevel?: string;
-  [k: string]: unknown;
-};
-
 type Value = {
   session: Session | null;
   status: 'loading' | 'authenticated' | 'anonymous';
   login: (input: LoginInput) => Promise<Session>;
-  register: (input: RegisterInput) => Promise<Session>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
 };
@@ -135,13 +119,6 @@ export function SessionProvider({
     return s;
   }, []);
 
-  const register = useCallback(async (input: RegisterInput) => {
-    const s = (await jsonPost('/api/auth/register', input)) as Session;
-    setSession(s);
-    setStatus('authenticated');
-    return s;
-  }, []);
-
   const logout = useCallback(async () => {
     await fetch('/api/auth/logout', { method: 'POST' });
     // Drop cached Kids Zone state so the next login doesn't see the
@@ -153,8 +130,8 @@ export function SessionProvider({
   }, []);
 
   const value = useMemo<Value>(
-    () => ({ session, status, login, register, logout, refresh }),
-    [session, status, login, register, logout, refresh]
+    () => ({ session, status, login, logout, refresh }),
+    [session, status, login, logout, refresh]
   );
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;

@@ -275,13 +275,6 @@ export default function LoginPage() {
             </div>
 
             <div className="flex flex-col gap-3 text-center">
-              <Link
-                href="/auth/register"
-                className="text-[13px] text-ink-muted hover:text-ink transition-colors"
-              >
-                Немає акаунта?{' '}
-                <span className="text-primary font-black">Створити</span>
-              </Link>
               <p className="text-[11px] text-ink-faint">
                 Продовжуючи, ви погоджуєтесь з{' '}
                 <Link href="#" className="font-black text-ink-muted hover:text-ink transition-colors">
