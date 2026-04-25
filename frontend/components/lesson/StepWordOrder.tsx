@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { StepWordOrder } from '@/mocks/lessons/types';
 import { FeedbackPanel } from './FeedbackPanel';
 
@@ -10,6 +10,30 @@ interface Props {
 }
 
 type State = 'idle' | 'correct' | 'wrong';
+
+/**
+ * Shuffle a word/letter list so the displayed order differs from the answer.
+ * Seeds often store `words` already in the answer order (it's the natural way
+ * to author them), which would make the puzzle trivial. We reshuffle until
+ * the result is different from the answer; for length 1 there is nothing to
+ * shuffle, so we just return as-is.
+ */
+function shuffleAwayFromAnswer(words: string[], answer: string[]): string[] {
+  if (words.length <= 1) return [...words];
+  const target = answer.join('\u0000');
+  for (let attempt = 0; attempt < 20; attempt++) {
+    const out = [...words];
+    for (let i = out.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [out[i], out[j]] = [out[j], out[i]];
+    }
+    if (out.join('\u0000') !== target) return out;
+  }
+  // Fallback: swap first two so we definitely diverge from the answer.
+  const out = [...words];
+  [out[0], out[1]] = [out[1], out[0]];
+  return out;
+}
 
 /* Кольори чіпів — циклічно по словах */
 const CHIP_COLORS = [
@@ -36,8 +60,15 @@ export function StepWordOrder({ step, onCorrect, onWrong }: Props) {
     wrong:   randomFrom(WRONG_MESSAGES),
   }));
 
+  // Stable per step.id so re-renders don't reshuffle, but a different step
+  // (or remount) gets a fresh order.
+  const displayWords = useMemo(
+    () => shuffleAwayFromAnswer(step.words, step.answer),
+    [step.id, step.words, step.answer],
+  );
+
   const usedIndices  = new Set(placedIdx);
-  const placedWords  = placedIdx.map(i => step.words[i]);
+  const placedWords  = placedIdx.map(i => displayWords[i]);
 
   function addWord(wordIdx: number) {
     if (state !== 'idle' || usedIndices.has(wordIdx)) return;
@@ -96,7 +127,7 @@ export function StepWordOrder({ step, onCorrect, onWrong }: Props) {
 
       {/* Доступні слова — кольорові чіпи */}
       <div className="flex flex-wrap gap-2">
-        {step.words.map((w, i) => {
+        {displayWords.map((w, i) => {
           const colorCls = CHIP_COLORS[i % CHIP_COLORS.length];
           return (
             <button
