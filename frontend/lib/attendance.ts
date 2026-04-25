@@ -174,6 +174,8 @@ export async function upsertAttendance(input: {
   studentId: string;
   status: AttendanceStatus;
   note?: string | null;
+  /** Falls back to this when the BE response omits documentId (e.g. trimmed by sanitizeOutput). */
+  fallbackDocumentId?: string;
 }): Promise<AttendanceRecord> {
   const data: Record<string, unknown> = {
     session: input.sessionId,
@@ -187,15 +189,38 @@ export async function upsertAttendance(input: {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ data }),
   });
-  if (!res.ok) throw new Error(`upsertAttendance ${res.status}`);
-  const json = await res.json().catch(() => ({}));
-  const normalized = normalizeRecord({
-    ...json?.data,
-    session: { documentId: input.sessionId },
-    student: { documentId: input.studentId },
-  });
-  if (!normalized) throw new Error('upsertAttendance: malformed response');
-  return normalized;
+  if (!res.ok) {
+    let message = `upsertAttendance ${res.status}`;
+    try {
+      const errJson: any = await res.json();
+      if (errJson?.error?.message) message = errJson.error.message;
+    } catch {
+      /* ignore body parse failure */
+    }
+    throw new Error(message);
+  }
+  const json: any = await res.json().catch(() => ({}));
+  const responseDocId =
+    typeof json?.data?.documentId === 'string' ? json.data.documentId : null;
+  const documentId = responseDocId ?? input.fallbackDocumentId ?? null;
+  if (!documentId) {
+    // Response had no documentId AND no fallback — fail loud so caller can recover.
+    throw new Error('upsertAttendance: missing documentId');
+  }
+  return {
+    documentId,
+    status: input.status,
+    note:
+      typeof json?.data?.note === 'string'
+        ? json.data.note
+        : input.note ?? null,
+    recordedAt:
+      typeof json?.data?.recordedAt === 'string'
+        ? json.data.recordedAt
+        : new Date().toISOString(),
+    sessionId: input.sessionId,
+    studentId: input.studentId,
+  };
 }
 
 export async function deleteAttendance(documentId: string): Promise<void> {

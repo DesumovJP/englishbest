@@ -7,7 +7,7 @@
  * creates a new group via `createGroup`.
  */
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import {
@@ -55,6 +55,7 @@ export function CreateGroupModal({
   const [deleting,     setDeleting]   = useState(false);
   const [error,        setError]      = useState<string | null>(null);
   const [toast,        setToast]      = useState<string | null>(null);
+  const [memberQuery,  setMemberQuery]= useState('');
 
   useEffect(() => {
     if (!open) return;
@@ -111,9 +112,27 @@ export function CreateGroupModal({
     onClose();
   }
 
-  function toggleMember(id: string) {
-    setMemberIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  function addMember(id: string) {
+    setMemberIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
   }
+
+  function removeMember(id: string) {
+    setMemberIds((prev) => prev.filter((x) => x !== id));
+  }
+
+  const sortedStudents = useMemo(() => {
+    const q = memberQuery.trim().toLowerCase();
+    const memberSet = new Set(memberIds);
+    const filtered = q
+      ? students.filter((s) => s.displayName.toLowerCase().includes(q))
+      : students;
+    return [...filtered].sort((a, b) => {
+      const aIn = memberSet.has(a.documentId) ? 0 : 1;
+      const bIn = memberSet.has(b.documentId) ? 0 : 1;
+      if (aIn !== bIn) return aIn - bIn;
+      return a.displayName.localeCompare(b.displayName, 'uk');
+    });
+  }, [students, memberIds, memberQuery]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -239,33 +258,67 @@ export function CreateGroupModal({
 
           <div>
             <label className={fieldLabel}>
-              Учасники {memberIds.length > 0 && <span className="text-primary-dark">· вибрано {memberIds.length}</span>}
+              Учасники {memberIds.length > 0 && <span className="text-primary-dark">· у групі {memberIds.length}</span>}
             </label>
             {students.length === 0 ? (
               <p className="mt-2 text-[13px] text-ink-muted">Немає доступних учнів</p>
             ) : (
-              <div className="mt-1.5 max-h-48 overflow-y-auto border border-border rounded-xl">
-                {students.map((s) => {
-                  const checked = memberIds.includes(s.documentId);
-                  return (
-                    <label
-                      key={s.documentId}
-                      className="flex items-center gap-3 px-3 py-2 border-b border-border last:border-b-0 cursor-pointer hover:bg-surface-muted/50"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        disabled={submitting || deleting}
-                        onChange={() => toggleMember(s.documentId)}
-                      />
-                      <span className="text-[13px] text-ink flex-1 truncate">{s.displayName}</span>
-                      {s.level && (
-                        <span className="text-[11px] font-bold text-ink-muted">{s.level}</span>
-                      )}
-                    </label>
-                  );
-                })}
-              </div>
+              <>
+                <input
+                  type="search"
+                  value={memberQuery}
+                  onChange={(e) => setMemberQuery(e.target.value)}
+                  placeholder="Пошук учня…"
+                  disabled={submitting || deleting}
+                  className={fieldInput}
+                />
+                <div className="mt-1.5 max-h-56 overflow-y-auto border border-border rounded-xl divide-y divide-border">
+                  {sortedStudents.length === 0 ? (
+                    <p className="px-3 py-4 text-[13px] text-ink-muted text-center">Нічого не знайдено</p>
+                  ) : (
+                    sortedStudents.map((s) => {
+                      const isMember = memberIds.includes(s.documentId);
+                      return (
+                        <div
+                          key={s.documentId}
+                          className={`flex items-center gap-3 px-3 py-2 transition-colors ${
+                            isMember ? 'bg-primary/5' : 'bg-white'
+                          }`}
+                        >
+                          <span className="text-[13px] text-ink flex-1 truncate">
+                            {s.displayName}
+                          </span>
+                          {s.level && (
+                            <span className="text-[11px] font-bold text-ink-muted">{s.level}</span>
+                          )}
+                          {isMember ? (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeMember(s.documentId)}
+                              disabled={submitting || deleting}
+                              className="text-danger-dark hover:bg-danger/10"
+                            >
+                              Прибрати
+                            </Button>
+                          ) : (
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              size="sm"
+                              onClick={() => addMember(s.documentId)}
+                              disabled={submitting || deleting}
+                            >
+                              Додати
+                            </Button>
+                          )}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </>
             )}
           </div>
 

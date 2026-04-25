@@ -18,8 +18,12 @@ const METRIC_OPTIONS: ReadonlyArray<SegmentedControlOption<Metric>> = [
 const METRIC_LABEL: Record<Metric, string> = {
   lessons:  'Уроків',
   homework: 'ДЗ перевірено',
-  grade:    'Середній бал',
+  grade:    'Середній бал (за 12-бальною шкалою)',
 };
+
+function formatGrade(n: number | null | undefined): string {
+  return typeof n === 'number' ? n.toFixed(1) : '—';
+}
 
 function metricValue(point: TeacherAnalyticsData['timeSeries'][number], metric: Metric): number {
   if (metric === 'lessons') return point.lessons;
@@ -107,7 +111,7 @@ export function TeacherAnalytics() {
     },
     {
       label: 'Середній бал',
-      value: kpis.avgGrade !== null ? kpis.avgGrade.toFixed(1) : '—',
+      value: kpis.avgGrade !== null ? `${kpis.avgGrade.toFixed(1)} / 12` : '—',
       delta: '6-місячне вікно',
     },
   ];
@@ -146,7 +150,7 @@ export function TeacherAnalytics() {
               const pct = val === 0 && max === 0 ? 0 : 22 + Math.round(((val - min) / range) * 78);
               const isLast = i === months.length - 1;
               const display = metric === 'grade'
-                ? (m.avgGrade !== null ? m.avgGrade.toFixed(1) : '—')
+                ? formatGrade(m.avgGrade)
                 : String(val);
               return (
                 <div key={m.key} className="flex-1 flex flex-col items-center">
@@ -172,10 +176,11 @@ export function TeacherAnalytics() {
               <p className="text-[11px] text-ink-muted">Поточний місяць</p>
               <p className="text-[13px] font-semibold text-ink tabular-nums">
                 {metric === 'grade'
-                  ? (current.avgGrade !== null ? current.avgGrade.toFixed(1) : '—')
+                  ? `${formatGrade(current.avgGrade)} / 12`
                   : metricValue(current, metric)}
                 <span className="ml-2 text-[11px] font-medium text-ink-muted">
-                  {delta >= 0 ? '▲' : '▼'} {Math.abs(delta)}
+                  {delta >= 0 ? '▲' : '▼'}{' '}
+                  {metric === 'grade' ? Math.abs(delta).toFixed(1) : Math.abs(delta)}
                 </span>
               </p>
             </div>

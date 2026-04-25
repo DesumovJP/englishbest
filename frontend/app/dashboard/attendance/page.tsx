@@ -186,15 +186,17 @@ export default function AttendancePage() {
     const key = `${sess.documentId}::${studentId}`;
     const existing = recordIndex.get(key);
 
-    // Optimistic update.
     if (next === null) {
       if (!existing) return;
+      // Optimistic remove. On error, restore the record we just dropped — DON'T
+      // call loadData(), which would also clobber other in-flight cycles and
+      // make every cell flicker back to the last server state.
       setRecords(prev => prev.filter(r => r.documentId !== existing.documentId));
       try {
         await deleteAttendance(existing.documentId);
       } catch (e: any) {
         setError(e?.message ?? 'Не вдалось видалити відмітку');
-        await loadData();
+        setRecords(prev => (prev.some(r => r.documentId === existing.documentId) ? prev : [...prev, existing]));
       }
       return;
     }
@@ -217,13 +219,19 @@ export default function AttendancePage() {
         sessionId: sess.documentId,
         studentId,
         status: next,
+        fallbackDocumentId: existing?.documentId,
       });
       setRecords(prev =>
         prev.map(r => (r.documentId === tempId ? saved : r)),
       );
     } catch (e: any) {
       setError(e?.message ?? 'Не вдалось зберегти відмітку');
-      await loadData();
+      // Roll back ONLY this cell to its prior state instead of reloading the
+      // whole month — the latter visibly reverts every cell to old data.
+      setRecords(prev => {
+        const without = prev.filter(r => r.documentId !== tempId);
+        return existing ? [...without, existing] : without;
+      });
     }
   }
 

@@ -258,56 +258,52 @@ export function LessonActionSheet({
             <p className="text-sm font-semibold text-ink">{session.title}</p>
           )}
 
+          {session.joinUrl && (
+            <a
+              href={session.joinUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-3 h-10 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary-hover transition-colors w-fit"
+            >
+              <ActionIcon name="link" />
+              Відкрити кімнату
+            </a>
+          )}
+
           <div className="grid grid-cols-2 gap-2">
-            {session.joinUrl && (
-              <a
-                href={session.joinUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-left px-3 py-2.5 rounded-xl border border-border text-ink hover:border-primary/40 hover:bg-primary/5 transition-colors"
-              >
-                <div className="flex items-center gap-2">
-                  <span className="text-base">▶</span>
-                  <span className="text-sm font-black">Відкрити кімнату</span>
-                </div>
-                <p className="text-[11px] text-ink-muted mt-0.5">Перейти за посиланням</p>
-              </a>
-            )}
             <ActionBtn
-              icon="▶️"
+              icon={<ActionIcon name="play" />}
               label="Запустити"
-              hint="Позначити як у процесі"
               disabled={busy || session.status !== 'scheduled'}
               onClick={markLive}
             />
             <ActionBtn
-              icon="✓"
+              icon={<ActionIcon name="check" />}
               label="Провести"
-              hint="Позначити як проведений"
               disabled={busy || session.status === 'completed'}
               onClick={markCompleted}
             />
             <ActionBtn
-              icon="📝"
+              icon={<ActionIcon name="note" />}
               label="Нотатка"
               disabled={busy}
               onClick={() => setPending({ kind: 'note' })}
             />
             <ActionBtn
-              icon="📆"
+              icon={<ActionIcon name="calendar" />}
               label="Перенести"
               disabled={busy || session.status === 'completed'}
               onClick={() => setPending({ kind: 'reschedule' })}
             />
             <ActionBtn
-              icon="❌"
+              icon={<ActionIcon name="cancel" />}
               label="Скасувати"
               tone="danger"
               disabled={busy || session.status === 'completed' || session.status === 'cancelled'}
               onClick={() => setPending({ kind: 'cancel' })}
             />
             <ActionBtn
-              icon="🗑"
+              icon={<ActionIcon name="trash" />}
               label="Видалити"
               tone="danger"
               disabled={busy}
@@ -331,36 +327,58 @@ export function LessonActionSheet({
 function ActionBtn({
   icon,
   label,
-  hint,
   onClick,
   disabled,
   tone = 'default',
 }: {
-  icon: string;
+  icon: React.ReactNode;
   label: string;
-  hint?: string;
   onClick: () => void;
   disabled?: boolean;
   tone?: 'default' | 'danger';
 }) {
+  const toneCls = disabled
+    ? 'border-border/60 text-ink-faint cursor-not-allowed'
+    : tone === 'danger'
+      ? 'border-border text-danger-dark hover:border-danger/40 hover:bg-danger/5'
+      : 'border-border text-ink hover:border-primary/40 hover:bg-primary/5';
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`text-left px-3 py-2.5 rounded-xl border transition-colors ${
-        disabled
-          ? 'border-border/50 text-ink-faint cursor-not-allowed'
-          : tone === 'danger'
-            ? 'border-border text-danger-dark hover:bg-danger/10 hover:border-danger/30'
-            : 'border-border text-ink hover:border-primary/40 hover:bg-primary/5'
-      }`}
+      className={`flex items-center gap-2.5 h-10 px-3 rounded-xl border bg-white text-sm font-semibold transition-colors ${toneCls}`}
     >
-      <div className="flex items-center gap-2">
-        <span className="text-base">{icon}</span>
-        <span className="text-sm font-black">{label}</span>
-      </div>
-      {hint && <p className="text-[11px] text-ink-muted mt-0.5">{hint}</p>}
+      <span className="flex-shrink-0 text-ink-faint">{icon}</span>
+      <span className="truncate">{label}</span>
     </button>
   );
+}
+
+function ActionIcon({ name }: { name: 'play' | 'check' | 'note' | 'calendar' | 'cancel' | 'trash' | 'link' }) {
+  const props = {
+    className: 'w-[18px] h-[18px]',
+    viewBox: '0 0 24 24',
+    fill: 'none' as const,
+    stroke: 'currentColor',
+    strokeWidth: 1.6,
+    strokeLinecap: 'round' as const,
+    strokeLinejoin: 'round' as const,
+  };
+  switch (name) {
+    case 'play':
+      return <svg {...props}><path d="M7 5l12 7-12 7V5Z" /></svg>;
+    case 'check':
+      return <svg {...props}><path d="M5 12l4.5 4.5L19 7" /></svg>;
+    case 'note':
+      return <svg {...props}><path d="M5 4h11l3 3v13H5V4Z" /><path d="M8 10h8M8 14h8M8 18h5" /></svg>;
+    case 'calendar':
+      return <svg {...props}><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M3 10h18M8 3v4M16 3v4" /></svg>;
+    case 'cancel':
+      return <svg {...props}><circle cx="12" cy="12" r="9" /><path d="M5.5 5.5l13 13" /></svg>;
+    case 'trash':
+      return <svg {...props}><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13" /></svg>;
+    case 'link':
+      return <svg {...props}><path d="M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1.5 1.5" /><path d="M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1.5-1.5" /></svg>;
+  }
 }

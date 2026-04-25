@@ -73,6 +73,17 @@ function toNumberOrNull(v: unknown): number | null {
   return null;
 }
 
+/**
+ * Homework grading UI is on the Ukrainian 1–12 scale, but legacy seeds and
+ * imports stored scores on a 0–100 scale. Normalize on read so the analytics
+ * stays in 12-point units regardless of source.
+ */
+function normalizeScoreTo12(n: number | null): number | null {
+  if (n === null) return null;
+  if (n <= 12) return n;
+  return Math.round((n / 100) * 12 * 100) / 100;
+}
+
 export default {
   async teacher(ctx: any) {
     const user = ctx.state.user;
@@ -154,7 +165,7 @@ export default {
       const b = buckets.get(k);
       if (!b) continue;
       b.homeworkGraded += 1;
-      const score = toNumberOrNull(sub.score);
+      const score = normalizeScoreTo12(toNumberOrNull(sub.score));
       if (score !== null) {
         b.gradeSum += score;
         b.gradeCount += 1;
@@ -192,7 +203,7 @@ export default {
     const attendancePct = attCount > 0 ? Math.round((attWeighted / attCount) * 100) : null;
 
     const allGraded = (submissions as any[])
-      .map(s => toNumberOrNull(s.score))
+      .map(s => normalizeScoreTo12(toNumberOrNull(s.score)))
       .filter((n): n is number => n !== null);
     const avgGrade = allGraded.length > 0
       ? Number((allGraded.reduce((a, b) => a + b, 0) / allGraded.length).toFixed(2))
