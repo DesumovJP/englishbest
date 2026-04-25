@@ -6,17 +6,6 @@ import Link from 'next/link';
 import { useSession } from '@/lib/session-context';
 import { apiErrorMessage } from '@/lib/fetcher';
 
-type DemoRole = 'kids' | 'teacher' | 'parent' | 'adult';
-
-interface DemoAccount {
-  role: DemoRole;
-  label: string;
-  sublabel: string;
-  email: string;
-  bubble: string;
-  initials: string;
-}
-
 interface CohortAccount {
   email: string;
   name: string;
@@ -24,12 +13,6 @@ interface CohortAccount {
 }
 
 const DEMO_PASSWORD = 'Demo2026!';
-
-const DEMO_ACCOUNTS: DemoAccount[] = [
-  { role: 'kids',    label: 'Student', sublabel: 'Учень',   email: 'demo-kids@englishbest.app',    bubble: 'bg-primary text-white',   initials: 'ST' },
-  { role: 'teacher', label: 'Teacher', sublabel: 'Вчитель', email: 'demo-teacher@englishbest.app', bubble: 'bg-secondary text-white', initials: 'TE' },
-  { role: 'parent',  label: 'Parent',  sublabel: 'Батьки',  email: 'demo-parent@englishbest.app',  bubble: 'bg-purple text-white',    initials: 'PA' },
-];
 
 const COHORT_TEACHERS: CohortAccount[] = [
   { email: 'teacher-olena@englishbest.app',  name: 'Олена Коваленко',  detail: 'Kids · YLE · 7р.' },
@@ -102,12 +85,6 @@ export default function LoginPage() {
     const next = searchParams.get('next');
     router.replace(resolveNextForRole(next, session.profile.role));
   }, [status, session, router, searchParams]);
-
-  function handleUseDemo(acc: DemoAccount) {
-    setEmail(acc.email);
-    setPassword(DEMO_PASSWORD);
-    setError(null);
-  }
 
   function handleUseCohort(acc: CohortAccount) {
     setEmail(acc.email);
@@ -237,39 +214,8 @@ export default function LoginPage() {
               </button>
             </form>
 
-            {/* ── Demo quick-pick ── */}
+            {/* ── Demo accounts (cohort) ── */}
             <div className="flex flex-col gap-2 pt-2 border-t border-border">
-              <div className="flex items-baseline justify-between gap-3 pt-2">
-                <p className="text-[10px] font-black text-ink-faint uppercase tracking-widest">
-                  Демо-акаунти
-                </p>
-                <p className="text-[10px] text-ink-faint">
-                  пароль <code className="font-mono text-ink-muted">{DEMO_PASSWORD}</code>
-                </p>
-              </div>
-              <div className="flex flex-col gap-1.5">
-                {DEMO_ACCOUNTS.map(acc => (
-                  <button
-                    key={acc.role}
-                    type="button"
-                    onClick={() => handleUseDemo(acc)}
-                    className="group flex items-center gap-3 p-2 rounded-xl hover:bg-surface-muted transition-colors text-left"
-                  >
-                    <span className={`w-8 h-8 rounded-lg flex items-center justify-center font-black text-[11px] tracking-tight flex-shrink-0 ${acc.bubble}`}>
-                      {acc.initials}
-                    </span>
-                    <span className="flex-1 min-w-0 flex items-baseline gap-2">
-                      <span className="font-black text-ink text-[13px]">{acc.label}</span>
-                      <span className="text-[11px] text-ink-muted">· {acc.sublabel}</span>
-                    </span>
-                    <span className="text-[10px] text-ink-faint group-hover:text-primary-dark font-black transition-colors">
-                      Використати →
-                    </span>
-                  </button>
-                ))}
-              </div>
-
-              {/* ── Production cohort: 23 realistic accounts ── */}
               <button
                 type="button"
                 onClick={() => setShowCohort(v => !v)}
@@ -278,9 +224,11 @@ export default function LoginPage() {
               >
                 <span className="flex items-baseline gap-2">
                   <span className="text-[10px] font-black text-ink-faint uppercase tracking-widest">
-                    Демо-когорта
+                    Демо-акаунти
                   </span>
-                  <span className="text-[11px] text-ink-muted">3 вчителі · 8 дітей · 4 дорослих · 8 батьків</span>
+                  <span className="text-[11px] text-ink-muted">
+                    пароль <code className="font-mono text-ink-muted">{DEMO_PASSWORD}</code>
+                  </span>
                 </span>
                 <span className="text-[11px] text-ink-faint font-black">
                   {showCohort ? '▲' : '▼'}
