@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import type { Level } from '@/lib/types/teacher';
 import { LevelBadge } from '@/components/teacher/ui';
@@ -12,9 +12,15 @@ import {
   formatDuration,
   attendeesCountLabel,
 } from '@/lib/session-display';
+import {
+  fetchMotivationSummary,
+  grantBonus,
+  type MotivationSummary,
+} from '@/lib/rewards';
+import { levelFromXp } from '@/lib/level';
 
-type AdminTab   = 'video';
-type TeacherTab = 'video' | 'history' | 'homework' | 'progress';
+type AdminTab   = 'video' | 'motivation';
+type TeacherTab = 'video' | 'history' | 'homework' | 'progress' | 'motivation';
 
 export interface StudentDetailData {
   /** Profile documentId — used to filter sessions/submissions. */
@@ -279,6 +285,10 @@ export function StudentDetail({
   const [subs,     setSubs]     = useState<Submission[] | null>(null);
   const [progress, setProgress] = useState<UserProgressRow[] | null>(null);
   const [loadErr,  setLoadErr]  = useState<string | null>(null);
+  const [motivation, setMotivation] = useState<MotivationSummary | null>(null);
+  const [motivationLoading, setMotivationLoading] = useState(false);
+  const [motivationErr, setMotivationErr] = useState<string | null>(null);
+  const [grantOpen, setGrantOpen] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -305,6 +315,27 @@ export function StudentDetail({
     return () => { alive = false; };
   }, [student.slug, isAdmin]);
 
+  // Lazy-load motivation only when the tab is opened — single round-trip
+  // serves the whole motivation card (level, streak, achievements, recent
+  // events). Refetched after a successful grant.
+  const activeTab = isAdmin ? adminTab : teacherTab;
+  const loadMotivation = useCallback(() => {
+    let alive = true;
+    setMotivationLoading(true);
+    setMotivationErr(null);
+    fetchMotivationSummary(student.slug)
+      .then((m) => { if (alive) setMotivation(m); })
+      .catch((e) => { if (alive) setMotivationErr((e as Error).message || 'Не вдалося завантажити'); })
+      .finally(() => { if (alive) setMotivationLoading(false); });
+    return () => { alive = false; };
+  }, [student.slug]);
+
+  useEffect(() => {
+    if (activeTab !== 'motivation') return;
+    if (motivation && motivation.studentId === student.slug) return;
+    return loadMotivation();
+  }, [activeTab, student.slug, motivation, loadMotivation]);
+
   const upcoming = useMemo(
     () => (sessions ?? []).filter((s) => s.status === 'scheduled' || s.status === 'live'),
     [sessions],
@@ -317,13 +348,15 @@ export function StudentDetail({
   const lowBalance = student.lessonsBalance <= 2;
 
   const adminTabs: [AdminTab, string][] = [
-    ['video', 'Відеоуроки'],
+    ['video',      'Відеоуроки'],
+    ['motivation', 'Мотивація'],
   ];
   const teacherTabs: [TeacherTab, string][] = [
-    ['video',    'Уроки'],
-    ['history',  'Історія'],
-    ['homework', 'ДЗ'],
-    ['progress', 'Прогрес'],
+    ['video',      'Уроки'],
+    ['history',    'Історія'],
+    ['homework',   'ДЗ'],
+    ['progress',   'Прогрес'],
+    ['motivation', 'Мотивація'],
   ];
 
   return (
@@ -456,7 +489,31 @@ export function StudentDetail({
             <ProgressByCourse rows={progress} />
           )
         )}
+
+        {/* Motivation tab — level / streak / achievements / coin-grant */}
+        {activeTab === 'motivation' && (
+          motivationLoading ? <LoadingState /> :
+          motivationErr ? <div className="px-6 py-4 text-[12px] text-danger font-semibold">{motivationErr}</div> :
+          motivation ? (
+            <MotivationPanel
+              summary={motivation}
+              onGrant={() => setGrantOpen(true)}
+            />
+          ) : <EmptyState text="Немає даних мотивації" />
+        )}
       </div>
+
+      {grantOpen && motivation && (
+        <GrantModal
+          studentName={student.name}
+          studentId={student.slug}
+          onClose={() => setGrantOpen(false)}
+          onGranted={() => {
+            setGrantOpen(false);
+            loadMotivation();
+          }}
+        />
+      )}
 
       {/* Parent contact (admin only) */}
       {isAdmin && student.parentName && (
@@ -482,6 +539,245 @@ export function StudentDetail({
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── Motivation panel + grant modal ────────────────────────────────────
+
+const ACTION_LABEL: Record<string, string> = {
+  lesson:      'Урок',
+  minitask:    'Міні-завдання',
+  homework:    'ДЗ',
+  attendance:  'Відвідуваність',
+  streak:      'Стрік',
+  achievement: 'Досягнення',
+  grant:       'Бонус від вчителя',
+};
+
+const TIER_TONE: Record<string, string> = {
+  bronze:   'bg-orange-100 text-orange-700 border-orange-200',
+  silver:   'bg-zinc-100 text-zinc-700 border-zinc-200',
+  gold:     'bg-amber-100 text-amber-800 border-amber-200',
+  platinum: 'bg-purple/15 text-purple-dark border-purple/30',
+};
+
+function fmtRelative(iso: string | null): string {
+  if (!iso) return 'давно';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '—';
+  const minutes = Math.round((Date.now() - d.getTime()) / 60_000);
+  if (minutes < 1) return 'щойно';
+  if (minutes < 60) return `${minutes} хв тому`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours} год тому`;
+  const days = Math.round(hours / 24);
+  if (days < 30) return `${days} дн тому`;
+  return d.toLocaleDateString('uk-UA', { day: 'numeric', month: 'short' });
+}
+
+function MotivationPanel({
+  summary,
+  onGrant,
+}: {
+  summary: MotivationSummary;
+  onGrant: () => void;
+}) {
+  const lvl = levelFromXp(summary.totalXp);
+  const pct = Math.round(lvl.progress * 100);
+
+  return (
+    <div className="px-6 py-4 flex flex-col gap-4">
+      {/* Top stats row */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <Stat label="Рівень" value={`Lv.${lvl.level}`} />
+        <Stat label="Стрик" value={summary.streakDays} />
+        <Stat label="Монети" value={summary.totalCoins.toLocaleString('uk-UA')} muted />
+        <Stat label="XP" value={summary.totalXp.toLocaleString('uk-UA')} muted />
+      </div>
+
+      {/* XP bar */}
+      <div>
+        <div className="flex items-center justify-between mb-1">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-ink-faint">
+            До рівня {lvl.level + 1}
+          </span>
+          <span className="text-[11px] font-bold text-ink-muted tabular-nums">
+            {lvl.currentInLevel}/{lvl.nextThreshold} XP
+          </span>
+        </div>
+        <div className="h-2 rounded-full bg-ink-faint/15 overflow-hidden">
+          <div
+            className="h-full bg-purple transition-[width] duration-500"
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between gap-3 text-[11px] text-ink-muted">
+        <span>
+          Активність: <span className="font-semibold text-ink">{fmtRelative(summary.lastActiveAt)}</span>
+        </span>
+        <button
+          type="button"
+          onClick={onGrant}
+          className="ios-btn ios-btn-secondary text-[11px]"
+        >
+          + Бонус
+        </button>
+      </div>
+
+      {/* Recent achievements */}
+      <section className="flex flex-col gap-2">
+        <h3 className="text-[10px] font-semibold uppercase tracking-wider text-ink-faint">
+          Досягнення ({summary.achievements.length})
+        </h3>
+        {summary.achievements.length === 0 ? (
+          <p className="text-[12px] text-ink-faint italic py-2">Ще не зароблено</p>
+        ) : (
+          <ul className="flex flex-col gap-1.5 max-h-44 overflow-y-auto pr-1">
+            {summary.achievements.slice(0, 12).map((a) => (
+              <li
+                key={a.slug}
+                className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg border text-[12px] ${TIER_TONE[a.tier ?? ''] ?? 'border-border bg-surface-muted/40 text-ink'}`}
+              >
+                <span className="font-semibold truncate flex-1">{a.title ?? a.slug}</span>
+                <span className="tabular-nums whitespace-nowrap text-[10px] opacity-80">
+                  {fmtRelative(a.earnedAt)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {/* Recent reward events */}
+      <section className="flex flex-col gap-2">
+        <h3 className="text-[10px] font-semibold uppercase tracking-wider text-ink-faint">
+          Останні нарахування
+        </h3>
+        {summary.recentEvents.length === 0 ? (
+          <p className="text-[12px] text-ink-faint italic py-2">Поки нічого</p>
+        ) : (
+          <ul className="flex flex-col divide-y divide-border max-h-44 overflow-y-auto">
+            {summary.recentEvents.slice(0, 15).map((e) => (
+              <li key={e.documentId} className="flex items-center gap-2 py-1.5 text-[12px]">
+                <span className="flex-1 min-w-0 truncate">
+                  {ACTION_LABEL[e.action] ?? e.action}
+                </span>
+                <span className="text-[11px] text-ink-faint tabular-nums">{fmtRelative(e.createdAt)}</span>
+                <span className="tabular-nums font-semibold text-ink whitespace-nowrap min-w-[3.5rem] text-right">
+                  {e.coinsDelta > 0 ? `+${e.coinsDelta}🪙` : ''}
+                  {e.coinsDelta > 0 && e.xpDelta > 0 ? ' ' : ''}
+                  {e.xpDelta > 0 ? `+${e.xpDelta}XP` : ''}
+                  {e.coinsDelta === 0 && e.xpDelta === 0 ? '·' : ''}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+    </div>
+  );
+}
+
+function GrantModal({
+  studentId,
+  studentName,
+  onClose,
+  onGranted,
+}: {
+  studentId: string;
+  studentName: string;
+  onClose: () => void;
+  onGranted: () => void;
+}) {
+  const [coins, setCoins] = useState(20);
+  const [xp, setXp] = useState(0);
+  const [reason, setReason] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  async function submit() {
+    if (busy) return;
+    if (coins <= 0 && xp <= 0) {
+      setErr('Введіть кількість монет або XP більше 0');
+      return;
+    }
+    setBusy(true);
+    setErr(null);
+    try {
+      await grantBonus({ studentId, coins, xp, reason: reason.trim() || undefined });
+      onGranted();
+    } catch (e: any) {
+      setErr(e?.message ?? 'Не вдалось видати бонус');
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-5"
+      onClick={onClose}
+    >
+      <div
+        className="bg-surface rounded-2xl p-6 max-w-sm w-full flex flex-col gap-4"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div>
+          <h3 className="font-black text-ink text-lg">Бонус для {studentName}</h3>
+          <p className="text-[12px] text-ink-muted mt-1">
+            Нарахування пройде через систему винагород і потрапить у журнал.
+            Максимум за раз: 500 монет, 200 XP.
+          </p>
+        </div>
+
+        <label className="flex flex-col gap-1">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-ink-faint">Монети</span>
+          <input
+            type="number"
+            min={0}
+            max={500}
+            value={coins}
+            onChange={(e) => setCoins(Math.max(0, Math.min(500, Number(e.target.value) || 0)))}
+            className="ios-input"
+          />
+        </label>
+
+        <label className="flex flex-col gap-1">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-ink-faint">XP (необов&apos;язково)</span>
+          <input
+            type="number"
+            min={0}
+            max={200}
+            value={xp}
+            onChange={(e) => setXp(Math.max(0, Math.min(200, Number(e.target.value) || 0)))}
+            className="ios-input"
+          />
+        </label>
+
+        <label className="flex flex-col gap-1">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-ink-faint">Причина (необов&apos;язково)</span>
+          <input
+            type="text"
+            value={reason}
+            onChange={(e) => setReason(e.target.value.slice(0, 280))}
+            placeholder="Наприклад: за гарну роботу на уроці"
+            className="ios-input"
+          />
+        </label>
+
+        {err && <p className="text-[12px] text-danger-dark">{err}</p>}
+
+        <div className="flex justify-end gap-2 pt-1">
+          <button type="button" onClick={onClose} className="ios-btn ios-btn-ghost" disabled={busy}>
+            Скасувати
+          </button>
+          <button type="button" onClick={submit} className="ios-btn ios-btn-primary" disabled={busy}>
+            {busy ? 'Зберігаю…' : 'Видати'}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

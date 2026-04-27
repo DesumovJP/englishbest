@@ -25,6 +25,8 @@ import {
   formatDuration,
   attendeesCountLabel,
 } from '@/lib/session-display';
+import { fetchMotivationSummary, type MotivationSummary } from '@/lib/rewards';
+import { levelFromXp } from '@/lib/level';
 
 const MONTHS_UA = ['Січ', 'Лют', 'Бер', 'Кві', 'Тра', 'Чер', 'Лип', 'Сер', 'Вер', 'Жов', 'Лис', 'Гру'];
 const WEEKDAYS_UA = ['Нд', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
@@ -170,10 +172,26 @@ function ChildBlock({ summary }: { summary: ChildSummary }) {
   const name = childDisplayName(summary.child);
   const kp = summary.child.kidsProfile;
 
+  const childDocId = summary.child.documentId;
+  const [motivation, setMotivation] = useState<MotivationSummary | null>(null);
+
+  useEffect(() => {
+    if (!childDocId) return;
+    let alive = true;
+    fetchMotivationSummary(childDocId)
+      .then((m) => { if (alive) setMotivation(m); })
+      .catch(() => { /* parent dashboard tolerates missing motivation — KPIs degrade gracefully */ });
+    return () => { alive = false; };
+  }, [childDocId]);
+
+  const totalXp = motivation?.totalXp ?? Number(kp?.totalXp ?? 0);
+  const lvl = levelFromXp(totalXp);
+  const recentAchievements = (motivation?.achievements ?? []).slice(0, 3);
+
   const kpis: ReadonlyArray<{ label: string; value: string }> = [
+    { label: 'Рівень', value: `Lv.${lvl.level}` },
     { label: 'Завершено уроків', value: String(summary.completedLessons) },
     { label: 'Середній бал', value: summary.avgScore !== null ? `${summary.avgScore}%` : '—' },
-    { label: 'ДЗ чекає', value: String(summary.pendingHomeworkCount) },
     { label: 'Стрік', value: `${kp?.streakDays ?? 0} 🔥` },
   ];
 
@@ -213,6 +231,41 @@ function ChildBlock({ summary }: { summary: ChildSummary }) {
           </Card>
         ))}
       </div>
+
+      {/* Recent achievements — show up to 3 most-recent badges. The full
+          list lives on the kid's own profile; this is parent-glance.
+          Hidden when motivation hasn't loaded yet OR there are no
+          achievements (don't surface an empty placeholder — anti-blanket). */}
+      {recentAchievements.length > 0 && (
+        <Card variant="surface" padding="none" className="overflow-hidden">
+          <div className="px-5 py-2.5 border-b border-border flex items-baseline justify-between">
+            <h3 className="text-[10px] font-semibold text-ink-faint uppercase tracking-wider">
+              Останні досягнення
+            </h3>
+            <span className="text-[11px] text-ink-faint tabular-nums">
+              усього {motivation?.achievements.length ?? 0}
+            </span>
+          </div>
+          <ul className="flex flex-col">
+            {recentAchievements.map((a) => (
+              <li
+                key={a.slug}
+                className="flex items-center gap-2 px-5 py-2 border-t border-border first:border-t-0"
+              >
+                <span className="text-lg flex-shrink-0" aria-hidden>🏆</span>
+                <span className="flex-1 min-w-0 text-[13px] font-semibold text-ink truncate">
+                  {a.title ?? a.slug}
+                </span>
+                {a.tier && (
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-ink-muted">
+                    {a.tier}
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card variant="surface" padding="none" className="overflow-hidden">

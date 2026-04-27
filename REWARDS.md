@@ -103,11 +103,25 @@ Per-level unlocks live in a small static table (Phase E):
     lessons via `LessonPlayer` (server-backed) are wired through the new
     pipeline.
 
-- [ ] **Phase D — Teacher / parent dashboards**
-  - [ ] Teacher: per-student "motivation card" — level, streak, recent
-        achievements, grade trend, last-active.
-  - [ ] Parent: same + weekly summary report.
-  - [ ] Bonus coin-grant action for teacher (with audit).
+- [x] **Phase D — Teacher / parent dashboards**
+  - [x] BE `motivationSummary` aggregate endpoint
+        (`GET /rewards/student/:studentId/motivation`) — level, streak,
+        coins, XP, recent achievements, recent reward-events; scoped
+        per role (admin all, teacher any, parent own kids, self own).
+  - [x] BE `grant` endpoint (`POST /rewards/grant`) — teacher / admin
+        awards bonus coins (≤ 500) and / or XP (≤ 200) with optional
+        reason; routes through `awardOnAction({ action:'grant',
+        skipAchievementEval:true })` so the bonus appears in the kids
+        HUD with full audit trail.
+  - [x] Teacher StudentDetail "Мотивація" tab: level + XP bar, streak,
+        coin/XP totals, last-active, achievements list (tiered chips),
+        recent reward-events stream, "+ Бонус" button → grant modal.
+  - [x] Parent dashboard ChildBlock: per-child level KPI, fetches
+        motivation summary, surfaces top 3 recent achievements as a
+        small card.
+  - Note: teacher → student relationship not yet formalised in schema —
+    `motivationSummary` allows any teacher to read any student. Tighten
+    this when groups / teacher.students relation lands.
 
 - [ ] **Phase E — Polish**
   - [ ] Achievement catalog with proper icons + bronze / silver / gold tier.
@@ -164,4 +178,16 @@ Per-level unlocks live in a small static table (Phase E):
   server-side credits (mini-task submit, lesson complete via
   `LessonPlayer`). Kids homework detail shows delicate ⭐+% grade row;
   no red-FAIL bar.
+- **2026-04-27** — Phase D done. BE `motivationSummary` + `grant`
+  endpoints (with caps, audit). FE `lib/rewards.ts` typed wrapper.
+  StudentDetail gains a "Мотивація" tab with level bar, totals, recent
+  achievements + reward-event stream, and "+ Бонус" grant modal.
+  Parent dashboard ChildBlock derives level from totalXp and surfaces
+  top 3 recent achievements. Permissions seed extended for `grant` /
+  `motivationSummary`.
+- **2026-04-27** — Hotfix on Railway boot: `mini-task-attempt` route
+  factory was gating `create` behind a non-existent
+  `admin::is-authenticated` policy. Replaced with `only: [...]` so the
+  factory simply doesn't register the public POST. Custom POST
+  /mini-task-attempts/me unaffected.
 

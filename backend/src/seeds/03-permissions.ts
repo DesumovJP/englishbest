@@ -112,8 +112,12 @@ const GRANTS: Grant[] = [
   //   - find / findOne — scoped inside controller: admin all, parent own
   //     kids, everyone else own. Writes happen exclusively from
   //     `lib/rewards.ts` server-side; no public create/update/delete.
+  //   - grant — teacher/admin only (controller enforces role); awards
+  //     bonus coins+XP to a student through the central rewards service.
   { action: 'api::reward-event.reward-event.find', roles: AUTH_ALL },
   { action: 'api::reward-event.reward-event.findOne', roles: AUTH_ALL },
+  { action: 'api::reward-event.reward-event.grant', roles: STAFF },
+  { action: 'api::reward-event.reward-event.motivationSummary', roles: AUTH_ALL },
 
   // Mini-task attempt
   //   - find / findOne — scoping inside controller (admin all, teacher own
