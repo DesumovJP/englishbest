@@ -20,6 +20,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { KidsButton, KidsCoinBadge } from '@/components/kids/ui';
 import type { MiniTask } from '@/lib/mini-tasks';
 import { submitAttempt, type SubmitAttemptResult } from '@/lib/mini-task-attempts';
+import { emitKidsEvent } from '@/lib/kids-store';
 
 interface MiniTaskPlayerProps {
   task: MiniTask;
@@ -129,6 +130,9 @@ export function MiniTaskPlayer({ task, onClose, onCompleted }: MiniTaskPlayerPro
       });
       setResult(res);
       setPhase('done');
+      // Server changed coins / XP / streak — invalidate the kids cache so
+      // the HUD reflects the new totals next render.
+      emitKidsEvent('kids:server-state-stale');
       onCompleted?.(res);
     } catch (e: any) {
       setError(e?.message ?? 'Не вдалось зберегти');
@@ -440,10 +444,51 @@ function ResultScreen({
         </p>
       )}
 
-      {result.awardedCoins > 0 && (
-        <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-coin-bg border border-coin-border">
-          <span className="text-xl">🪙</span>
-          <span className="font-black text-coin">+{result.awardedCoins}</span>
+      {(result.awardedCoins > 0 || result.xpDelta > 0) && (
+        <div className="flex items-center gap-2 flex-wrap justify-center">
+          {result.awardedCoins > 0 && (
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-coin-bg border border-coin-border">
+              <span className="text-base" aria-hidden>🪙</span>
+              <span className="font-black text-coin text-[14px] tabular-nums">+{result.awardedCoins}</span>
+            </div>
+          )}
+          {result.xpDelta > 0 && (
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-purple/15 border border-purple/40">
+              <span className="font-black text-purple-dark text-[10px] uppercase tracking-wider leading-none">XP</span>
+              <span className="font-black text-purple-dark text-[14px] tabular-nums leading-none">+{result.xpDelta}</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {result.levelUp && result.level !== null && (
+        <div className="w-full rounded-2xl bg-purple/15 border-2 border-purple px-4 py-3 text-center animate-bounce-in">
+          <p className="text-[10px] font-black uppercase tracking-wider text-purple-dark/70">level up!</p>
+          <p className="text-[18px] font-black text-purple-dark mt-0.5">Рівень {result.level}</p>
+        </div>
+      )}
+
+      {result.achievementsEarned.length > 0 && (
+        <div className="w-full flex flex-col gap-1.5">
+          {result.achievementsEarned.map((a) => (
+            <div
+              key={a.slug}
+              className="flex items-center gap-2.5 px-3 py-2 rounded-2xl bg-accent/10 border-2 border-accent/40 animate-bounce-in"
+            >
+              <span className="text-2xl flex-shrink-0" aria-hidden>🏆</span>
+              <div className="flex-1 min-w-0 text-left">
+                <p className="text-[10px] font-black uppercase tracking-wider text-accent-dark/70">нове досягнення</p>
+                <p className="text-[14px] font-black text-accent-dark truncate">{a.title}</p>
+              </div>
+              {(a.coinReward > 0 || a.xpReward > 0) && (
+                <span className="text-[11px] font-bold text-ink-muted flex-shrink-0 tabular-nums whitespace-nowrap">
+                  {a.coinReward > 0 ? `+${a.coinReward}🪙` : ''}
+                  {a.coinReward > 0 && a.xpReward > 0 ? ' ' : ''}
+                  {a.xpReward > 0 ? `+${a.xpReward}XP` : ''}
+                </span>
+              )}
+            </div>
+          ))}
         </div>
       )}
 

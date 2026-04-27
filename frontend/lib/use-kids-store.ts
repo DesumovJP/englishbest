@@ -317,10 +317,24 @@ export function useKidsState() {
     });
   }, []);
 
+  /** Drop cache + refetch — use after a server-side mutation the FE didn't
+   *  drive locally (mini-task submit, lesson complete, etc.). */
+  const refresh = useCallback(() => {
+    kidsStateStore.refresh().then((s) => {
+      setState(s);
+      setLoading(false);
+    });
+  }, []);
+
   useEffect(() => {
     load();
-    return onKidsEvent("kids:state-changed", load);
-  }, [load]);
+    const offLocal = onKidsEvent("kids:state-changed", load);
+    const offServer = onKidsEvent("kids:server-state-stale", refresh);
+    return () => {
+      offLocal();
+      offServer();
+    };
+  }, [load, refresh]);
 
   const patch = useCallback(async (partial: Partial<KidsState>) => {
     const next = await kidsStateStore.patch(partial);

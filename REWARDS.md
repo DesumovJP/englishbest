@@ -84,12 +84,24 @@ Per-level unlocks live in a small static table (Phase E):
         Old CEFR-shaped `level-up-a2` / `level-up-b1` slugs deprecated —
         clean up manually in DB if previously seeded.
 
-- [ ] **Phase C — Kid-facing HUD**
-  - [ ] XP bar + level chip in kids top HUD.
-  - [ ] Streak chip visible to kid.
-  - [ ] Achievement-earned modal (character celebrate + confetti).
-  - [ ] Unified result screen (lesson / mini-task) — "+XP · +coins · level up?".
-  - [ ] Subtle grade-stars on homework detail / lesson recap.
+- [x] **Phase C — Kid-facing HUD**
+  - [x] XP bar + level chip in kids top HUD (`KidsLevelBar`,
+        `ProgressWidget` — combines level + streak inside one HudCard).
+  - [x] Streak chip visible to kid (always, no `streak ≥ 3` gate).
+  - [x] Achievement-earned celebration in mini-task result screen — XP
+        delta pill, coin pill, level-up banner, per-achievement banner
+        with reward summary.
+  - [x] `kids:server-state-stale` event → `kidsStateStore.refresh()` so the
+        HUD reflects fresh server totals after every server-side credit
+        (mini-task submit, real lesson complete via `LessonPlayer`).
+  - [x] Subtle grade-stars on kids homework detail (1–5 ⭐ + "%" — never a
+        red FAIL bar; anti-blanket rule keeps the gamified pieces as the
+        celebration carrier).
+  - Note: kids course-mocks `LessonEngine` was always disconnected from
+    the BE lifecycle (it operates on `mocks/lessons/`); reward flow there
+    stays purely optimistic until the lesson catalog migration. Real
+    lessons via `LessonPlayer` (server-backed) are wired through the new
+    pipeline.
 
 - [ ] **Phase D — Teacher / parent dashboards**
   - [ ] Teacher: per-student "motivation card" — level, streak, recent
@@ -144,4 +156,12 @@ Per-level unlocks live in a small static table (Phase E):
   mini-tasks volume + perfection, perfect-week attendance, XP levels 5 / 10 / 20.
   Old CEFR-shaped slugs deprecated in catalog (engine never matched
   their `{ level: 'A2' }` shape).
+- **2026-04-27** — Phase C done. `KidsLevelBar` (compact + stacked layouts);
+  dashboard `ProgressWidget` combines level bar + streak in one HUD card,
+  always visible. Mini-task result screen now shows XP delta, coin
+  delta, level-up banner, per-achievement card with reward summary.
+  `kids:server-state-stale` event invalidates the kids cache after
+  server-side credits (mini-task submit, lesson complete via
+  `LessonPlayer`). Kids homework detail shows delicate ⭐+% grade row;
+  no red-FAIL bar.
 

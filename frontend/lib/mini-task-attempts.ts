@@ -36,10 +36,27 @@ export interface MiniTaskAttempt {
   timeSpentSec: number | null;
 }
 
+export interface AchievementEarnedLite {
+  slug: string;
+  title: string;
+  xpReward: number;
+  coinReward: number;
+}
+
 export interface SubmitAttemptResult extends MiniTaskAttempt {
   /** True when this submission was the user's first for the task. Coin
    *  reward is non-zero only on first submissions. */
   isFirstAttempt: boolean;
+  /** XP delta credited by the rewards service for this attempt. 0 when no
+   *  earn fired (retry, score below pass threshold). */
+  xpDelta: number;
+  /** True when this submission crossed an XP-level threshold. */
+  levelUp: boolean;
+  /** Current XP level after this submission (post-credit). */
+  level: number | null;
+  /** Achievements that were unlocked by this submission (post-credit
+   *  snapshot). Empty array on retries / no-progress submissions. */
+  achievementsEarned: AchievementEarnedLite[];
 }
 
 function pickStatus(v: unknown): AttemptStatus {
@@ -120,9 +137,21 @@ export async function submitAttempt(input: {
   const json: any = await res.json().catch(() => ({}));
   const normalized = normalize(json?.data);
   if (!normalized) throw new Error('submitAttempt: malformed response');
+  const earned = Array.isArray(json?.data?.achievementsEarned)
+    ? (json.data.achievementsEarned as any[]).map((a) => ({
+        slug: typeof a?.slug === 'string' ? a.slug : '',
+        title: typeof a?.title === 'string' ? a.title : a?.slug ?? '',
+        xpReward: typeof a?.xpReward === 'number' ? a.xpReward : 0,
+        coinReward: typeof a?.coinReward === 'number' ? a.coinReward : 0,
+      })).filter((a) => a.slug)
+    : [];
   return {
     ...normalized,
     isFirstAttempt: Boolean(json?.data?.isFirstAttempt),
+    xpDelta: typeof json?.data?.xpDelta === 'number' ? json.data.xpDelta : 0,
+    levelUp: Boolean(json?.data?.levelUp),
+    level: typeof json?.data?.level === 'number' ? json.data.level : null,
+    achievementsEarned: earned,
   };
 }
 

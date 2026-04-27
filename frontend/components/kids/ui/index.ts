@@ -33,6 +33,7 @@ export { KidsToast } from "./KidsToast";
 export { KidsProgressBar } from "./KidsProgressBar";
 
 export { HudCard } from "./HudCard";
+export { KidsLevelBar } from "./KidsLevelBar";
 export { SpeechBubble } from "./SpeechBubble";
 export { XpBadge } from "./XpBadge";
 export { ProgressBar } from "./ProgressBar";

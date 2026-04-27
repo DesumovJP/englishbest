@@ -10,6 +10,8 @@
  *   - kidsState       — active character, coin balance, unlocked rooms, etc.
  */
 
+import { levelFromXp } from "./level";
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type ItemCategory = "furniture" | "decor" | "outfit" | "special";
@@ -409,10 +411,15 @@ async function fetchState(): Promise<KidsState> {
   const p = prof.data;
   const i = inv.data;
 
+  const xp = p ? toNum(p.totalXp) : 0;
   const state: KidsState = {
     ...DEFAULT_STATE,
     coins: p ? toNum(p.totalCoins) : 0,
-    xp: p ? toNum(p.totalXp) : 0,
+    xp,
+    // Derive the kid-facing level from server-truth XP. Same formula on
+    // BE (`lib/rewards.ts:computeLevel`) and FE (`lib/level.ts`) so the
+    // HUD never reads a different level than the server recorded.
+    level: levelFromXp(xp).level,
     streak: p ? toNum(p.streakDays) : 0,
     ownedItemIds: (i?.ownedShopItems ?? []).map((x) => x.slug),
     equippedItemIds: (i?.equippedItems ?? []).map((x) => x.slug),
@@ -441,6 +448,16 @@ export const kidsStateStore = {
         _inflight = null;
       });
     return _inflight;
+  },
+
+  /** Drop the cached snapshot and force the next `get()` to round-trip the
+   *  server. Use after a server-side mutation the FE didn't drive locally
+   *  (e.g. mini-task submit, lesson complete, homework graded) — the
+   *  rewards service has changed `totalCoins` / `totalXp` / `streakDays`
+   *  and the cache is stale. */
+  refresh: async (): Promise<KidsState> => {
+    _cache = null;
+    return kidsStateStore.get();
   },
 
   /** Write a full snapshot to the server. Diffs against cache to route fields. */
@@ -683,7 +700,11 @@ export type KidsStoreEvent =
   | "kids:items-changed"
   | "kids:rooms-changed"
   | "kids:characters-changed"
-  | "kids:state-changed";
+  | "kids:state-changed"
+  /** Fires when a server-side write changed coins / XP / streak (mini-task
+   *  submit, lesson complete, homework graded). Subscribers refetch via
+   *  `kidsStateStore.refresh()` rather than reading the stale cache. */
+  | "kids:server-state-stale";
 
 export function emitKidsEvent(type: KidsStoreEvent) {
   if (typeof window !== "undefined") {

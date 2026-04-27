@@ -6,7 +6,7 @@ import type { BoxRarity } from "@/components/kids/LootBox";
 import CharacterAvatar from "@/components/kids/CharacterAvatar";
 import type { CharacterEmotion } from "@/lib/characters";
 import { useKidsState } from "@/lib/use-kids-store";
-import { HudCard, SpeechBubble } from "@/components/kids/ui";
+import { HudCard, KidsLevelBar, SpeechBubble } from "@/components/kids/ui";
 import { SHOP_ITEMS_BY_ID, SLOT_OFFSET } from "@/lib/shop-catalog";
 import type { PlacedItem } from "@/lib/kids-store";
 import { ContinueLessonWidget } from "@/components/kids/ContinueLessonWidget";
@@ -30,13 +30,30 @@ const EMOTION_BUBBLES: Record<CharacterEmotion, Bubble> = {
   angry:     { en: "Lesson won't do itself!",    ua: "Урок сам не пройде!" },
 };
 
-function StreakWidget({ streak }: { streak: number }) {
+/**
+ * Compact "Прогрес" pill — current level + thin XP bar + streak chip in
+ * one HUD card. Shown to every kid on every dashboard load (no streak ≥ 3
+ * gate so a 0-streak kid still sees what they're working toward).
+ */
+function ProgressWidget({ xp, streak }: { xp: number; streak: number }) {
   return (
-    <HudCard className="px-2.5 pt-2.5 pb-2 sm:px-3.5 sm:pt-3 sm:pb-2.5">
-      <div className="flex items-center gap-1.5 sm:gap-2">
-        <span className="text-[16px] sm:text-[22px] leading-none">🔥</span>
-        <span className="font-black text-[16px] sm:text-[22px] text-accent-dark leading-none tabular-nums">{streak}</span>
-        <span className="font-bold text-[9.5px] sm:text-[11px] text-ink-muted">днів</span>
+    <HudCard className="px-2.5 pt-2.5 pb-2.5 sm:px-3.5 sm:pt-3 sm:pb-3 flex flex-col gap-2">
+      <KidsLevelBar xp={xp} layout="stacked" />
+      <div className="flex items-center justify-between gap-2 pt-1.5 border-t border-ink-faint/10">
+        <div className="flex items-center gap-1.5">
+          <span className="text-[14px] sm:text-[16px] leading-none" aria-hidden>🔥</span>
+          <span className="font-black text-[13px] sm:text-[15px] text-accent-dark leading-none tabular-nums">
+            {streak}
+          </span>
+          <span className="font-bold text-[9.5px] sm:text-[11px] text-ink-muted">
+            {streak === 1 ? 'день' : streak >= 2 && streak <= 4 ? 'дні' : 'днів'}
+          </span>
+        </div>
+        {streak >= 3 && (
+          <span className="text-[9px] font-black uppercase tracking-wider text-accent-dark/70">
+            не зривай!
+          </span>
+        )}
       </div>
     </HudCard>
   );
@@ -114,7 +131,11 @@ function MobileTopHud({
   const weekday = WEEKDAYS_UA[now.getDay()];
   const canAffordBox = freeBoxes > 0 || coins >= 50;
 
-  const showStreak = streak >= 3;
+  // Streak is always visible to the kid now — even at 0, so they know
+  // the meter exists and what they're working toward. The visual stays
+  // small (single chip on the calendar pill) — see REWARDS.md anti-blanket
+  // rule.
+  const showStreak = true;
 
   return (
     <div className="sm:hidden absolute z-20 top-[calc(env(safe-area-inset-top,0px)+12px)] left-2 right-2 flex items-stretch gap-1.5">
@@ -305,6 +326,7 @@ export default function KidsDashboardPage() {
 
   const coins      = kidsState.coins ?? 0;
   const streak     = kidsState.streak ?? 0;
+  const xp         = kidsState.xp ?? 0;
   const freeBoxes  = kidsState.freeLootBoxes ?? 0;
   const emotion    = EMOTION_CYCLE[emotionIdx];
 
@@ -369,8 +391,8 @@ export default function KidsDashboardPage() {
       {/* Desktop/tablet HUD — left column */}
       <div className="hidden sm:flex absolute z-20 flex-col gap-2 md:gap-2.5 top-[calc(env(safe-area-inset-top,0px)+18px)] md:top-[calc(env(safe-area-inset-top,0px)+24px)] left-3 md:left-4 w-[min(185px,42vw)] md:w-[min(210px,46vw)]">
         <CalendarWidget />
+        <ProgressWidget xp={xp} streak={streak} />
         <MiniTaskWidget />
-        {streak >= 3 && <StreakWidget streak={streak} />}
         <LootBoxWidget coins={coins} freeBoxes={freeBoxes} onOpen={() => setOpenBox("common")} />
       </div>
 

@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { createProgress } from '@/lib/api';
+import { emitKidsEvent } from '@/lib/kids-store';
 
 type LessonStatus = 'notStarted' | 'inProgress' | 'completed';
 
@@ -54,6 +55,12 @@ export function LessonPlayer({
         courseDocumentId,
         status: newStatus,
       });
+      // Server lifecycle just credited coins / XP / streak / achievements
+      // through the rewards service. Tell any kids HUD on the page to drop
+      // its cached snapshot and refetch.
+      if (newStatus === 'completed') {
+        emitKidsEvent('kids:server-state-stale');
+      }
     } catch {
       // silently fail — local state is source of truth, progress syncs on reload
     }

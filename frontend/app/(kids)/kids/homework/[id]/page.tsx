@@ -122,19 +122,44 @@ export default function KidsHomeworkDetailPage({
               )}
             </KidsCard>
 
-            {/* Teacher feedback (if reviewed / returned) */}
-            {sub.teacherFeedback && (
+            {/* Teacher feedback / grade — kid-facing read of the academic
+                grade. Stars are deliberately delicate (no big "FAILED"
+                bar) so a 50 % grade still feels like progress, not
+                punishment. Star count maps 0..5 to score buckets:
+                  0–19 → 1★, 20–39 → 2★, 40–59 → 3★, 60–79 → 4★, 80+ → 5★.
+                Anti-blanket rule (REWARDS.md): grades stay quiet, the
+                gamified pieces (coins/XP/achievements) carry the
+                celebration. */}
+            {(sub.teacherFeedback || sub.score !== null) && (
               <KidsCard variant="flat" className="p-4">
-                <p className="text-[11px] font-black uppercase text-ink-faint tracking-wider">
-                  Коментар вчителя
-                </p>
-                <p className="text-ink text-[14px] mt-1 whitespace-pre-wrap">
-                  {sub.teacherFeedback}
-                </p>
                 {sub.score !== null && (
-                  <p className="font-black text-primary-dark text-[15px] mt-2">
-                    Оцінка: {sub.score}
-                  </p>
+                  <div className="flex items-center justify-between gap-3 mb-2">
+                    <span className="text-[11px] font-black uppercase text-ink-faint tracking-wider">
+                      Оцінка
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <span className="text-[15px]" aria-hidden>
+                        {(() => {
+                          const s = sub.score ?? 0;
+                          const stars = s >= 80 ? 5 : s >= 60 ? 4 : s >= 40 ? 3 : s >= 20 ? 2 : 1;
+                          return '⭐'.repeat(stars);
+                        })()}
+                      </span>
+                      <span className="font-black text-primary-dark text-[14px] tabular-nums">
+                        {Math.round(sub.score)}%
+                      </span>
+                    </span>
+                  </div>
+                )}
+                {sub.teacherFeedback && (
+                  <>
+                    <p className="text-[11px] font-black uppercase text-ink-faint tracking-wider">
+                      Коментар вчителя
+                    </p>
+                    <p className="text-ink text-[14px] mt-1 whitespace-pre-wrap">
+                      {sub.teacherFeedback}
+                    </p>
+                  </>
                 )}
               </KidsCard>
             )}
