@@ -70,7 +70,7 @@ export const COURSE_SEEDS: CourseSeed[] = [
   // ─── B-band (3 courses, target 24 lessons) ──────────────────────────
   bStories,       // 8 lessons — Past tenses + narrative
   bIdeas,         // 8 lessons — Modal verbs + conditionals + tech
-  bRealWorld,     // shell — 1 sample lesson; lessons 2–8 pending
+  bRealWorld,     // 8 lessons — Present Perfect, passive, register, idioms
 ];
 
 export type { CourseSeed, LessonSeed } from './types';
