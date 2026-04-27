@@ -257,14 +257,12 @@ function UnifiedCarousel({
   }, []);
 
   useEffect(() => {
-    // Cooldown: smooth-scroll animation runs ONCE per (course, current
-    // lesson) per session. Switching tabs and coming back was firing the
-    // 700 ms intro every time — too noisy. After first run we mark the
-    // pair in sessionStorage and use `behavior: 'instant'` (zero-time
-    // jump) on subsequent mounts. Cleared automatically when the kid
-    // closes the tab; that's the right cadence — they get a re-intro
-    // when they come back fresh, not on every internal nav.
-    const sessionKey = `kids:carousel-intro:${(activeCourse as { slug?: string } | null)?.slug ?? '_'}:${currentSlug}`;
+    // Cooldown: smooth-scroll intro runs ONCE per `currentSlug` per session.
+    // Re-centering must NOT depend on `activeCourse.slug` — that value is
+    // mutated by the user's own scrolling, which would create a feedback
+    // loop (user scrolls → activeCourse changes → effect fires → scrollTo
+    // currentRef → calcScales → activeCourse changes again → …).
+    const sessionKey = `kids:carousel-intro:${currentSlug}`;
     const alreadyAnimated =
       typeof window !== 'undefined' &&
       window.sessionStorage?.getItem(sessionKey) === '1';
@@ -288,7 +286,7 @@ function UnifiedCarousel({
     }, delay);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentSlug, (activeCourse as { slug?: string } | null)?.slug]);
+  }, [currentSlug]);
 
   function scaleFor(slug: string): number {
     const t = scales.get(slug) ?? 0;
@@ -303,8 +301,12 @@ function UnifiedCarousel({
 
   return (
     <section className="flex flex-col h-full min-h-0">
-      {/* Sticky course ribbon — title + overall progress bar */}
-      <div className="flex items-center gap-3 px-4 py-2.5 bg-surface-muted border-b border-border flex-shrink-0">
+      {/* Sticky course ribbon — title + overall progress bar. Tappable to
+          open the course detail page (full description + lessons list). */}
+      <Link
+        href={activeCourse ? `/kids/library/${activeCourse.slug}` : '/kids/school'}
+        className="flex items-center gap-3 px-4 py-2.5 bg-surface-muted border-b border-border flex-shrink-0 hover:bg-surface-raised transition-colors"
+      >
         <div
           className="w-9 h-9 rounded-lg flex items-center justify-center text-[18px] flex-shrink-0 transition-colors"
           style={{ background: `${activeAccent}20`, border: `1.5px solid ${activeAccent}40` }}
@@ -312,8 +314,9 @@ function UnifiedCarousel({
           {activeCourse ? emojiOf(activeCourse) : '🎓'}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-black text-[13px] text-ink truncate leading-tight">
-            {activeCourse?.title ?? 'Уроки'}
+          <p className="font-black text-[13px] text-ink truncate leading-tight flex items-center gap-1">
+            <span className="truncate">{activeCourse?.title ?? 'Уроки'}</span>
+            <span aria-hidden className="text-ink-faint flex-shrink-0">›</span>
           </p>
           {/*
             Progress meter — tokenised track with course-accent fill.
@@ -344,7 +347,7 @@ function UnifiedCarousel({
             </span>
           </div>
         </div>
-      </div>
+      </Link>
 
       {/* Unified horizontal scroll-snap carousel — flex-1 so it vertically centers */}
       <div

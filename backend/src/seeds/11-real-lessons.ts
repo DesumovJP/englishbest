@@ -269,26 +269,49 @@ async function upsertLesson(
 }
 
 /**
- * Mark legacy themed courses (caterpillar / peppa / bluey / etc.) as
- * `status='archived'` so they vanish from the kids school listing
- * without nuking user-progress rows that reference them. Idempotent —
- * if a slug doesn't exist we just skip; if it's already archived we
- * leave it alone.
+ * DELETE legacy themed courses + placeholder library items (caterpillar /
+ * peppa / charlotte / harry / …) so the kids school catalog only shows real,
+ * completable content. Cascades through lessons attached to those courses.
+ * Idempotent — if the slug doesn't exist we skip.
+ *
+ * NOTE: this is a hard delete, not an archive. Any user-progress rows that
+ * pointed at deleted lessons become orphaned (relation populates as null).
+ * That's acceptable: those rows referenced placeholder content that was
+ * never real, and the kids' completion totals don't include them.
  */
-async function archiveLegacyCourses(strapi: any): Promise<number> {
-  let archived = 0;
+async function deleteLegacyCourses(strapi: any): Promise<number> {
+  let deleted = 0;
   for (const slug of LEGACY_COURSE_SLUGS) {
     const course = await findCourse(strapi, slug);
     if (!course) continue;
-    const current = (course as any).status;
-    if (current === 'archived') continue;
-    await strapi.documents(COURSE_UID).update({
-      documentId: course.documentId,
-      data: { status: 'archived' } as any,
+
+    // First delete attached lessons — Strapi v5 doesn't cascade through
+    // relations on the `course.lessons` side automatically.
+    const lessons = await strapi.documents(LESSON_UID).findMany({
+      filters: { course: { documentId: { $eq: course.documentId } } },
+      fields: ['documentId'],
+      limit: 200,
     });
-    archived += 1;
+    for (const l of lessons) {
+      try {
+        await strapi.documents(LESSON_UID).delete({ documentId: l.documentId });
+      } catch (err) {
+        strapi.log.warn(
+          `[seed] real-lessons: failed to delete lesson ${l.documentId} of legacy course ${slug}: ${(err as Error).message}`,
+        );
+      }
+    }
+
+    try {
+      await strapi.documents(COURSE_UID).delete({ documentId: course.documentId });
+      deleted += 1;
+    } catch (err) {
+      strapi.log.warn(
+        `[seed] real-lessons: failed to delete legacy course ${slug}: ${(err as Error).message}`,
+      );
+    }
   }
-  return archived;
+  return deleted;
 }
 
 export async function up(strapi: any): Promise<void> {
@@ -315,9 +338,9 @@ export async function up(strapi: any): Promise<void> {
     await upsertSections(strapi, course, seed.lessons);
   }
 
-  const archived = await archiveLegacyCourses(strapi);
+  const deleted = await deleteLegacyCourses(strapi);
 
   strapi.log.info(
-    `[seed] real-lessons: courses=${COURSE_SEEDS.length - skippedCourses}/${COURSE_SEEDS.length}, lessons created=${created}, updated=${updated}, legacy archived=${archived}`,
+    `[seed] real-lessons: courses=${COURSE_SEEDS.length - skippedCourses}/${COURSE_SEEDS.length}, lessons created=${created}, updated=${updated}, legacy deleted=${deleted}`,
   );
 }

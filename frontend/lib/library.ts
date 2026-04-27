@@ -85,7 +85,7 @@ function normalize(raw: any): LibraryItem | null {
 import { createCachedFetcher } from './data-cache';
 
 const LIBRARY_URL =
-  '/api/courses?filters[kind][$in][0]=book&filters[kind][$in][1]=video&filters[kind][$in][2]=game&filters[kind][$in][3]=course&pagination[pageSize]=200&sort=title:asc';
+  '/api/courses?filters[kind][$in][0]=book&filters[kind][$in][1]=video&filters[kind][$in][2]=game&filters[kind][$in][3]=course&filters[status][$ne]=archived&pagination[pageSize]=200&sort=title:asc';
 
 const cache = createCachedFetcher<LibraryItem[]>({
   key: 'library',

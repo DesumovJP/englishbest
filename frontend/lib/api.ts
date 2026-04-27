@@ -79,8 +79,10 @@ export async function fetchCourses(
   opts: { kind?: 'course' | 'book' | 'video' | 'game' } = {},
 ): Promise<Course[]> {
   const filter = opts.kind ? `filters[kind][$eq]=${opts.kind}&` : '';
+  // Hide v0/v1/placeholder rows (status='archived') so retired catalog
+  // entries don't pollute the kids' lessons or library tabs.
   const env = await fetcher<StrapiCollection<any>>(
-    `${ORIGIN}/api/courses?${filter}${COURSE_POPULATE}`,
+    `${ORIGIN}/api/courses?${filter}filters[status][$ne]=archived&${COURSE_POPULATE}`,
   );
   return normalizeCourses(env);
 }

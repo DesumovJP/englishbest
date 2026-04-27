@@ -101,6 +101,10 @@ const GRANTS: Grant[] = [
   { action: 'api::homework-submission.homework-submission.create', roles: ADMIN },
   { action: 'api::homework-submission.homework-submission.delete', roles: ADMIN },
 
+  // Vocabulary sets — public read; writes only via seed / admin panel.
+  { action: 'api::vocabulary-set.vocabulary-set.find', roles: AUTH_ALL },
+  { action: 'api::vocabulary-set.vocabulary-set.findOne', roles: AUTH_ALL },
+
   // Mini-task (auth read, teacher write)
   { action: 'api::mini-task.mini-task.find', roles: AUTH_ALL },
   { action: 'api::mini-task.mini-task.findOne', roles: AUTH_ALL },

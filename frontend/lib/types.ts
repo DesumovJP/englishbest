@@ -118,7 +118,14 @@ export type Course = {
   documentId: string;
   slug: string;
   title: string;
+  titleUa?: string;
+  subtitle?: string;
   description?: string;
+  descriptionShort?: string;
+  descriptionLong?: string[];
+  preview?: { title: string; text: string } | null;
+  iconEmoji?: string;
+  kind?: 'course' | 'book' | 'video' | 'game';
   level?: Level;
   price?: number;
   currency?: Currency;

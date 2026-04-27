@@ -148,11 +148,33 @@ export function normalizeCourse(raw: any): Course {
   const price =
     typeof raw?.price === 'number' ? raw.price : Number(raw?.price) || undefined;
 
+  const descriptionLong = Array.isArray(raw?.descriptionLong)
+    ? (raw.descriptionLong as unknown[]).filter((p): p is string => typeof p === 'string')
+    : undefined;
+
+  const previewObj =
+    raw?.preview && typeof raw.preview === 'object'
+      ? {
+          title: typeof raw.preview.title === 'string' ? raw.preview.title : '',
+          text: typeof raw.preview.text === 'string' ? raw.preview.text : '',
+        }
+      : null;
+
   return {
     documentId: raw?.documentId,
     slug: raw?.slug ?? '',
     title: raw?.title ?? '',
+    titleUa: typeof raw?.titleUa === 'string' && raw.titleUa ? raw.titleUa : undefined,
+    subtitle: typeof raw?.subtitle === 'string' && raw.subtitle ? raw.subtitle : undefined,
     description: raw?.description ?? undefined,
+    descriptionShort:
+      typeof raw?.descriptionShort === 'string' && raw.descriptionShort
+        ? raw.descriptionShort
+        : undefined,
+    descriptionLong,
+    preview: previewObj && (previewObj.title || previewObj.text) ? previewObj : null,
+    iconEmoji: typeof raw?.iconEmoji === 'string' && raw.iconEmoji ? raw.iconEmoji : undefined,
+    kind: raw?.kind ?? undefined,
     level: raw?.level ?? undefined,
     price,
     currency: raw?.currency ?? undefined,

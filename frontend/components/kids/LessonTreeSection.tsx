@@ -248,10 +248,11 @@ export function LessonTreeSection({ level }: Props) {
           {summaries.map(s => {
             const pct = s.totalLessons > 0 ? s.completedLessons / s.totalLessons : 0;
             const isDone = s.totalLessons > 0 && s.completedLessons === s.totalLessons;
-            const targetHref =
-              s.nextLesson && s.course.slug
-                ? `/courses/${s.course.slug}/lessons/${s.nextLesson.slug}`
-                : `/kids/library/${s.course.slug}`;
+            // Course card → detail page. The detail page has its own
+            // "Продовжити" CTA pointing at the next lesson, and shows the
+            // full lessons-list + description so kids can browse before
+            // committing to start.
+            const targetHref = `/kids/library/${s.course.slug}`;
             return (
               <Link
                 key={s.course.documentId}

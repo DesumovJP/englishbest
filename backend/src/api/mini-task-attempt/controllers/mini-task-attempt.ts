@@ -299,11 +299,22 @@ export default factories.createCoreController(ATTEMPT_UID, ({ strapi }) => ({
     // relation when the caller (kids/student) lacks `user-profile.find`.
     // Ownership is already enforced (we read `profileId` from the auth
     // session), so it's safe to write through the document service.
+    //
+    // Strapi v5's `db:json` column passes string values through verbatim
+    // expecting them to be PRE-ENCODED JSON. A bare answer like
+    // "Good morning" is not valid JSON syntax (PG: `invalid input syntax
+    // for type json`). Wrap any primitive in JSON.stringify; objects/arrays
+    // are handled by Strapi itself.
+    const answerForStorage =
+      answer !== null && typeof answer !== 'object'
+        ? JSON.stringify(answer)
+        : answer;
+
     const created = await strapi.documents(ATTEMPT_UID).create({
       data: {
         task: taskId,
         user: profileId,
-        answer,
+        answer: answerForStorage,
         score,
         correct,
         awardedCoins: 0, // populated below from the rewards service.

@@ -1,0 +1,50 @@
+{
+  "kind": "collectionType",
+  "collectionName": "vocabulary_sets",
+  "info": {
+    "singularName": "vocabulary-set",
+    "pluralName": "vocabulary-sets",
+    "displayName": "Vocabulary Set",
+    "description": "Standalone vocabulary collection (20–50 words). Public read; can optionally link to a course as 'words for this course'. Words are stored as a JSON array of { word, translation, example, exampleTranslation, partOfSpeech? } so authors don't need a per-word relation table — the unit of reuse is the SET, not the individual word."
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "attributes": {
+    "slug": {
+      "type": "uid",
+      "targetField": "title",
+      "required": true
+    },
+    "title": {
+      "type": "string",
+      "required": true
+    },
+    "titleUa": {
+      "type": "string"
+    },
+    "description": {
+      "type": "text"
+    },
+    "level": {
+      "type": "enumeration",
+      "enum": ["A0", "A1", "A2", "B1", "B2", "C1", "C2"]
+    },
+    "topic": {
+      "type": "string"
+    },
+    "iconEmoji": {
+      "type": "string",
+      "maxLength": 8
+    },
+    "words": {
+      "type": "json",
+      "required": true
+    },
+    "course": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::course.course"
+    }
+  }
+}

@@ -24,6 +24,7 @@ import * as demoWiring from './14-demo-wiring';
 import * as cohortAccounts from './15-cohort-accounts';
 import * as cohortClassroom from './16-cohort-classroom';
 import * as cohortChat from './17-cohort-chat';
+import * as vocabulary from './18-vocabulary';
 
 const SEEDS: { name: string; up: (strapi: any) => Promise<void> }[] = [
   { name: '00-roles', up: roles.up },
@@ -57,6 +58,10 @@ const SEEDS: { name: string; up: (strapi: any) => Promise<void> }[] = [
   { name: '15-cohort-accounts', up: cohortAccounts.up },
   { name: '16-cohort-classroom', up: cohortClassroom.up },
   { name: '17-cohort-chat', up: cohortChat.up },
+  // Vocabulary sets — independent of the lesson catalog. Runs last
+  // because nothing else depends on it; seeds are idempotent so order
+  // doesn't matter once dependencies are clear.
+  { name: '18-vocabulary', up: vocabulary.up },
 ];
 
 export async function runSeeds(strapi: any) {

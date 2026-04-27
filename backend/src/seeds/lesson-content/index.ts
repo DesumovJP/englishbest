@@ -1,26 +1,21 @@
-// New CEFR-aligned catalog (A0..C2). See COURSES.md for the strategic
-// rationale and per-course briefs. Every course's slug is namespaced with
-// its level (`a0-`, `a1-`, …) so the legacy themed slugs
-// (`english-kids-starter`, `caterpillar`, `peppa`, etc.) live in their
-// own namespace and can be archived without colliding.
-import { a0FirstWords } from './cefr/a0-first-words';
-import { a0MyBody } from './cefr/a0-my-body';
-import { a0AtHome } from './cefr/a0-at-home';
+// v2 — 6 deep courses (3 A-band + 3 B-band) with 8+ lessons each. Every
+// lesson has 10–15 substantive steps; vocabulary lives in a separate
+// `vocabulary-set` CT (see seeds/14-vocabulary.ts). See COURSES.md.
+//
+// v1 (deprecated) — the 14-course CEFR ladder (A0..C2) lived under
+// `lesson-content/cefr/`. All v1 slugs are listed in
+// `LEGACY_COURSE_SLUGS` and archived on next seed run. Original Strapi
+// records remain in DB (preserving user-progress integrity); the v1
+// `cefr/` source files are kept for reference but no longer imported
+// into `COURSE_SEEDS`.
+import { aFoundation } from './cefr-v2/a-foundation';
 import {
-  a1MyFamily,
-  a1AroundTheHouse,
-  a1AtSchool,
-} from './cefr/a1-courses';
-import {
-  a2FoodAndDrinks,
-  a2MyDay,
-  b1TravelStories,
-  b1TechAroundUs,
-  b2NewsAndSociety,
-  b2BooksMovies,
-  c1CriticalThinking,
-  c2IdiomsAndNuance,
-} from './cefr/higher-levels';
+  aMyWorld,
+  aPeoplePlaces,
+  bStories,
+  bIdeas,
+  bRealWorld,
+} from './cefr-v2/v2-shells';
 
 import type { CourseSeed } from './types';
 
@@ -30,6 +25,8 @@ import type { CourseSeed } from './types';
  * without nuking user-progress rows that already point at them.
  */
 export const LEGACY_COURSE_SLUGS: ReadonlyArray<string> = [
+  // v0 — original themed kids catalog (also seeded as library `book/video/game`
+  // placeholders by 10-library-items; archive both flavours).
   'english-kids-starter',
   'caterpillar',
   'oxford-1',
@@ -38,26 +35,44 @@ export const LEGACY_COURSE_SLUGS: ReadonlyArray<string> = [
   'bluey',
   'simple-songs',
   'word-puzzle',
+  // Promotional library placeholders that never had real content backing
+  // them (no lessons, no externalUrl). The FE was rendering them with a
+  // disabled "Доступ — в розробці" button → archive so kids see only real,
+  // accessible content.
+  'charlotte',
+  'harry',
+  'little-prince',
+  'ted-ed',
+  'spelling-bee',
+  'grammar-quest',
+  'story-builder',
+  // v1 — first CEFR rebuild (14 thin courses, "three pathetic questions"
+  // problem); replaced by v2 below.
+  'a0-first-words',
+  'a0-my-body',
+  'a0-at-home',
+  'a1-my-family',
+  'a1-around-the-house',
+  'a1-at-school',
+  'a2-food-and-drinks',
+  'a2-my-day',
+  'b1-travel-stories',
+  'b1-tech-around-us',
+  'b2-news-society',
+  'b2-books-movies',
+  'c1-critical-thinking',
+  'c2-idioms-nuance',
 ];
 
 export const COURSE_SEEDS: CourseSeed[] = [
-  // ─── A0 — Pre-A1 (3 courses · 15 lessons fully written) ─────────────
-  a0FirstWords,
-  a0MyBody,
-  a0AtHome,
-  // ─── A1 — Elementary (3 courses · 15 lessons fully written) ─────────
-  a1MyFamily,
-  a1AroundTheHouse,
-  a1AtSchool,
-  // ─── A2..C2 — shells (course metadata + 2 sample lessons each) ──────
-  a2FoodAndDrinks,
-  a2MyDay,
-  b1TravelStories,
-  b1TechAroundUs,
-  b2NewsAndSociety,
-  b2BooksMovies,
-  c1CriticalThinking,
-  c2IdiomsAndNuance,
+  // ─── A-band (3 courses, target 24 lessons) ──────────────────────────
+  aFoundation,    // 8 deep lessons — production exemplar
+  aMyWorld,       // shell — 1 sample deep lesson
+  aPeoplePlaces,  // shell — 1 sample deep lesson
+  // ─── B-band (3 courses, target 24 lessons) ──────────────────────────
+  bStories,       // shell — 1 sample deep lesson
+  bIdeas,         // shell — 1 sample deep lesson
+  bRealWorld,     // shell — 1 sample deep lesson
 ];
 
 export type { CourseSeed, LessonSeed } from './types';
