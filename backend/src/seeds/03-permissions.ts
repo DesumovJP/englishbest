@@ -101,9 +101,12 @@ const GRANTS: Grant[] = [
   { action: 'api::homework-submission.homework-submission.create', roles: ADMIN },
   { action: 'api::homework-submission.homework-submission.delete', roles: ADMIN },
 
-  // Vocabulary sets — public read; writes only via seed / admin panel.
-  { action: 'api::vocabulary-set.vocabulary-set.find', roles: AUTH_ALL },
-  { action: 'api::vocabulary-set.vocabulary-set.findOne', roles: AUTH_ALL },
+  // Vocabulary sets — public read (matches course/lesson); writes only
+  // via seed / admin panel. Was AUTH_ALL but the FE fetches without auth
+  // headers (same pattern as the library catalog), so anonymous reads
+  // were 401-ing → empty section.
+  { action: 'api::vocabulary-set.vocabulary-set.find', roles: PUBLIC_ALL },
+  { action: 'api::vocabulary-set.vocabulary-set.findOne', roles: PUBLIC_ALL },
 
   // Mini-task (auth read, teacher write)
   { action: 'api::mini-task.mini-task.find', roles: AUTH_ALL },

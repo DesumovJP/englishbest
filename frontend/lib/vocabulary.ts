@@ -28,6 +28,9 @@ export interface VocabularySet {
   iconEmoji: string;
   words: VocabularyWord[];
   courseSlug: string | null;
+  courseTitle: string | null;
+  lessonSlug: string | null;
+  lessonTitle: string | null;
 }
 
 const LEVELS = new Set<Level>(['A0', 'A1', 'A2', 'B1', 'B2', 'C1', 'C2']);
@@ -60,6 +63,18 @@ function normalize(raw: any): VocabularySet | null {
     raw.course && typeof raw.course === 'object' && typeof raw.course.slug === 'string'
       ? raw.course.slug
       : null;
+  const courseTitle =
+    raw.course && typeof raw.course === 'object' && typeof raw.course.title === 'string'
+      ? (raw.course.titleUa as string) || (raw.course.title as string)
+      : null;
+  const lessonSlug =
+    raw.lesson && typeof raw.lesson === 'object' && typeof raw.lesson.slug === 'string'
+      ? raw.lesson.slug
+      : null;
+  const lessonTitle =
+    raw.lesson && typeof raw.lesson === 'object' && typeof raw.lesson.title === 'string'
+      ? raw.lesson.title
+      : null;
   return {
     slug: String(raw.slug),
     title: String(raw.title),
@@ -70,11 +85,21 @@ function normalize(raw: any): VocabularySet | null {
     iconEmoji: typeof raw.iconEmoji === 'string' && raw.iconEmoji ? raw.iconEmoji : '📚',
     words,
     courseSlug,
+    courseTitle,
+    lessonSlug,
+    lessonTitle,
   };
 }
 
 const LIST_URL =
-  '/api/vocabulary-sets?populate[course][fields][0]=slug&pagination[pageSize]=100&sort=level:asc';
+  '/api/vocabulary-sets' +
+  '?populate[course][fields][0]=slug' +
+  '&populate[course][fields][1]=title' +
+  '&populate[course][fields][2]=titleUa' +
+  '&populate[lesson][fields][0]=slug' +
+  '&populate[lesson][fields][1]=title' +
+  '&pagination[pageSize]=200' +
+  '&sort=level:asc';
 
 const cache = createCachedFetcher<VocabularySet[]>({
   key: 'vocabulary',

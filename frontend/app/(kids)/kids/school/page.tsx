@@ -4,8 +4,9 @@ import { useKidsIdentity } from '@/lib/use-kids-identity';
 import { LessonTreeSection } from '@/components/kids/LessonTreeSection';
 import { LessonCarouselSection } from '@/components/kids/LessonCarouselSection';
 import { VocabularySection } from '@/components/kids/VocabularySection';
+import { CoursesLibrarySection } from '@/components/kids/CoursesLibrarySection';
 
-type PageTab = 'lessons' | 'vocab';
+type PageTab = 'lessons' | 'vocab' | 'library';
 type LessonView = 'carousel' | 'list';
 
 export default function SchoolPage() {
@@ -18,8 +19,9 @@ export default function SchoolPage() {
       <div className="flex flex-shrink-0 items-center gap-2 sm:gap-4 px-3 sm:px-4 border-b border-border pt-[env(safe-area-inset-top,8px)]">
         <div className="flex flex-shrink-0">
           {([
-            { id: 'lessons', label: 'Уроки', emoji: '📚' },
-            { id: 'vocab',   label: 'Слова', emoji: '🔤' },
+            { id: 'lessons', label: 'Уроки',     emoji: '📚' },
+            { id: 'vocab',   label: 'Слова',     emoji: '🔤' },
+            { id: 'library', label: 'Бібліотека', emoji: '🎓' },
           ] as { id: PageTab; label: string; emoji: string }[]).map(t => {
             const active = tab === t.id;
             return (
@@ -72,9 +74,13 @@ export default function SchoolPage() {
               </div>
             </div>
           )
-        ) : (
+        ) : tab === 'vocab' ? (
           <div className="flex-1 overflow-y-auto max-w-screen-md mx-auto w-full pb-[calc(env(safe-area-inset-bottom,0px)+72px)]">
             <VocabularySection level={kidsLevel} />
+          </div>
+        ) : (
+          <div className="flex-1 overflow-y-auto max-w-screen-md mx-auto w-full pb-[calc(env(safe-area-inset-bottom,0px)+72px)]">
+            <CoursesLibrarySection level={kidsLevel} />
           </div>
         )}
       </div>

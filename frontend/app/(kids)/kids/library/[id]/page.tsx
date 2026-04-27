@@ -29,6 +29,11 @@ import {
   peekMyProgress,
   type UserProgressRow,
 } from '@/lib/user-progress';
+import {
+  fetchVocabularySets,
+  peekVocabularySets,
+  type VocabularySet,
+} from '@/lib/vocabulary';
 import type { Course, Lesson, LessonType } from '@/lib/types';
 import { useKidsIdentity } from '@/lib/use-kids-identity';
 import { LoadingState } from '@/components/ui/LoadingState';
@@ -144,6 +149,9 @@ export default function KidsCourseDetailPage() {
   const [progress, setProgress] = useState<UserProgressRow[] | null>(() =>
     peekMyProgress(),
   );
+  const [vocabSets, setVocabSets] = useState<VocabularySet[] | null>(() =>
+    peekVocabularySets(),
+  );
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -152,12 +160,14 @@ export default function KidsCourseDetailPage() {
       fetchCoursesCached(),
       fetchLessonsByCourseCached(id),
       fetchMyProgressCached().catch(() => [] as UserProgressRow[]),
+      fetchVocabularySets().catch(() => [] as VocabularySet[]),
     ])
-      .then(([c, l, p]) => {
+      .then(([c, l, p, v]) => {
         if (!alive) return;
         setCourses(c);
         setLessons(l);
         setProgress(p);
+        setVocabSets(v);
       })
       .catch((e) => {
         if (!alive) return;
@@ -319,6 +329,68 @@ export default function KidsCourseDetailPage() {
           </div>
         </section>
       )}
+
+      {/* Vocabulary attached to this course */}
+      {vocabSets && course ? (
+        (() => {
+          const courseSets = vocabSets.filter((s) => s.courseSlug === course.slug);
+          if (courseSets.length === 0) return null;
+          const anchor = courseSets.find((s) => !s.lessonSlug) ?? null;
+          const lessonSets = courseSets.filter((s) => s.lessonSlug);
+          return (
+            <section className="px-5 md:px-10 py-6 border-b border-border">
+              <p className="font-black mb-3 text-[11px] text-ink-faint uppercase tracking-[0.09em]">
+                Словник курсу
+              </p>
+              <div className="flex flex-col gap-2 max-w-screen-md">
+                {anchor && (
+                  <Link
+                    href={`/kids/vocab/${anchor.slug}`}
+                    className="flex items-center gap-3 px-4 py-3 rounded-2xl border-2 border-primary/20 bg-primary/5 hover:bg-primary/10 transition-colors"
+                  >
+                    <span aria-hidden className="text-[24px]">{anchor.iconEmoji}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-black text-[14px] text-ink leading-snug truncate">
+                        {anchor.titleUa}
+                      </p>
+                      <p className="font-medium text-[11.5px] text-ink-muted mt-0.5">
+                        Ключові слова курсу · {anchor.words.length} слів
+                      </p>
+                    </div>
+                    <span aria-hidden className="text-ink-faint font-black">›</span>
+                  </Link>
+                )}
+                {lessonSets.length > 0 && (
+                  <details className="group rounded-2xl border border-border bg-surface-raised">
+                    <summary className="flex items-center gap-2 px-4 py-3 cursor-pointer select-none list-none">
+                      <span className="font-black text-[12.5px] text-ink flex-1">
+                        Слова за уроками ({lessonSets.length})
+                      </span>
+                      <span aria-hidden className="text-ink-faint font-black transition-transform group-open:rotate-90">›</span>
+                    </summary>
+                    <div className="px-2 pb-2 flex flex-col gap-1.5">
+                      {lessonSets.map((s) => (
+                        <Link
+                          key={s.slug}
+                          href={`/kids/vocab/${s.slug}`}
+                          className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-surface-muted transition-colors"
+                        >
+                          <span aria-hidden className="text-[18px]">{s.iconEmoji}</span>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-bold text-[13px] text-ink truncate">{s.titleUa}</p>
+                            <p className="font-medium text-[11px] text-ink-faint">{s.words.length} слів</p>
+                          </div>
+                          <span aria-hidden className="text-ink-faint">›</span>
+                        </Link>
+                      ))}
+                    </div>
+                  </details>
+                )}
+              </div>
+            </section>
+          );
+        })()
+      ) : null}
 
       {/* Lessons list */}
       <section className="px-5 md:px-10 py-6 flex-1">
