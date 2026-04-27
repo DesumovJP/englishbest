@@ -31,7 +31,6 @@ import {
   type UserProgressRow,
 } from '@/lib/user-progress';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { RewardChip } from '@/components/kids/ui';
 
 interface Props {
   level: Level;
@@ -80,92 +79,70 @@ function LessonCard({
   const isDone = status === 'done';
   const isLocked = status === 'upcoming' && !isCurrent;
 
+  // One signal per state. No glow stack, no NOW pill — accent ring on the
+  // card IS the "current" indicator; check on the card IS "done".
+  const ringStyle = isCurrent
+    ? { boxShadow: `inset 0 0 0 4px ${accent}` }
+    : undefined;
+
+  // Card surface: pure course-accent gradient (no stock photo).
+  const surface = isLocked
+    ? 'linear-gradient(165deg, #2a2a30 0%, #14141a 100%)'
+    : `linear-gradient(160deg, ${accent} 0%, ${accent}c0 55%, rgba(0,0,0,0.35) 100%)`;
+
   return (
     <div
-      className="relative w-full h-full rounded-[28px] overflow-hidden select-none bg-ink"
-      style={{
-        boxShadow: isCurrent
-          ? `0 0 0 4px ${accent}, 0 12px 40px ${accent}55`
-          : isDone
-            ? '0 4px 16px rgba(0,0,0,0.12)'
-            : '0 10px 28px rgba(0,0,0,0.22)',
-      }}
+      className="relative w-full h-full rounded-[28px] overflow-hidden select-none"
+      style={{ background: surface, ...ringStyle }}
     >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={`https://picsum.photos/seed/${lesson.slug}/400/540`}
-        alt=""
-        aria-hidden
-        className="absolute inset-0 w-full h-full object-cover"
-        style={{ filter: 'blur(5px) saturate(1.2)', transform: 'scale(1.1)' }}
-      />
+      {isDone && <div aria-hidden className="absolute inset-0 bg-black/35" />}
 
-      <div
-        className="absolute inset-0"
-        style={{ background: `linear-gradient(165deg, ${accent}70 0%, rgba(0,0,0,0.58) 100%)` }}
-      />
-
-      {isDone && <div className="absolute inset-0 bg-black/20" />}
-
-      {isLocked && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/50">
-          <span className="text-6xl drop-shadow-lg">🔒</span>
+      {isLocked ? (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <span aria-hidden className="text-[56px] opacity-60">🔒</span>
         </div>
-      )}
-
-      {!isLocked && (
+      ) : (
         <div className="absolute inset-0 flex flex-col items-center justify-center px-6 text-center gap-4 pointer-events-none">
-          <div className="w-[72px] h-[72px] rounded-full flex items-center justify-center text-[38px] backdrop-blur-md bg-white/20 border border-white/30 shadow-lg">
+          <div
+            aria-hidden
+            className="w-[80px] h-[80px] rounded-full flex items-center justify-center text-[40px] bg-white/15 border border-white/25 backdrop-blur-md"
+          >
             {emoji}
           </div>
           <p
-            className="font-black text-white leading-tight drop-shadow-xl"
+            className="font-black text-white leading-tight"
             style={{
-              fontSize: 'clamp(22px, 3vw, 30px)',
+              fontSize: 'clamp(20px, 2.6vw, 26px)',
               letterSpacing: '-0.02em',
               display: '-webkit-box',
               WebkitLineClamp: 3,
               WebkitBoxOrient: 'vertical',
               overflow: 'hidden',
+              textShadow: '0 1px 2px rgba(0,0,0,0.25)',
             }}
           >
             {lesson.title}
           </p>
-          <p className="font-bold text-[15px] text-white/75 tracking-wide">
+          <p className="font-bold text-[13px] text-white/75 tracking-wide uppercase">
             {typeLabel}
           </p>
-          {typeof lesson.xp === 'number' && lesson.xp > 0 && (
-            <div className="mt-1">
-              <RewardChip kind="xp" amount={lesson.xp} size="md" tone="onDark" />
-            </div>
-          )}
         </div>
       )}
 
       {groupLabel && (
-        <div className="absolute top-3 left-3 rounded-full px-2.5 py-1 bg-black/45 backdrop-blur border border-white/25 max-w-[75%]">
+        <div className="absolute top-3 left-3 rounded-full px-2.5 py-1 bg-black/40 backdrop-blur-sm max-w-[75%]">
           <span className="font-black text-white text-[10px] tracking-widest truncate block">
             {groupLabel}
           </span>
         </div>
       )}
 
-      {isDone && !groupLabel && (
+      {isDone && (
         <div
-          className="absolute top-3 right-3 w-7 h-7 rounded-full flex items-center justify-center"
-          style={{ background: '#16a34a', boxShadow: '0 3px 10px rgba(22,163,74,0.5)' }}
+          aria-hidden
+          className="absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center bg-white/95 text-success-dark"
         >
-          <span className="font-black text-white text-[14px]">✓</span>
-        </div>
-      )}
-
-      {isCurrent && (
-        <div
-          className="absolute top-3 right-3 rounded-full px-3 py-1.5 flex items-center gap-1"
-          style={{ background: '#22C55E', boxShadow: '0 3px 12px rgba(34,197,94,0.55)' }}
-        >
-          <span className="text-[10px]">▶</span>
-          <span className="font-black text-white text-[11px] tracking-widest">NOW</span>
+          <span className="font-black text-base">✓</span>
         </div>
       )}
     </div>
@@ -173,11 +150,11 @@ function LessonCard({
 }
 
 function accentOf(course: Course): string {
-  return (course as any).iconColor ?? '#22C55E';
+  return (course as Course & { iconColor?: string }).iconColor ?? '#22C55E';
 }
 
 function emojiOf(course: Course): string {
-  return (course as any).iconEmoji ?? '🎓';
+  return (course as Course & { iconEmoji?: string }).iconEmoji ?? '🎓';
 }
 
 interface UnifiedCarouselProps {
@@ -185,6 +162,9 @@ interface UnifiedCarouselProps {
   currentSlug: string | null;
   completedTotal: number;
   lessonsTotal: number;
+  /** When true, suppress the in-carousel ribbon (a parent-level course
+   *  switcher already conveys the same identity + progress info). */
+  hideRibbon?: boolean;
 }
 
 function UnifiedCarousel({
@@ -192,6 +172,7 @@ function UnifiedCarousel({
   currentSlug,
   completedTotal,
   lessonsTotal,
+  hideRibbon = false,
 }: UnifiedCarouselProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const currentRef = useRef<HTMLDivElement | null>(null);
@@ -303,14 +284,16 @@ function UnifiedCarousel({
   return (
     <section className="flex flex-col h-full min-h-0">
       {/* Sticky course ribbon — title + overall progress bar. Tappable to
-          open the course detail page (full description + lessons list). */}
+          open the course detail page (full description + lessons list).
+          Suppressed when a parent CourseSwitcher already shows identity. */}
+      {!hideRibbon && (
       <Link
         href={activeCourse ? `/kids/library/${activeCourse.slug}` : '/kids/school'}
-        className="flex items-center gap-3 px-4 py-2.5 bg-surface-muted border-b border-border flex-shrink-0 hover:bg-surface-raised transition-colors"
+        className="flex items-center gap-3 px-4 py-2.5 bg-surface-raised border-b border-border flex-shrink-0 hover:bg-surface-muted transition-colors"
       >
         <div
-          className="w-9 h-9 rounded-lg flex items-center justify-center text-[18px] flex-shrink-0 transition-colors"
-          style={{ background: `${activeAccent}20`, border: `1.5px solid ${activeAccent}40` }}
+          className="w-9 h-9 rounded-lg flex items-center justify-center text-[18px] flex-shrink-0"
+          style={{ background: `${activeAccent}1a` }}
         >
           {activeCourse ? emojiOf(activeCourse) : '🎓'}
         </div>
@@ -349,6 +332,7 @@ function UnifiedCarousel({
           </div>
         </div>
       </Link>
+      )}
 
       {/* Unified horizontal scroll-snap carousel — flex-1 so it vertically centers */}
       <div
@@ -768,6 +752,7 @@ function CourseScopedCarousel({
         currentSlug={flat.currentSlug}
         completedTotal={flat.completedTotal}
         lessonsTotal={flat.lessonsTotal}
+        hideRibbon={courses.length > 1}
       />
     </section>
   );
@@ -809,7 +794,7 @@ function CourseSwitcher({
           >
             <span aria-hidden className="text-[15px] leading-none">{emojiOf(c)}</span>
             <span className="font-black text-[12.5px] leading-none truncate max-w-[160px]">
-              {(c as any).titleUa ?? c.title}
+              {(c as Course & { titleUa?: string }).titleUa ?? c.title}
             </span>
             <span
               className={[

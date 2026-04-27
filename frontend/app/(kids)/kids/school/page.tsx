@@ -211,21 +211,20 @@ export default function SchoolPage() {
 
   return (
     <div className="flex flex-col h-[100dvh] bg-surface-raised overflow-hidden">
-      <div className="flex flex-shrink-0 items-center gap-2 sm:gap-4 px-3 sm:px-4 border-b border-border pt-[env(safe-area-inset-top,8px)]">
+      <div className="flex flex-shrink-0 items-center gap-3 sm:gap-4 px-3 sm:px-5 border-b border-border pt-[env(safe-area-inset-top,8px)]">
         <div className="flex flex-shrink-0">
           {([
-            { id: 'lessons', label: 'Уроки',     emoji: '📚' },
-            { id: 'vocab',   label: 'Слова',     emoji: '🔤' },
-            { id: 'library', label: 'Бібліотека', emoji: '🎓' },
-          ] as { id: PageTab; label: string; emoji: string }[]).map(t => {
+            { id: 'lessons', label: 'Уроки' },
+            { id: 'vocab',   label: 'Слова' },
+            { id: 'library', label: 'Бібліотека' },
+          ] as { id: PageTab; label: string }[]).map(t => {
             const active = tab === t.id;
             return (
               <button key={t.id} onClick={() => setTab(t.id)}
                 className={[
-                  'flex items-center gap-1.5 sm:gap-2 py-3 px-1 mr-3 sm:mr-6 font-black transition-colors text-[13px] sm:text-sm border-b-[2.5px] -mb-px',
-                  active ? 'text-ink border-primary' : 'text-ink-faint border-transparent',
+                  'py-3 px-1 mr-4 sm:mr-6 font-black transition-colors text-[13.5px] sm:text-sm border-b-2 -mb-px',
+                  active ? 'text-ink border-primary' : 'text-ink-faint border-transparent hover:text-ink-muted',
                 ].join(' ')}>
-                <span className="text-[15px] sm:text-base">{t.emoji}</span>
                 {t.label}
               </button>
             );
@@ -233,7 +232,7 @@ export default function SchoolPage() {
         </div>
 
         {tab === 'lessons' && (
-          <div className="ml-auto inline-flex rounded-full bg-surface-muted border border-border p-0.5 sm:p-1 flex-shrink-0">
+          <div className="ml-auto ios-seg flex-shrink-0">
             {([
               { id: 'carousel', label: 'Карусель' },
               { id: 'list',     label: 'Список' },
@@ -243,10 +242,7 @@ export default function SchoolPage() {
                 <button
                   key={v.id}
                   onClick={() => setLessonView(v.id)}
-                  className={[
-                    'px-2.5 sm:px-3.5 py-1 sm:py-1.5 rounded-full font-black text-[11px] sm:text-[12.5px] transition-colors',
-                    active ? 'bg-primary text-white shadow-card-sm' : 'text-ink-muted',
-                  ].join(' ')}
+                  className={['ios-seg-btn', active && 'active'].filter(Boolean).join(' ')}
                 >
                   {v.label}
                 </button>

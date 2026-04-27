@@ -93,8 +93,10 @@ function VocabRow({
   onNavigate: () => void;
 }) {
   const cat = categoryOf(set);
-  const { accent, cover } = paletteFor(set.slug);
-  const rowVars = { '--accent': accent, '--cover-bg': cover } as CSSProperties;
+  // Slug palette colours the cover only; chips and other UI stay neutral
+  // so the row reads quietly (one-accent-per-page rule).
+  const { cover } = paletteFor(set.slug);
+  const rowVars = { '--cover-bg': cover } as CSSProperties;
 
   return (
     <div
@@ -135,16 +137,10 @@ function VocabRow({
         )}
 
         <div className="flex items-center gap-1.5 md:gap-2 mt-auto pt-2 md:pt-3 flex-wrap">
-          <span className="rounded-md px-2 py-0.5 font-bold text-[10.5px] md:text-[11.5px] bg-[color:var(--accent)]/10 text-[color:var(--accent)] border border-[color:var(--accent)]/25">
-            {TYPE_LABEL[cat]}
-          </span>
-          <span className="rounded-md px-2 py-0.5 font-bold text-[10.5px] md:text-[11.5px] bg-surface-muted text-ink border border-border">
-            {set.level}
-          </span>
-          <span className="rounded-md px-2 py-0.5 font-bold text-[10.5px] md:text-[11.5px] bg-surface-muted text-ink-muted border border-border tabular-nums">
-            {set.words.length} слів
-          </span>
-          {isLocked && <span className="text-sm">🔒</span>}
+          <span className="ios-chip">{TYPE_LABEL[cat]}</span>
+          <span className="ios-chip">{set.level}</span>
+          <span className="ios-chip tabular-nums">{set.words.length} слів</span>
+          {isLocked && <span className="text-sm" aria-hidden>🔒</span>}
         </div>
       </div>
     </div>
