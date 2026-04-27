@@ -272,10 +272,8 @@ export default function SchoolPage() {
               <LessonCarouselSection level={kidsLevel} />
             </div>
           ) : (
-            <div className="flex-1 overflow-y-auto max-w-screen-md mx-auto w-full">
-              <div className="px-4 py-6">
-                <LessonTreeSection level={kidsLevel} />
-              </div>
+            <div className="flex-1 overflow-y-auto pb-[calc(env(safe-area-inset-bottom,0px)+72px)]">
+              <LessonTreeSection level={kidsLevel} />
             </div>
           )
         ) : tab === 'vocab' ? (

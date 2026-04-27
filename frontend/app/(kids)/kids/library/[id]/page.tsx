@@ -29,7 +29,7 @@ import {
   peekVocabularySets,
   type VocabularySet,
 } from '@/lib/vocabulary';
-import type { Course, Lesson, LessonType } from '@/lib/types';
+import type { Course, Lesson } from '@/lib/types';
 import { useKidsIdentity } from '@/lib/use-kids-identity';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -43,20 +43,6 @@ type Level = (typeof LEVEL_ORDER)[number];
 function canAccessLevel(userLevel: Level, req: Level): boolean {
   return LEVEL_ORDER.indexOf(userLevel) >= LEVEL_ORDER.indexOf(req);
 }
-
-const TYPE_EMOJI: Record<LessonType, string> = {
-  video: '🎬',
-  reading: '📖',
-  quiz: '🎯',
-  interactive: '✏️',
-};
-
-const TYPE_LABEL: Record<LessonType, string> = {
-  video: 'Відео',
-  reading: 'Читання',
-  quiz: 'Тест',
-  interactive: 'Урок',
-};
 
 // Ukrainian plural form picker — n=1 урок, n=2-4 уроки, else уроків.
 function pluralUk(n: number, forms: readonly [string, string, string]): string {
@@ -211,7 +197,7 @@ export default function KidsCourseDetailPage() {
     return (
       <div className={`min-h-[100dvh] bg-surface-raised ${PAGE_BOTTOM_PAD}`}>
         <Header onBack={() => router.back()} title="Курс" />
-        <div className="px-4 py-10">
+        <div className="max-w-screen-md mx-auto w-full px-4 py-10">
           <LoadingState shape="card" rows={1} />
         </div>
       </div>
@@ -222,7 +208,7 @@ export default function KidsCourseDetailPage() {
     return (
       <div className={`min-h-[100dvh] bg-surface-raised ${PAGE_BOTTOM_PAD}`}>
         <Header onBack={() => router.back()} title="Курс" />
-        <div className="px-4 py-10">
+        <div className="max-w-screen-md mx-auto w-full px-4 py-10">
           <EmptyState
             title="Курс не знайдено"
             description={
@@ -262,7 +248,7 @@ export default function KidsCourseDetailPage() {
 
       {/* HERO — compact, mirrors Vocab-detail */}
       <section className="px-4 md:px-6 py-5">
-        <div className="flex gap-4 md:gap-5 items-start">
+        <div className="max-w-screen-md mx-auto w-full flex gap-4 md:gap-5 items-start">
           {course.coverImageUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -313,7 +299,7 @@ export default function KidsCourseDetailPage() {
 
         {/* Progress + CTA — single composition */}
         {totalLessons > 0 && (
-          <div className="mt-5">
+          <div className="max-w-screen-md mx-auto w-full mt-5">
             <div className="flex items-center justify-between mb-1.5">
               <span className={SECTION_LABEL_CLS}>Прогрес</span>
               <span className="font-bold text-[12px] text-ink-muted tabular-nums">
@@ -362,7 +348,7 @@ export default function KidsCourseDetailPage() {
       {longParas.length > 0 && (
         <>
           <section className="px-4 md:px-6 py-5">
-            <div className="">
+            <div className="max-w-screen-md mx-auto w-full">
               <p className={`${SECTION_LABEL_CLS} mb-2 px-1`}>Про курс</p>
               <div className="flex flex-col gap-3">
                 {longParas.map((p, i) => (
@@ -387,7 +373,7 @@ export default function KidsCourseDetailPage() {
           return (
             <>
               <section className="px-4 md:px-6 py-5">
-                <div className="">
+                <div className="max-w-screen-md mx-auto w-full">
                   <p className={`${SECTION_LABEL_CLS} mb-2 px-1`}>Словник курсу</p>
                   <div className="ios-list">
                     {anchor && (
@@ -459,7 +445,7 @@ export default function KidsCourseDetailPage() {
 
       {/* Lessons list */}
       <section className="px-4 md:px-6 py-5 flex-1">
-        <div className="">
+        <div className="max-w-screen-md mx-auto w-full">
           <p className={`${SECTION_LABEL_CLS} mb-2 px-1`}>Уроки</p>
           {totalLessons === 0 ? (
             <EmptyState
@@ -499,7 +485,7 @@ export default function KidsCourseDetailPage() {
 function Header({ onBack, title }: { onBack: () => void; title: string }) {
   return (
     <div className="sticky top-0 z-10 border-b border-border bg-surface-raised/95 backdrop-blur-md pt-[max(8px,env(safe-area-inset-top))]">
-      <div className="flex items-center gap-3 px-4 md:px-6 py-3">
+      <div className="max-w-screen-md mx-auto w-full flex items-center gap-3 px-4 md:px-6 py-3">
         <button
           onClick={onBack}
           aria-label="Назад"
@@ -525,8 +511,6 @@ function LessonListItem({
   isLocked: boolean;
 }) {
   const { lesson, status } = row;
-  const emoji = TYPE_EMOJI[lesson.type] ?? '📘';
-  const typeLabel = TYPE_LABEL[lesson.type] ?? 'Урок';
   const disabled = isLocked;
   const href = disabled ? '#' : `/courses/${courseSlug}/lessons/${lesson.slug}`;
 
@@ -561,9 +545,6 @@ function LessonListItem({
         >
           {status === 'done' ? '✓' : index + 1}
         </span>
-        <span aria-hidden className="flex-shrink-0 text-[18px]">
-          {emoji}
-        </span>
         <div className="flex-1 min-w-0">
           <p
             className={[
@@ -573,11 +554,14 @@ function LessonListItem({
           >
             {lesson.title}
           </p>
-          <p className="font-medium text-[11.5px] text-ink-faint mt-0.5">
-            {typeLabel}
-            {lesson.durationMin ? ` · ${lesson.durationMin} хв` : ''}
-            {status === 'current' ? ' · Поточний' : ''}
-          </p>
+          {(lesson.durationMin || status === 'current' || status === 'done') && (
+            <p className="font-medium text-[11.5px] text-ink-faint mt-0.5 tabular-nums">
+              {[
+                lesson.durationMin ? `${lesson.durationMin} хв` : null,
+                status === 'current' ? 'Поточний' : status === 'done' ? 'Завершено' : null,
+              ].filter(Boolean).join(' · ')}
+            </p>
+          )}
         </div>
         {!disabled && (
           <span aria-hidden className="text-ink-faint font-black text-base flex-shrink-0">
