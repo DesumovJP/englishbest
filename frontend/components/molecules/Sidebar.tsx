@@ -100,6 +100,7 @@ const TEACHER_NAV: NavSection[] = [
   {
     group: 'Навчання',
     items: [
+      { label: 'Курси',            href: '/dashboard/courses',         icon: I.library },
       { label: 'Бібліотека',       href: '/dashboard/teacher-library', icon: I.library },
       { label: 'Домашні завдання', href: '/dashboard/homework',        icon: I.homework },
       { label: 'Міні-завдання',    href: '/dashboard/mini-tasks',      icon: I.mini },

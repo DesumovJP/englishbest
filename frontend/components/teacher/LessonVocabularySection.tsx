@@ -1,13 +1,17 @@
 /**
- * LessonVocabularySection — vocab attach/create panel inside the lesson editor.
+ * VocabularyAttachSection — vocab attach/create panel for the editors.
  *
- * Three actions:
+ * Works for both lesson editor (parent="lesson") and course editor
+ * (parent="course"). Three actions:
  *   - lists currently-attached sets (with detach button)
  *   - "Прикріпити" → modal with searchable list of all sets
- *   - "Створити" → modal with title + words textarea (auto-attach to lesson)
+ *   - "Створити" → modal with title + words textarea (auto-attach)
  *
  * All writes go through the staff-write proxy at /api/vocabulary-sets.
- * Read-only when the host lesson hasn't been saved yet (no documentId).
+ * Disabled when the host has no documentId yet (unsaved draft).
+ *
+ * Backwards-compat: `LessonVocabularySection` still exported as a thin
+ * wrapper so the existing lesson editor doesn't have to change shape.
  */
 'use client';
 
@@ -15,29 +19,36 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   createVocabSet,
   fetchAllVocabSets,
-  fetchVocabSetsForLesson,
+  fetchVocabSetsForParent,
   parseWordsTextarea,
-  setVocabSetLesson,
+  setVocabSetParent,
   type Level,
+  type ParentKind,
   type VocabSetSummary,
 } from '@/lib/teacher-vocabulary';
 
 interface Props {
-  lessonDocumentId: string | null;
-  lessonTitle: string;
-  lessonLevel: Level | null;
-  /** When true, hide all action buttons (e.g. for platform/template lessons). */
+  parent: ParentKind;
+  parentDocumentId: string | null;
+  /** Used as the default title prefix when creating a new set inline. */
+  parentTitle: string;
+  parentLevel: Level | null;
+  /** When true, hide all action buttons (e.g. for platform/template hosts). */
   readOnly?: boolean;
+  /** Override section heading. Defaults to "Словник уроку" / "Словник курсу". */
+  heading?: string;
 }
 
 const SECTION_LABEL_CLS =
   'font-bold text-[11px] uppercase tracking-[0.04em] text-ink-muted';
 
-export function LessonVocabularySection({
-  lessonDocumentId,
-  lessonTitle,
-  lessonLevel,
+export function VocabularyAttachSection({
+  parent,
+  parentDocumentId,
+  parentTitle,
+  parentLevel,
   readOnly,
+  heading,
 }: Props) {
   const [attached, setAttached] = useState<VocabSetSummary[] | null>(null);
   const [loading, setLoading] = useState(false);
@@ -46,13 +57,13 @@ export function LessonVocabularySection({
   const [creatorOpen, setCreatorOpen] = useState(false);
 
   useEffect(() => {
-    if (!lessonDocumentId) {
+    if (!parentDocumentId) {
       setAttached([]);
       return;
     }
     let alive = true;
     setLoading(true);
-    fetchVocabSetsForLesson(lessonDocumentId)
+    fetchVocabSetsForParent(parent, parentDocumentId)
       .then((rows) => {
         if (!alive) return;
         setAttached(rows);
@@ -68,12 +79,14 @@ export function LessonVocabularySection({
     return () => {
       alive = false;
     };
-  }, [lessonDocumentId]);
+  }, [parent, parentDocumentId]);
+
+  const parentLabel = parent === 'lesson' ? 'уроку' : 'курсу';
 
   async function handleDetach(set: VocabSetSummary) {
-    if (!confirm(`Відкріпити «${set.titleUa || set.title}» від цього уроку?`)) return;
+    if (!confirm(`Відкріпити «${set.titleUa || set.title}» від цього ${parentLabel}?`)) return;
     try {
-      await setVocabSetLesson(set.documentId, null);
+      await setVocabSetParent(set.documentId, parent, null);
       setAttached((prev) => (prev ? prev.filter((s) => s.documentId !== set.documentId) : null));
     } catch (e) {
       setError(e instanceof Error ? e.message : 'failed');
@@ -81,14 +94,13 @@ export function LessonVocabularySection({
   }
 
   async function handleAttach(set: VocabSetSummary) {
-    if (!lessonDocumentId) return;
+    if (!parentDocumentId) return;
     try {
-      await setVocabSetLesson(set.documentId, lessonDocumentId);
-      setAttached((prev) =>
-        prev
-          ? [...prev, { ...set, lessonDocumentId, lessonSlug: null }]
-          : [{ ...set, lessonDocumentId, lessonSlug: null }],
-      );
+      await setVocabSetParent(set.documentId, parent, parentDocumentId);
+      const next = parent === 'lesson'
+        ? { ...set, lessonDocumentId: parentDocumentId, lessonSlug: null }
+        : { ...set, courseDocumentId: parentDocumentId, courseSlug: null };
+      setAttached((prev) => (prev ? [...prev, next] : [next]));
       setPickerOpen(false);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'failed');
@@ -102,7 +114,7 @@ export function LessonVocabularySection({
     iconEmoji: string;
     wordsRaw: string;
   }) {
-    if (!lessonDocumentId) return;
+    if (!parentDocumentId) return;
     const words = parseWordsTextarea(payload.wordsRaw);
     if (words.length === 0) {
       throw new Error('Додай хоча б одне слово у форматі "word — переклад"');
@@ -113,18 +125,20 @@ export function LessonVocabularySection({
       level: payload.level,
       iconEmoji: payload.iconEmoji,
       words,
-      lessonDocumentId,
+      lessonDocumentId: parent === 'lesson' ? parentDocumentId : null,
+      courseDocumentId: parent === 'course' ? parentDocumentId : null,
     });
     setAttached((prev) => (prev ? [...prev, created] : [created]));
     setCreatorOpen(false);
   }
 
-  const canEdit = !!lessonDocumentId && !readOnly;
+  const canEdit = !!parentDocumentId && !readOnly;
+  const sectionHeading = heading ?? `Словник ${parentLabel}`;
 
   return (
     <div className="ios-card p-4">
       <div className="flex items-center justify-between gap-3 mb-3">
-        <p className={SECTION_LABEL_CLS}>Словник уроку</p>
+        <p className={SECTION_LABEL_CLS}>{sectionHeading}</p>
         {canEdit && (
           <div className="flex gap-2">
             <button
@@ -145,9 +159,9 @@ export function LessonVocabularySection({
         )}
       </div>
 
-      {!lessonDocumentId && (
+      {!parentDocumentId && (
         <p className="text-[12.5px] text-ink-muted">
-          Збережи урок, щоб прикріпити чи створити словник.
+          Збережи {parentLabel}, щоб прикріпити чи створити словник.
         </p>
       )}
 
@@ -159,7 +173,7 @@ export function LessonVocabularySection({
         <p className="text-[12.5px] text-danger-dark">Помилка: {error}</p>
       )}
 
-      {lessonDocumentId && attached && attached.length === 0 && !loading && (
+      {parentDocumentId && attached && attached.length === 0 && !loading && (
         <p className="text-[12.5px] text-ink-muted">
           Поки нічого не прикріплено. Прикріпи існуючий словник або створи новий.
         </p>
@@ -209,13 +223,36 @@ export function LessonVocabularySection({
 
       {creatorOpen && (
         <VocabCreatorModal
-          defaultTitle={lessonTitle}
-          defaultLevel={lessonLevel ?? 'A1'}
+          defaultTitle={parentTitle}
+          defaultLevel={parentLevel ?? 'A1'}
           onCreate={handleCreate}
           onClose={() => setCreatorOpen(false)}
         />
       )}
     </div>
+  );
+}
+
+/** Back-compat wrapper for the existing lesson editor call site. */
+export function LessonVocabularySection({
+  lessonDocumentId,
+  lessonTitle,
+  lessonLevel,
+  readOnly,
+}: {
+  lessonDocumentId: string | null;
+  lessonTitle: string;
+  lessonLevel: Level | null;
+  readOnly?: boolean;
+}) {
+  return (
+    <VocabularyAttachSection
+      parent="lesson"
+      parentDocumentId={lessonDocumentId}
+      parentTitle={lessonTitle}
+      parentLevel={lessonLevel}
+      readOnly={readOnly}
+    />
   );
 }
 

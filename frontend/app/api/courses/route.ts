@@ -1,20 +1,38 @@
 /**
- * GET /api/courses — public course catalog.
+ * GET  /api/courses — public course catalog.
+ * POST /api/courses — create a course (staff-only via Strapi RBAC).
  *
- * Thin proxy to Strapi `/api/courses`. Catalog is public (see backend seed
- * 03-permissions), so no auth header is forwarded. Forwards arbitrary query
- * string so callers can supply `filters`, `populate`, `sort`, etc.
- *
- * Exists so the browser never talks to Strapi directly — avoids needing
- * `NEXT_PUBLIC_API_BASE_URL` + CORS configured for every deployment.
+ * GET is anonymous; POST forwards the access JWT for role check.
  */
 import { NextRequest } from 'next/server';
-import { BACKEND_URL } from '@/lib/auth-config';
+import { cookies } from 'next/headers';
+import { ACCESS_COOKIE, BACKEND_URL } from '@/lib/auth-config';
+
+async function authHeader(): Promise<Record<string, string>> {
+  const store = await cookies();
+  const token = store.get(ACCESS_COOKIE)?.value;
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
 
 export async function GET(req: NextRequest) {
   const search = req.nextUrl.search;
   const res = await fetch(`${BACKEND_URL}/api/courses${search}`, {
     method: 'GET',
+    cache: 'no-store',
+  });
+  const payload = await res.json().catch(() => ({}));
+  return Response.json(payload, { status: res.status });
+}
+
+export async function POST(req: NextRequest) {
+  const body = await req.json().catch(() => null);
+  if (!body?.data) {
+    return Response.json({ error: { message: 'data required' } }, { status: 400 });
+  }
+  const res = await fetch(`${BACKEND_URL}/api/courses`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...(await authHeader()) },
+    body: JSON.stringify(body),
     cache: 'no-store',
   });
   const payload = await res.json().catch(() => ({}));

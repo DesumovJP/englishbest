@@ -87,32 +87,51 @@ export async function fetchAllVocabSets(): Promise<VocabSetSummary[]> {
   return rows.map(normalize).filter((s): s is VocabSetSummary => s !== null);
 }
 
-/** Sets that are currently attached to a given lesson. */
-export async function fetchVocabSetsForLesson(
-  lessonDocumentId: string,
+export type ParentKind = 'lesson' | 'course';
+
+/** Sets attached to a given parent (lesson OR course). */
+export async function fetchVocabSetsForParent(
+  parent: ParentKind,
+  parentDocumentId: string,
 ): Promise<VocabSetSummary[]> {
+  const filterKey = parent === 'lesson' ? 'lesson' : 'course';
   const q =
-    `${LIST_QUERY}&filters[lesson][documentId][$eq]=${encodeURIComponent(lessonDocumentId)}`;
+    `${LIST_QUERY}&filters[${filterKey}][documentId][$eq]=${encodeURIComponent(parentDocumentId)}`;
   const res = await fetch(`/api/vocabulary-sets?${q}`, { cache: 'no-store' });
-  if (!res.ok) throw new Error(`fetchVocabSetsForLesson ${res.status}`);
+  if (!res.ok) throw new Error(`fetchVocabSetsForParent ${res.status}`);
   const json = await res.json().catch(() => ({}));
   const rows: RawSet[] = Array.isArray(json?.data) ? json.data : [];
   return rows.map(normalize).filter((s): s is VocabSetSummary => s !== null);
 }
 
-/** Reassigns the `lesson` relation on a vocab set. Pass null to detach. */
-export async function setVocabSetLesson(
+/** Back-compat alias. */
+export const fetchVocabSetsForLesson = (lessonDocumentId: string) =>
+  fetchVocabSetsForParent('lesson', lessonDocumentId);
+
+/**
+ * Reassigns the parent relation on a vocab set. Pass `null` to detach
+ * from the given parent kind without touching the other side.
+ */
+export async function setVocabSetParent(
   setDocumentId: string,
-  lessonDocumentId: string | null,
+  parent: ParentKind,
+  parentDocumentId: string | null,
 ): Promise<void> {
+  const data = parent === 'lesson'
+    ? { lesson: parentDocumentId }
+    : { course: parentDocumentId };
   const res = await fetch(`/api/vocabulary-sets/${setDocumentId}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ data: { lesson: lessonDocumentId } }),
+    body: JSON.stringify({ data }),
   });
-  if (!res.ok) throw new Error(`setVocabSetLesson ${res.status}`);
+  if (!res.ok) throw new Error(`setVocabSetParent ${res.status}`);
   resetVocabularyCache();
 }
+
+/** Back-compat alias. */
+export const setVocabSetLesson = (setId: string, lessonId: string | null) =>
+  setVocabSetParent(setId, 'lesson', lessonId);
 
 export interface NewVocabSet {
   title: string;
