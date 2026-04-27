@@ -367,6 +367,9 @@ interface MotivationSnapshot {
   miniTasksCompletedCount: number;
   miniTasksPerfectCount: number;
   perfectAttendanceWeek: boolean;
+  /** Per-CEFR-level completed-lesson counts. Computed lazily on first
+   *  use of a `level-lessons` criterion to avoid a 7×JOIN every call. */
+  lessonsCompletedByLevel: Record<string, number>;
 }
 
 async function buildSnapshot(
@@ -450,7 +453,37 @@ async function buildSnapshot(
     miniTasksCompletedCount,
     miniTasksPerfectCount,
     perfectAttendanceWeek,
+    // Lazy: filled in by a separate per-level query inside
+    // `evaluateAchievements` only when a `level-lessons` criterion is
+    // actually present in the catalog.
+    lessonsCompletedByLevel: {},
   };
+}
+
+/**
+ * Count completed user-progress rows for the caller where the parent
+ * lesson's course is at the given CEFR level. Cheap-but-not-free
+ * (joins user-progress → lesson → course); the achievement engine only
+ * calls this when a `level-lessons` criterion is in the catalog AND
+ * we haven't already computed this level for this caller.
+ */
+async function countLessonsAtLevel(
+  strapi: any,
+  ctx: ProfileCtx,
+  level: string,
+): Promise<number> {
+  if (ctx.userId == null) return 0;
+  try {
+    return await (strapi.documents as any)(PROGRESS_UID).count({
+      filters: {
+        user: { documentId: { $eq: ctx.profileId } },
+        status: { $eq: 'completed' },
+        lesson: { course: { level: { $eq: level } } },
+      },
+    });
+  } catch {
+    return 0;
+  }
 }
 
 async function evaluateAchievements(
@@ -509,6 +542,18 @@ async function evaluateAchievements(
       case 'level-reached':
         met = snapshot.level >= count;
         break;
+      case 'level-lessons': {
+        // Per-CEFR-level completion gate. Memoised on the snapshot so
+        // multiple finish-X achievements don't each fire their own join.
+        const cefrLevel = typeof c.level === 'string' ? c.level : null;
+        if (!cefrLevel) { met = false; break; }
+        if (!(cefrLevel in snapshot.lessonsCompletedByLevel)) {
+          snapshot.lessonsCompletedByLevel[cefrLevel] =
+            await countLessonsAtLevel(strapi, ctx, cefrLevel);
+        }
+        met = snapshot.lessonsCompletedByLevel[cefrLevel] >= count;
+        break;
+      }
       default:
         met = false;
     }

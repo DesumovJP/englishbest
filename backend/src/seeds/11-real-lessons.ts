@@ -15,7 +15,7 @@
  * Ownership: lessons are attached to the course's existing teacher if one is
  * set, otherwise to a dedicated `seed-kids-teacher` profile we create here.
  */
-import { COURSE_SEEDS } from './lesson-content';
+import { COURSE_SEEDS, LEGACY_COURSE_SLUGS } from './lesson-content';
 import type { CourseSeed, LessonSeed } from './lesson-content';
 
 const COURSE_UID = 'api::course.course';
@@ -268,6 +268,29 @@ async function upsertLesson(
   return 'created';
 }
 
+/**
+ * Mark legacy themed courses (caterpillar / peppa / bluey / etc.) as
+ * `status='archived'` so they vanish from the kids school listing
+ * without nuking user-progress rows that reference them. Idempotent —
+ * if a slug doesn't exist we just skip; if it's already archived we
+ * leave it alone.
+ */
+async function archiveLegacyCourses(strapi: any): Promise<number> {
+  let archived = 0;
+  for (const slug of LEGACY_COURSE_SLUGS) {
+    const course = await findCourse(strapi, slug);
+    if (!course) continue;
+    const current = (course as any).status;
+    if (current === 'archived') continue;
+    await strapi.documents(COURSE_UID).update({
+      documentId: course.documentId,
+      data: { status: 'archived' } as any,
+    });
+    archived += 1;
+  }
+  return archived;
+}
+
 export async function up(strapi: any): Promise<void> {
   const teacherId = await ensureSeedTeacher(strapi);
 
@@ -292,7 +315,9 @@ export async function up(strapi: any): Promise<void> {
     await upsertSections(strapi, course, seed.lessons);
   }
 
+  const archived = await archiveLegacyCourses(strapi);
+
   strapi.log.info(
-    `[seed] real-lessons: courses=${COURSE_SEEDS.length - skippedCourses}/${COURSE_SEEDS.length}, lessons created=${created}, updated=${updated}`,
+    `[seed] real-lessons: courses=${COURSE_SEEDS.length - skippedCourses}/${COURSE_SEEDS.length}, lessons created=${created}, updated=${updated}, legacy archived=${archived}`,
   );
 }

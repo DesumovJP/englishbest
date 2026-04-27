@@ -228,6 +228,81 @@ const ACHIEVEMENTS: AchievementSeed[] = [
     xpReward: 0,
     criteria: { type: 'level-reached', count: 20 },
   },
+
+  // ─── CEFR course completion (Phase G) ──────────────────────────────
+  // One badge per CEFR level. Threshold matches the seeded lesson count
+  // at that level (A0/A1 fully written, A2..C2 are shells today). Tunable
+  // when more lessons land in COURSES.md → Phase 5.
+  {
+    slug: 'finish-a0',
+    title: 'Перший рівень: A0',
+    description: 'Заверши усі уроки рівня A0.',
+    category: 'mastery',
+    tier: 'silver',
+    coinReward: 100,
+    xpReward: 100,
+    criteria: { type: 'level-lessons', level: 'A0', count: 15 },
+  },
+  {
+    slug: 'finish-a1',
+    title: 'Початківець: A1',
+    description: 'Заверши усі уроки рівня A1.',
+    category: 'mastery',
+    tier: 'silver',
+    coinReward: 150,
+    xpReward: 150,
+    criteria: { type: 'level-lessons', level: 'A1', count: 15 },
+  },
+  {
+    slug: 'finish-a2',
+    title: 'Pre-Intermediate: A2',
+    description: 'Заверши усі уроки рівня A2.',
+    category: 'mastery',
+    tier: 'gold',
+    coinReward: 200,
+    xpReward: 200,
+    criteria: { type: 'level-lessons', level: 'A2', count: 4 },
+  },
+  {
+    slug: 'finish-b1',
+    title: 'Intermediate: B1',
+    description: 'Заверши усі уроки рівня B1.',
+    category: 'mastery',
+    tier: 'gold',
+    coinReward: 250,
+    xpReward: 250,
+    criteria: { type: 'level-lessons', level: 'B1', count: 4 },
+  },
+  {
+    slug: 'finish-b2',
+    title: 'Upper-Intermediate: B2',
+    description: 'Заверши усі уроки рівня B2.',
+    category: 'mastery',
+    tier: 'gold',
+    coinReward: 300,
+    xpReward: 300,
+    criteria: { type: 'level-lessons', level: 'B2', count: 4 },
+  },
+  {
+    slug: 'finish-c1',
+    title: 'Advanced: C1',
+    description: 'Заверши усі уроки рівня C1.',
+    category: 'mastery',
+    tier: 'platinum',
+    coinReward: 500,
+    xpReward: 500,
+    criteria: { type: 'level-lessons', level: 'C1', count: 2 },
+  },
+  {
+    slug: 'finish-c2',
+    title: 'Proficient: C2',
+    description: 'Заверши усі уроки рівня C2.',
+    category: 'mastery',
+    tier: 'platinum',
+    coinReward: 1000,
+    xpReward: 1000,
+    criteria: { type: 'level-lessons', level: 'C2', count: 2 },
+  },
 ];
 
 export async function up(strapi: any) {
