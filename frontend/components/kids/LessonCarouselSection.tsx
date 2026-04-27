@@ -430,6 +430,12 @@ function flatten(courses: CourseData[]): {
   let completedTotal = 0;
   let lessonsTotal = 0;
 
+  // When the caller passes a single course (the new course-scoped view),
+  // suppress the per-course name chip on the first card — it just
+  // duplicates the course pill above the carousel. Section labels
+  // (UNIT-1 etc.) still appear when sections change.
+  const showCourseHeader = courses.length > 1;
+
   for (const cd of courses) {
     lessonsTotal += cd.lessons.length;
     completedTotal += cd.completedSlugs.size;
@@ -443,9 +449,9 @@ function flatten(courses: CourseData[]): {
       const sectionChanged = sectionKey !== prevSectionKey;
 
       let groupLabel: string | undefined;
-      if (firstInCourse) {
+      if (firstInCourse && showCourseHeader) {
         groupLabel = cd.course.title.toUpperCase();
-      } else if (sectionChanged) {
+      } else if (sectionChanged && !firstInCourse) {
         groupLabel = (lesson.sectionSlug ?? 'UNIT').toUpperCase();
       }
 
@@ -662,6 +668,67 @@ export function LessonCarouselSection({ level }: Props) {
     };
   }, [level]);
 
+  return (
+    <CourseScopedCarousel
+      data={data}
+      status={status}
+      level={level}
+      errorMsg={errorMsg}
+    />
+  );
+}
+
+/**
+ * Wraps the underlying carousel with a course-scoped view: at any time the
+ * kid sees lessons of ONE course, not a flattened mix. When there are
+ * multiple kid-facing courses at the level, a small pill bar above the
+ * carousel lets them switch. Default selection = course where the kid is
+ * currently progressing (first non-finished course); falls back to the
+ * first course when everything is fresh or everything is done.
+ */
+function CourseScopedCarousel({
+  data,
+  status,
+  level,
+  errorMsg,
+}: {
+  data: CourseData[] | null;
+  status: 'loading' | 'ready' | 'empty' | 'error';
+  level: Level;
+  errorMsg: string | null;
+}) {
+  const courses = data ?? [];
+
+  function defaultCourseSlug(): string | null {
+    if (courses.length === 0) return null;
+    // Prefer the first course that has an unfinished lesson — the kid's
+    // active learning track. Skip courses that are 100% done so we don't
+    // park the kid on a finished course when another one is in flight.
+    const inProgress = courses.find(
+      (c) => c.currentSlug !== null && c.completedSlugs.size < c.lessons.length,
+    );
+    if (inProgress) return inProgress.course.slug;
+    return courses[0].course.slug;
+  }
+
+  const [selectedSlug, setSelectedSlug] = useState<string | null>(() =>
+    defaultCourseSlug(),
+  );
+
+  // When data first arrives (or level changes) initialise the selection.
+  // Keep the kid's choice if it still maps to a visible course.
+  useEffect(() => {
+    if (courses.length === 0) {
+      setSelectedSlug(null);
+      return;
+    }
+    setSelectedSlug((prev) => {
+      if (prev && courses.some((c) => c.course.slug === prev)) return prev;
+      return defaultCourseSlug();
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [courses.length, level]);
+
   if (status === 'loading') return <CarouselSkeleton />;
   if (status === 'error') {
     return (
@@ -671,7 +738,7 @@ export function LessonCarouselSection({ level }: Props) {
       />
     );
   }
-  if (status === 'empty' || !data || data.length === 0) {
+  if (status === 'empty' || courses.length === 0) {
     return (
       <EmptyState
         title="Немає уроків для твого рівня"
@@ -680,13 +747,81 @@ export function LessonCarouselSection({ level }: Props) {
     );
   }
 
-  const flat = flatten(data);
+  const selected =
+    courses.find((c) => c.course.slug === selectedSlug) ?? courses[0];
+  const flat = flatten([selected]);
+  // Stable per-course key so the carousel fully remounts on course switch
+  // — this resets scroll position, the intro animation cooldown, and
+  // refs (cardRefs Map) cleanly instead of trying to morph in place.
   return (
-    <UnifiedCarousel
-      nodes={flat.nodes}
-      currentSlug={flat.currentSlug}
-      completedTotal={flat.completedTotal}
-      lessonsTotal={flat.lessonsTotal}
-    />
+    <section className="flex flex-col h-full min-h-0">
+      {courses.length > 1 && (
+        <CourseSwitcher
+          courses={courses}
+          selectedSlug={selected.course.slug}
+          onSelect={setSelectedSlug}
+        />
+      )}
+      <UnifiedCarousel
+        key={selected.course.slug}
+        nodes={flat.nodes}
+        currentSlug={flat.currentSlug}
+        completedTotal={flat.completedTotal}
+        lessonsTotal={flat.lessonsTotal}
+      />
+    </section>
+  );
+}
+
+function CourseSwitcher({
+  courses,
+  selectedSlug,
+  onSelect,
+}: {
+  courses: CourseData[];
+  selectedSlug: string;
+  onSelect: (slug: string) => void;
+}) {
+  return (
+    <div
+      role="tablist"
+      aria-label="Курс"
+      className="flex flex-shrink-0 gap-2 px-3 py-2 overflow-x-auto bg-surface-raised border-b border-border"
+      style={{ scrollbarWidth: 'none' }}
+    >
+      {courses.map((cd) => {
+        const c = cd.course;
+        const isActive = c.slug === selectedSlug;
+        const total = cd.lessons.length;
+        const done = cd.completedSlugs.size;
+        return (
+          <button
+            key={c.slug}
+            role="tab"
+            aria-selected={isActive}
+            onClick={() => onSelect(c.slug)}
+            className={[
+              'flex items-center gap-2 flex-shrink-0 rounded-full px-3 py-1.5 transition-colors border',
+              isActive
+                ? 'bg-primary text-white border-primary shadow-card-sm'
+                : 'bg-surface-raised text-ink border-border hover:bg-surface-muted',
+            ].join(' ')}
+          >
+            <span aria-hidden className="text-[15px] leading-none">{emojiOf(c)}</span>
+            <span className="font-black text-[12.5px] leading-none truncate max-w-[160px]">
+              {(c as any).titleUa ?? c.title}
+            </span>
+            <span
+              className={[
+                'font-bold text-[10.5px] tabular-nums leading-none',
+                isActive ? 'text-white/80' : 'text-ink-faint',
+              ].join(' ')}
+            >
+              {done}/{total}
+            </span>
+          </button>
+        );
+      })}
+    </div>
   );
 }
