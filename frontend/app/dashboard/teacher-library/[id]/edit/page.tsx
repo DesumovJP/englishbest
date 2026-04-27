@@ -318,6 +318,43 @@ export default function LessonEditorPage() {
     setBlocks(next);
   }
 
+  // ─── Drag-n-drop reorder ────────────────────────────────────────────────
+  // Parent-managed drag state because dividers (drop zones) sit between
+  // blocks and need to know which block is being dragged + which gap is
+  // currently hovered. Native HTML5 DnD; arrows above remain the keyboard +
+  // touch fallback (HTML5 DnD doesn't fire on touchscreens).
+  const [dragSrc, setDragSrc] = useState<number | null>(null);
+  const [dragOver, setDragOver] = useState<number | null>(null);
+
+  function handleDragStart(i: number) {
+    setDragSrc(i);
+  }
+  function handleDragEnd() {
+    setDragSrc(null);
+    setDragOver(null);
+  }
+  function handleDropAt(at: number) {
+    if (readOnly || dragSrc === null) {
+      handleDragEnd();
+      return;
+    }
+    const from = dragSrc;
+    // No-op: dropping a block on its own surrounding gaps (immediately above
+    // or below it) keeps order unchanged.
+    if (at === from || at === from + 1) {
+      handleDragEnd();
+      return;
+    }
+    setBlocks(prev => {
+      const next = [...prev];
+      const [moved] = next.splice(from, 1);
+      const adjusted = from < at ? at - 1 : at;
+      next.splice(adjusted, 0, moved);
+      return next;
+    });
+    handleDragEnd();
+  }
+
   function duplicate(index: number) {
     if (readOnly) return;
     const src = blocks[index];
@@ -527,7 +564,14 @@ export default function LessonEditorPage() {
           )
         ) : mode === 'edit' && !readOnly ? (
           <div className="flex flex-col">
-            <BlockDivider onClick={() => setPicker({ open: true, at: 0 })} />
+            <BlockDivider
+              at={0}
+              dragActive={dragSrc !== null}
+              isOver={dragOver === 0}
+              onClick={() => setPicker({ open: true, at: 0 })}
+              onDragOver={setDragOver}
+              onDrop={handleDropAt}
+            />
             {blocks.map((block, i) => (
               <div key={block.id}>
                 <LessonBlockEditor
@@ -539,10 +583,30 @@ export default function LessonEditorPage() {
                   onMoveDown={() => move(i, +1)}
                   onDuplicate={() => duplicate(i)}
                   onDelete={() => removeBlock(i)}
+                  onDragStart={handleDragStart}
+                  onDragEnd={handleDragEnd}
+                  isDragging={dragSrc === i}
                 />
-                <BlockDivider onClick={() => setPicker({ open: true, at: i + 1 })} />
+                <BlockDivider
+                  at={i + 1}
+                  dragActive={dragSrc !== null}
+                  isOver={dragOver === i + 1}
+                  onClick={() => setPicker({ open: true, at: i + 1 })}
+                  onDragOver={setDragOver}
+                  onDrop={handleDropAt}
+                />
               </div>
             ))}
+            <button
+              type="button"
+              onClick={() => setPicker({ open: true, at: blocks.length })}
+              className="mt-3 w-full py-3.5 rounded-xl border border-dashed border-border hover:border-primary/50 hover:bg-surface-muted/40 transition-colors flex items-center justify-center gap-2 text-ink-muted hover:text-ink"
+            >
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden>
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+              <span className="text-[13px] font-semibold">Додати блок</span>
+            </button>
           </div>
         ) : (
           <div className="flex flex-col gap-3">
@@ -574,14 +638,53 @@ export default function LessonEditorPage() {
   );
 }
 
-function BlockDivider({ onClick }: { onClick: () => void }) {
+function BlockDivider({
+  at,
+  dragActive = false,
+  isOver = false,
+  onClick,
+  onDragOver,
+  onDrop,
+}: {
+  at: number;
+  dragActive?: boolean;
+  isOver?: boolean;
+  onClick: () => void;
+  onDragOver?: (at: number) => void;
+  onDrop?: (at: number) => void;
+}) {
   return (
-    <div className="relative h-6 flex items-center justify-center group">
-      <span className="absolute inset-x-0 h-px bg-border opacity-0 group-hover:opacity-60 transition-opacity" />
+    <div
+      className={`relative flex items-center justify-center group transition-all ${
+        dragActive ? 'h-10' : 'h-6'
+      }`}
+      onDragOver={(e) => {
+        if (!onDragOver) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        onDragOver(at);
+      }}
+      onDrop={(e) => {
+        if (!onDrop) return;
+        e.preventDefault();
+        onDrop(at);
+      }}
+    >
+      <span
+        className={`absolute inset-x-0 transition-all ${
+          isOver
+            ? 'h-1 bg-primary rounded-full opacity-100'
+            : 'h-px bg-border opacity-30 group-hover:opacity-70'
+        }`}
+      />
       <button
         type="button"
         onClick={onClick}
-        className="relative z-10 w-6 h-6 rounded-full bg-surface-raised border border-border text-ink-muted text-[13px] font-semibold hover:border-primary hover:text-ink opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all"
+        className={`relative z-10 w-6 h-6 rounded-full bg-surface-raised border text-[13px] font-semibold transition-all ${
+          isOver
+            ? 'border-primary text-primary scale-110'
+            : 'border-border text-ink-muted opacity-60 group-hover:opacity-100 hover:border-primary hover:text-ink'
+        }`}
         aria-label="Додати блок тут"
       >
         +

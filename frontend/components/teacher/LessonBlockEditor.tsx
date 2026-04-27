@@ -1,4 +1,5 @@
 'use client';
+import { useRef } from 'react';
 import { BLOCK_KIND_ICONS, BLOCK_KIND_LABELS } from '@/lib/ui/teacher-labels';
 import type { LessonBlock } from '@/lib/types/teacher';
 
@@ -11,6 +12,14 @@ interface LessonBlockEditorProps {
   onMoveDown: () => void;
   onDuplicate: () => void;
   onDelete: () => void;
+  /**
+   * Drag-n-drop hooks — owned by parent so cross-block reorder state lives
+   * in one place. Native HTML5 DnD: parent manages source/over indices and
+   * commits the reorder on drop.
+   */
+  onDragStart?: (index: number) => void;
+  onDragEnd?: () => void;
+  isDragging?: boolean;
 }
 
 const fieldLabel = 'text-xs font-black text-ink-muted uppercase tracking-wide';
@@ -26,14 +35,58 @@ export function LessonBlockEditor({
   onMoveDown,
   onDuplicate,
   onDelete,
+  onDragStart,
+  onDragEnd,
+  isDragging,
 }: LessonBlockEditorProps) {
+  const articleRef = useRef<HTMLElement | null>(null);
+
   function confirmDelete() {
     if (window.confirm('Видалити цей блок? Дію неможливо скасувати.')) onDelete();
   }
 
+  // Arm/disarm `draggable` on the article only while user holds the grip
+  // handle. Otherwise inputs/buttons inside the block can't receive normal
+  // mouse events (the browser would treat any drag from them as an article drag).
+  function armDrag() {
+    if (articleRef.current) articleRef.current.draggable = true;
+  }
+  function disarmDrag() {
+    if (articleRef.current) articleRef.current.draggable = false;
+  }
+
   return (
-    <article className="group bg-white rounded-2xl border border-border overflow-hidden">
+    <article
+      ref={articleRef}
+      onDragStart={(e) => {
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', String(index));
+        onDragStart?.(index);
+      }}
+      onDragEnd={() => {
+        disarmDrag();
+        onDragEnd?.();
+      }}
+      className={`group bg-white rounded-2xl border border-border overflow-hidden transition-opacity ${
+        isDragging ? 'opacity-40' : ''
+      }`}
+    >
       <header className="flex items-center gap-2 px-4 py-2.5 bg-surface-muted border-b border-border">
+        <button
+          type="button"
+          onMouseDown={armDrag}
+          onMouseUp={disarmDrag}
+          onMouseLeave={disarmDrag}
+          aria-label="Перетягнути блок"
+          title="Перетягнути блок"
+          className="w-6 h-7 -ml-1 rounded-md flex items-center justify-center text-ink-faint hover:text-ink-muted hover:bg-white cursor-grab active:cursor-grabbing touch-none select-none"
+        >
+          <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="currentColor" aria-hidden>
+            <circle cx="6" cy="3" r="1.4" /><circle cx="10" cy="3" r="1.4" />
+            <circle cx="6" cy="8" r="1.4" /><circle cx="10" cy="8" r="1.4" />
+            <circle cx="6" cy="13" r="1.4" /><circle cx="10" cy="13" r="1.4" />
+          </svg>
+        </button>
         <span className="text-lg">{BLOCK_KIND_ICONS[block.kind]}</span>
         <div className="flex-1 min-w-0">
           <p className="text-[11px] font-black text-ink-muted uppercase tracking-wide leading-none">

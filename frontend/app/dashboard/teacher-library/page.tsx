@@ -13,8 +13,6 @@ import {
   fetchLesson,
   fetchLessonsCached,
   peekLessons,
-  publishLesson,
-  unpublishLesson,
 } from '@/lib/teacher-library';
 import {
   FilterChips,
@@ -125,18 +123,6 @@ export default function TeacherLibraryPage() {
     }
   }
 
-  async function togglePublish(lesson: LibraryLesson) {
-    try {
-      const next = lesson.published
-        ? await unpublishLesson(lesson.id)
-        : await publishLesson(lesson.id);
-      setLessons(prev => prev.map(l => (l.id === lesson.id ? { ...l, ...next } : l)));
-      flashToast(next.published ? 'Опубліковано' : 'Знято з публікації');
-    } catch (e) {
-      flashToast(e instanceof Error ? e.message : 'Не вдалося змінити статус');
-    }
-  }
-
   const shellStatus: 'loading' | 'error' | 'empty' | 'ready' =
     error ? 'error'
     : loading ? 'loading'
@@ -188,9 +174,9 @@ export default function TeacherLibraryPage() {
       }}
     >
       {view === 'grid' ? (
-        <GridView lessons={filtered} onAssign={setAssignFor} onCopy={copyLesson} onDelete={removeLesson} onTogglePublish={togglePublish} />
+        <GridView lessons={filtered} onAssign={setAssignFor} onCopy={copyLesson} onDelete={removeLesson} />
       ) : (
-        <ListView lessons={filtered} onAssign={setAssignFor} onCopy={copyLesson} onDelete={removeLesson} onTogglePublish={togglePublish} />
+        <ListView lessons={filtered} onAssign={setAssignFor} onCopy={copyLesson} onDelete={removeLesson} />
       )}
     </DashboardPageShell>
 
@@ -216,20 +202,19 @@ interface RowProps {
   onAssign: (l: LibraryLesson) => void;
   onCopy: (l: LibraryLesson) => void;
   onDelete: (l: LibraryLesson) => void;
-  onTogglePublish: (l: LibraryLesson) => void;
 }
 
-function GridView({ lessons, onAssign, onCopy, onDelete, onTogglePublish }: RowProps) {
+function GridView({ lessons, onAssign, onCopy, onDelete }: RowProps) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
       {lessons.map(lesson => (
-        <LessonCard key={lesson.id} lesson={lesson} onAssign={onAssign} onCopy={onCopy} onDelete={onDelete} onTogglePublish={onTogglePublish} />
+        <LessonCard key={lesson.id} lesson={lesson} onAssign={onAssign} onCopy={onCopy} onDelete={onDelete} />
       ))}
     </div>
   );
 }
 
-function ListView({ lessons, onAssign, onCopy, onDelete, onTogglePublish }: RowProps) {
+function ListView({ lessons, onAssign, onCopy, onDelete }: RowProps) {
   return (
     <Card variant="surface" padding="none" className="overflow-hidden">
       <div className="overflow-x-auto">
@@ -270,7 +255,7 @@ function ListView({ lessons, onAssign, onCopy, onDelete, onTogglePublish }: RowP
                 </td>
                 <td className="px-4 py-3 text-[12px] text-ink-muted whitespace-nowrap tabular-nums">{lesson.updatedAt}</td>
                 <td className="px-4 py-3 text-right whitespace-nowrap">
-                  <LessonRowActions lesson={lesson} onAssign={onAssign} onCopy={onCopy} onDelete={onDelete} onTogglePublish={onTogglePublish} />
+                  <LessonRowActions lesson={lesson} onAssign={onAssign} onCopy={onCopy} onDelete={onDelete} />
                 </td>
               </tr>
             ))}
@@ -281,7 +266,7 @@ function ListView({ lessons, onAssign, onCopy, onDelete, onTogglePublish }: RowP
   );
 }
 
-function LessonCard({ lesson, onAssign, onCopy, onDelete, onTogglePublish }: { lesson: LibraryLesson; onAssign: (l: LibraryLesson) => void; onCopy: (l: LibraryLesson) => void; onDelete: (l: LibraryLesson) => void; onTogglePublish: (l: LibraryLesson) => void }) {
+function LessonCard({ lesson, onAssign, onCopy, onDelete }: { lesson: LibraryLesson; onAssign: (l: LibraryLesson) => void; onCopy: (l: LibraryLesson) => void; onDelete: (l: LibraryLesson) => void }) {
   return (
     <Card variant="surface" padding="sm" className="flex flex-col gap-3">
       <div className="flex items-center gap-1.5 flex-wrap">
@@ -316,7 +301,7 @@ function LessonCard({ lesson, onAssign, onCopy, onDelete, onTogglePublish }: { l
 
       <div className="flex items-center justify-between mt-auto pt-3 border-t border-border">
         <span className="text-[11px] text-ink-faint tabular-nums">{lesson.updatedAt}</span>
-        <LessonRowActions lesson={lesson} onAssign={onAssign} onCopy={onCopy} onDelete={onDelete} onTogglePublish={onTogglePublish} />
+        <LessonRowActions lesson={lesson} onAssign={onAssign} onCopy={onCopy} onDelete={onDelete} />
       </div>
     </Card>
   );
@@ -331,13 +316,11 @@ function LessonRowActions({
   onAssign,
   onCopy,
   onDelete,
-  onTogglePublish,
 }: {
   lesson: LibraryLesson;
   onAssign: (l: LibraryLesson) => void;
   onCopy: (l: LibraryLesson) => void;
   onDelete: (l: LibraryLesson) => void;
-  onTogglePublish: (l: LibraryLesson) => void;
 }) {
   const isReadOnly = lesson.source === 'platform' || lesson.source === 'template';
   return (
@@ -350,16 +333,6 @@ function LessonRowActions({
           title="Копіювати в мою бібліотеку"
         >
           Копія
-        </Button>
-      )}
-      {!isReadOnly && (
-        <Button
-          size="sm"
-          variant="secondary"
-          onClick={() => onTogglePublish(lesson)}
-          title={lesson.published ? 'Зняти з публікації' : 'Опублікувати'}
-        >
-          {lesson.published ? 'Unpublish' : 'Publish'}
         </Button>
       )}
       <Button size="sm" onClick={() => onAssign(lesson)}>

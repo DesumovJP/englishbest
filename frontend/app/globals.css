@@ -663,6 +663,34 @@
    Usage: wrap all kids pages in <div className="toca">
    ═══════════════════════════════════════════════════════════════════════════ */
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   Print
+   Page-level defaults for all `window.print()` calls. Per-page overrides
+   come via Tailwind `print:` modifiers on individual elements (e.g.
+   `print:hidden` on the sidebar, `print:static` to drop sticky on a column).
+   ═══════════════════════════════════════════════════════════════════════════ */
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 12mm;
+  }
+
+  html, body {
+    background: white !important;
+  }
+
+  /* Force backgrounds/borders that the browser would otherwise drop. */
+  .print-keep-color, .print-keep-color * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Avoid splitting a row across pages. */
+  table { page-break-inside: auto; }
+  tr    { page-break-inside: avoid; }
+  thead { display: table-header-group; }
+}
+
 /* ── Toca Boca keyframes ─────────────────────────────────────────────────── */
 @keyframes tk-bounce {
   0%, 100% { transform: translateY(0) scale(1); }

@@ -160,7 +160,7 @@ export function Sidebar() {
   return (
     <>
       <button
-        className="fixed top-3 left-3 z-50 w-9 h-9 bg-white rounded-lg border border-border flex items-center justify-center md:hidden"
+        className="fixed top-3 left-3 z-50 w-9 h-9 bg-white rounded-lg border border-border flex items-center justify-center md:hidden print:hidden"
         onClick={() => setMobileOpen(o => !o)}
         aria-label={mobileOpen ? 'Закрити меню' : 'Відкрити меню'}
       >
@@ -184,7 +184,7 @@ export function Sidebar() {
       )}
 
       <aside
-        className={`fixed top-0 left-0 z-40 h-full w-60 bg-white border-r border-border flex flex-col transition-transform duration-200 md:sticky md:top-0 md:h-dvh md:translate-x-0 md:flex-shrink-0 ${
+        className={`fixed top-0 left-0 z-40 h-full w-60 bg-white border-r border-border flex flex-col transition-transform duration-200 md:sticky md:top-0 md:h-dvh md:translate-x-0 md:flex-shrink-0 print:hidden ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >

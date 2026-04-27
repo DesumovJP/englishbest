@@ -23,10 +23,10 @@ export default async function DashboardLayout({ children }: { children: React.Re
   if (role === 'kids' || role === 'adult') redirect('/kids/dashboard');
 
   return (
-    <div className="flex min-h-svh bg-surface items-start">
+    <div className="flex min-h-svh bg-surface items-start print:block print:bg-white">
       <Sidebar />
-      <main className="flex-1 min-w-0 min-h-svh pt-14 md:pt-0">
-        <div className="max-w-[1100px] mx-auto px-4 sm:px-6 md:px-8 py-6 md:py-8">
+      <main className="flex-1 min-w-0 min-h-svh pt-14 md:pt-0 print:pt-0">
+        <div className="max-w-[1100px] mx-auto px-4 sm:px-6 md:px-8 py-6 md:py-8 print:max-w-none print:p-0">
           {children}
         </div>
       </main>

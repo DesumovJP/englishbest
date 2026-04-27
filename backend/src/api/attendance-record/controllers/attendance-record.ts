@@ -10,7 +10,7 @@
  *   - student  — read-only own records.
  */
 import { factories } from '@strapi/strapi';
-import { scopedFind } from '../../../lib/scoped-find';
+import { scopedFind, sanitizeOutputTrusted } from '../../../lib/scoped-find';
 
 const RECORD_UID = 'api::attendance-record.attendance-record';
 const SESSION_UID = 'api::session.session';
@@ -138,28 +138,44 @@ export default factories.createCoreController(RECORD_UID, ({ strapi }) => ({
     const role = roleType(user);
     if (role !== 'teacher' && role !== 'admin') return ctx.forbidden();
 
-    const data = ((ctx.request.body as any)?.data ?? {}) as Record<string, unknown>;
+    const body = ((ctx.request.body as any)?.data ?? {}) as Record<string, unknown>;
     const sessionId =
-      typeof data.session === 'string'
-        ? data.session
-        : data.session && typeof data.session === 'object' && typeof (data.session as any).documentId === 'string'
-          ? (data.session as any).documentId
+      typeof body.session === 'string'
+        ? body.session
+        : body.session && typeof body.session === 'object' && typeof (body.session as any).documentId === 'string'
+          ? (body.session as any).documentId
           : null;
     const studentId =
-      typeof data.student === 'string'
-        ? data.student
-        : data.student && typeof data.student === 'object' && typeof (data.student as any).documentId === 'string'
-          ? (data.student as any).documentId
+      typeof body.student === 'string'
+        ? body.student
+        : body.student && typeof body.student === 'object' && typeof (body.student as any).documentId === 'string'
+          ? (body.student as any).documentId
           : null;
     if (!sessionId || !studentId) return ctx.badRequest('session + student required');
 
+    let recordedBy: string | null = null;
     if (role === 'teacher') {
       const teacherId = await callerTeacherProfileId(strapi, user.id);
       if (!teacherId) return ctx.forbidden('no teacher-profile');
       const ownerId = await sessionTeacherId(strapi, sessionId);
       if (ownerId !== teacherId) return ctx.forbidden('not your session');
-      data.recordedBy = teacherId;
+      recordedBy = teacherId;
     }
+
+    // Bypass super.create/super.update — core's input validator runs
+    // throwRestrictedRelations against `student`, but teachers lack `find`
+    // on api::user-profile (only `findOne`/`findMe`), which yields
+    // 400 "Invalid key student". We've already enforced session ownership
+    // above, so it's safe to write through the document service directly.
+    const data: Record<string, unknown> = {
+      session: sessionId,
+      student: studentId,
+      status: typeof body.status === 'string' ? body.status : 'present',
+      recordedAt:
+        typeof body.recordedAt === 'string' ? body.recordedAt : new Date().toISOString(),
+    };
+    if (typeof body.note === 'string' || body.note === null) data.note = body.note;
+    if (recordedBy) data.recordedBy = recordedBy;
 
     // Idempotent upsert: if a record already exists for this (session, student),
     // update it instead of creating a duplicate.
@@ -171,16 +187,24 @@ export default factories.createCoreController(RECORD_UID, ({ strapi }) => ({
       fields: ['documentId'],
       limit: 1,
     });
-    if (!data.recordedAt) data.recordedAt = new Date().toISOString();
-    data.session = sessionId;
-    data.student = studentId;
-    (ctx.request.body as any).data = data;
 
     if (existing?.documentId) {
-      ctx.params.id = existing.documentId;
-      return (super.update as any)(ctx);
+      // Immutable links on update.
+      delete data.session;
+      delete data.student;
+      delete data.recordedBy;
+      const updated = await strapi.documents(RECORD_UID).update({
+        documentId: existing.documentId,
+        data: data as any,
+      });
+      const sanitized = await sanitizeOutputTrusted(RECORD_UID, updated);
+      return this.transformResponse(sanitized);
     }
-    return (super.create as any)(ctx);
+
+    const created = await strapi.documents(RECORD_UID).create({ data: data as any });
+    const sanitized = await sanitizeOutputTrusted(RECORD_UID, created);
+    ctx.status = 201;
+    return this.transformResponse(sanitized);
   },
 
   async update(ctx) {
