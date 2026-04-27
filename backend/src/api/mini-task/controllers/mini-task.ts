@@ -15,6 +15,40 @@ import { scopedFind } from '../../../lib/scoped-find';
 const UID = 'api::mini-task.mini-task';
 const TEACHER_UID = 'api::teacher-profile.teacher-profile';
 
+// Mini-task `coinReward` is what a kid earns on a perfect first attempt.
+// Clamping it keeps the reward economy balanced — without this an author
+// could set 9999 and tip the entire motivation curve. Anything below 5
+// would make the reward feel meaningless. See REWARDS.md → Phase E.
+const COIN_REWARD_MIN = 5;
+const COIN_REWARD_MAX = 100;
+
+const DURATION_MIN = 1;
+const DURATION_MAX = 30;
+
+function clampCoinReward(v: unknown): number | undefined {
+  if (v === undefined) return undefined;
+  if (typeof v !== 'number' || !Number.isFinite(v)) return COIN_REWARD_MIN;
+  return Math.max(COIN_REWARD_MIN, Math.min(COIN_REWARD_MAX, Math.round(v)));
+}
+
+function clampDuration(v: unknown): number | undefined {
+  if (v === undefined) return undefined;
+  if (typeof v !== 'number' || !Number.isFinite(v)) return undefined;
+  return Math.max(DURATION_MIN, Math.min(DURATION_MAX, Math.round(v)));
+}
+
+function normalizeWriteData(data: Record<string, unknown> | undefined | null): void {
+  if (!data) return;
+  if ('coinReward' in data) {
+    const clamped = clampCoinReward(data.coinReward);
+    if (clamped !== undefined) data.coinReward = clamped;
+  }
+  if ('durationMin' in data) {
+    const clamped = clampDuration(data.durationMin);
+    if (clamped !== undefined) data.durationMin = clamped;
+  }
+}
+
 function roleType(ctxUser: any): string {
   return (ctxUser?.role?.type ?? '').toLowerCase();
 }
@@ -95,6 +129,7 @@ export default factories.createCoreController(UID, ({ strapi }) => ({
         author: teacherId,
       };
     }
+    normalizeWriteData((ctx.request.body as any)?.data);
     return (super.create as any)(ctx);
   },
 
@@ -115,6 +150,7 @@ export default factories.createCoreController(UID, ({ strapi }) => ({
       }
       if ((ctx.request.body as any)?.data?.author) delete (ctx.request.body as any).data.author;
     }
+    normalizeWriteData((ctx.request.body as any)?.data);
     return (super.update as any)(ctx);
   },
 

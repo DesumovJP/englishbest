@@ -22,6 +22,7 @@ const HW_SUBMISSION_UID = 'api::homework-submission.homework-submission';
 const ATTENDANCE_UID = 'api::attendance-record.attendance-record';
 const ATTEMPT_UID = 'api::mini-task-attempt.mini-task-attempt';
 const REWARD_EVENT_UID = 'api::reward-event.reward-event';
+const USER_INVENTORY_UID = 'api::user-inventory.user-inventory';
 
 // ─── Matrix ─────────────────────────────────────────────────────────────
 //
@@ -49,13 +50,17 @@ const MINITASK_PASS_XP = 5;
 /**
  * Streak milestones — only firing days bring a bonus. Keeps the reward
  * spread thin so the kid feels gradual escalation rather than a daily flood.
+ *
+ * `freeLootBoxes` (≥ 7-day streak) drops a "Mystery Box" credit into the
+ * kid's inventory — opens the box without spending coins. Refresh logic
+ * lives only here so the loot drop and the coin/XP bonus stay in sync.
  */
-const STREAK_MILESTONES: Record<number, { xp: number; coins: number }> = {
+const STREAK_MILESTONES: Record<number, { xp: number; coins: number; freeLootBoxes?: number }> = {
   3:  { xp: 10, coins: 15 },
-  7:  { xp: 20, coins: 30 },
+  7:  { xp: 20, coins: 30, freeLootBoxes: 1 },
   14: { xp: 30, coins: 50 },
-  30: { xp: 50, coins: 100 },
-  60: { xp: 100, coins: 200 },
+  30: { xp: 50, coins: 100, freeLootBoxes: 1 },
+  60: { xp: 100, coins: 200, freeLootBoxes: 1 },
 };
 
 // ─── Types ──────────────────────────────────────────────────────────────
@@ -319,6 +324,34 @@ async function setKidsMood(
   await strapi.documents(KIDS_PROFILE_UID).update({
     documentId: ctx.kidsProfileId,
     data: { characterMood: mood },
+  });
+}
+
+/**
+ * Add `n` free loot box credits to the kid's user-inventory. Called only
+ * from streak-milestone awards (see `STREAK_MILESTONES`). Idempotency
+ * lives at the call site — we ride the streak award's `sourceKey`.
+ */
+async function addFreeLootBoxes(
+  strapi: any,
+  ctx: ProfileCtx,
+  n: number,
+): Promise<void> {
+  if (n <= 0) return;
+  // user-inventory is keyed by user-profile.documentId (one-to-one). Auto-
+  // create on first read happens in the user-inventory controller; here we
+  // tolerate "not found" by skipping the bonus rather than failing the
+  // whole award call.
+  const [inv]: any[] = await strapi.documents(USER_INVENTORY_UID).findMany({
+    filters: { user: { documentId: { $eq: ctx.profileId } } },
+    fields: ['documentId', 'freeLootBoxes'],
+    limit: 1,
+  });
+  if (!inv) return;
+  const current = typeof inv.freeLootBoxes === 'number' ? inv.freeLootBoxes : 0;
+  await strapi.documents(USER_INVENTORY_UID).update({
+    documentId: inv.documentId,
+    data: { freeLootBoxes: current + n },
   });
 }
 
@@ -595,16 +628,22 @@ export async function awardOnAction(
   if (mood) await setKidsMood(strapi, ctx, mood);
 
   // 8. Streak milestone bonus — separate award call so it gets its own
-  //    ledger row and idempotency key.
+  //    ledger row and idempotency key. Some milestones additionally drop
+  //    a free loot box; that side-effect rides the same ledger row so a
+  //    retry can't double the boxes either.
   if (streakMilestone !== null) {
     const dayKey = new Date().toISOString().slice(0, 10);
-    await awardOnAction(strapi, {
+    const milestone = STREAK_MILESTONES[streakMilestone];
+    const milestoneAward = await awardOnAction(strapi, {
       userProfileId: ctx.profileId,
       action: 'streak',
       sourceKey: `streak:${ctx.profileId}:${dayKey}:${streakMilestone}`,
-      meta: { days: streakMilestone },
+      meta: { days: streakMilestone, freeLootBoxes: milestone?.freeLootBoxes ?? 0 },
       skipAchievementEval: false,
     });
+    if (milestoneAward.applied && milestone?.freeLootBoxes) {
+      await addFreeLootBoxes(strapi, ctx, milestone.freeLootBoxes);
+    }
   }
 
   // 9. Achievement evaluation against the post-credit snapshot.

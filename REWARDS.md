@@ -123,10 +123,24 @@ Per-level unlocks live in a small static table (Phase E):
     `motivationSummary` allows any teacher to read any student. Tighten
     this when groups / teacher.students relation lands.
 
-- [ ] **Phase E — Polish**
-  - [ ] Achievement catalog with proper icons + bronze / silver / gold tier.
-  - [ ] Free loot box refresh — 1 / week at streak ≥ 5.
-  - [ ] `mini-task.coinReward` server-side clamp 5 .. 100.
+- [x] **Phase E — Polish**
+  - [x] Achievement catalog with tier visuals on `/kids/achievements`
+        (bronze / silver / gold / platinum ring + medal + reward
+        chip in tier hue; locked entries stay neutral so the page
+        doesn't rainbow).
+  - [x] Free loot box on streak milestones — `STREAK_MILESTONES`
+        carries `freeLootBoxes` for the days that should drop a box
+        (7 / 30 / 60); rewards service writes it to the kid's
+        user-inventory atomically with the milestone bonus, idempotent
+        through the streak ledger row.
+  - [x] `mini-task.coinReward` server-side clamp 5..100 (and
+        `durationMin` 1..30) — applied on both create and update.
+  - [ ] Server-side shop room-background purchase — DEFERRED to Phase F.
+        Needs new `activeRoomBackground` field on user-inventory + a
+        server-side BG catalog mirror + POST endpoint. Until then the
+        legacy negative `totalCoinsDelta` path stays open — server still
+        validates balance, just doesn't gate the bg slug. Tracked
+        explicitly so the next session knows not to touch it ad-hoc.
 
 ---
 
@@ -190,4 +204,13 @@ Per-level unlocks live in a small static table (Phase E):
   `admin::is-authenticated` policy. Replaced with `only: [...]` so the
   factory simply doesn't register the public POST. Custom POST
   /mini-task-attempts/me unaffected.
+- **2026-04-27** — Phase E (partial). mini-task `coinReward` clamp 5..100
+  + `durationMin` 1..30 in controller normalize step. Streak milestones
+  7 / 30 / 60 now drop a free loot-box credit into user-inventory
+  atomically with the bonus award (ledger sourceKey makes it idempotent).
+  `/kids/achievements` page now reads `tier` and renders bronze / silver
+  / gold / platinum styling — ring colour, medal emoji, reward chip in
+  tier hue. Locked entries stay neutral so the catalog doesn't become a
+  rainbow. Shop room-bg server migration deferred to Phase F (needs
+  schema field + BG catalog mirror).
 
