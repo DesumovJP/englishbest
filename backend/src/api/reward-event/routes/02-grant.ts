@@ -25,5 +25,11 @@ export default {
       handler: 'api::reward-event.reward-event.motivationSummary',
       config: { policies: ['global::is-authenticated'] },
     },
+    {
+      method: 'GET',
+      path: '/rewards/student/:studentId/weekly',
+      handler: 'api::reward-event.reward-event.weeklySummary',
+      config: { policies: ['global::is-authenticated'] },
+    },
   ],
 };

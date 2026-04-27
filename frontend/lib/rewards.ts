@@ -49,6 +49,62 @@ export interface MotivationSummary {
   lastActiveAt: string | null;
 }
 
+export interface WeeklyDailyBucket {
+  /** ISO yyyy-mm-dd. */
+  date: string;
+  xp: number;
+  coins: number;
+  active: boolean;
+}
+
+export interface WeeklySummary {
+  studentId: string;
+  weekStart: string;
+  weekEnd: string;
+  xpEarned: number;
+  coinsEarned: number;
+  lessonsCompleted: number;
+  miniTasksCompleted: number;
+  homeworksGraded: number;
+  /** Average homework score in [0..100] for items graded this week.
+   *  Null when no homework was graded. UI converts via `pointsForScore`
+   *  for the canonical 12-point display. */
+  homeworkAvgScore: number | null;
+  achievementsEarned: number;
+  /** Number of distinct calendar days within the window where the kid
+   *  earned at least one reward event (any action). */
+  activeDays: number;
+  daily: WeeklyDailyBucket[];
+}
+
+export async function fetchWeeklySummary(
+  studentId: string,
+): Promise<WeeklySummary> {
+  const res = await fetch(
+    `/api/rewards/student/${encodeURIComponent(studentId)}/weekly`,
+    { cache: 'no-store' },
+  );
+  if (!res.ok) throw new Error(`fetchWeeklySummary ${res.status}`);
+  const json: any = await res.json().catch(() => ({}));
+  const d = json?.data;
+  if (!d) throw new Error('fetchWeeklySummary: malformed response');
+  return {
+    studentId: String(d.studentId ?? studentId),
+    weekStart: typeof d.weekStart === 'string' ? d.weekStart : '',
+    weekEnd: typeof d.weekEnd === 'string' ? d.weekEnd : '',
+    xpEarned: Number(d.xpEarned ?? 0),
+    coinsEarned: Number(d.coinsEarned ?? 0),
+    lessonsCompleted: Number(d.lessonsCompleted ?? 0),
+    miniTasksCompleted: Number(d.miniTasksCompleted ?? 0),
+    homeworksGraded: Number(d.homeworksGraded ?? 0),
+    homeworkAvgScore:
+      typeof d.homeworkAvgScore === 'number' ? d.homeworkAvgScore : null,
+    achievementsEarned: Number(d.achievementsEarned ?? 0),
+    activeDays: Number(d.activeDays ?? 0),
+    daily: Array.isArray(d.daily) ? d.daily : [],
+  };
+}
+
 export async function fetchMotivationSummary(
   studentId: string,
 ): Promise<MotivationSummary> {

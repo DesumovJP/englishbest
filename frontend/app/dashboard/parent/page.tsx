@@ -25,7 +25,12 @@ import {
   formatDuration,
   attendeesCountLabel,
 } from '@/lib/session-display';
-import { fetchMotivationSummary, type MotivationSummary } from '@/lib/rewards';
+import {
+  fetchMotivationSummary,
+  fetchWeeklySummary,
+  type MotivationSummary,
+  type WeeklySummary,
+} from '@/lib/rewards';
 import { levelFromXp } from '@/lib/level';
 import { pointsForScore } from '@/lib/grade';
 
@@ -175,13 +180,19 @@ function ChildBlock({ summary }: { summary: ChildSummary }) {
 
   const childDocId = summary.child.documentId;
   const [motivation, setMotivation] = useState<MotivationSummary | null>(null);
+  const [weekly, setWeekly] = useState<WeeklySummary | null>(null);
 
   useEffect(() => {
     if (!childDocId) return;
     let alive = true;
-    fetchMotivationSummary(childDocId)
-      .then((m) => { if (alive) setMotivation(m); })
-      .catch(() => { /* parent dashboard tolerates missing motivation — KPIs degrade gracefully */ });
+    Promise.all([
+      fetchMotivationSummary(childDocId).catch(() => null),
+      fetchWeeklySummary(childDocId).catch(() => null),
+    ]).then(([m, w]) => {
+      if (!alive) return;
+      if (m) setMotivation(m);
+      if (w) setWeekly(w);
+    });
     return () => { alive = false; };
   }, [childDocId]);
 
@@ -232,6 +243,47 @@ function ChildBlock({ summary }: { summary: ChildSummary }) {
           </Card>
         ))}
       </div>
+
+      {/* Weekly digest — rolling-7-day activity. Shows even when totals
+          are zero so the parent has a stable cadence anchor; sparkline
+          dots make active vs idle days obvious at a glance. */}
+      {weekly && (
+        <Card variant="surface" padding="none" className="overflow-hidden">
+          <div className="px-5 py-2.5 border-b border-border flex items-baseline justify-between">
+            <h3 className="text-[10px] font-semibold text-ink-faint uppercase tracking-wider">
+              Тиждень
+            </h3>
+            <span className="text-[11px] text-ink-faint tabular-nums">
+              {weekly.activeDays}/7 активних днів
+            </span>
+          </div>
+          <div className="px-5 py-3 flex flex-col gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <WeeklyStat label="XP" value={weekly.xpEarned} />
+              <WeeklyStat label="Монети" value={`+${weekly.coinsEarned}`} />
+              <WeeklyStat label="Уроків" value={weekly.lessonsCompleted} />
+              <WeeklyStat
+                label="ДЗ ⌀"
+                value={
+                  weekly.homeworksGraded === 0
+                    ? '—'
+                    : `${pointsForScore(weekly.homeworkAvgScore ?? 0)}/12`
+                }
+              />
+            </div>
+            {/* Daily sparkline — 7 dots scaled by XP earned that day. The
+                kid had a "weekend off"? You'll see it here. */}
+            <DailySparkline buckets={weekly.daily} />
+            {(weekly.miniTasksCompleted > 0 || weekly.achievementsEarned > 0) && (
+              <p className="text-[11px] text-ink-muted">
+                {weekly.miniTasksCompleted > 0 && <>Міні-завдань: <span className="font-semibold text-ink">{weekly.miniTasksCompleted}</span></>}
+                {weekly.miniTasksCompleted > 0 && weekly.achievementsEarned > 0 && ' · '}
+                {weekly.achievementsEarned > 0 && <>Нових досягнень: <span className="font-semibold text-ink">{weekly.achievementsEarned}</span></>}
+              </p>
+            )}
+          </div>
+        </Card>
+      )}
 
       {/* Recent achievements — show up to 3 most-recent badges. The full
           list lives on the kid's own profile; this is parent-glance.
@@ -442,5 +494,58 @@ export default function ParentPage() {
     >
       {active && <ChildBlock summary={active} />}
     </DashboardPageShell>
+  );
+}
+
+// ─── Weekly digest helpers ─────────────────────────────────────────────
+
+function WeeklyStat({ label, value }: { label: string; value: number | string }) {
+  return (
+    <div className="px-2.5 py-2 rounded-xl bg-surface-muted/50">
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-ink-faint">
+        {label}
+      </p>
+      <p className="text-[16px] font-black text-ink tabular-nums mt-0.5 leading-none">
+        {value}
+      </p>
+    </div>
+  );
+}
+
+const WEEKDAY_SHORT_UA = ['Нд', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+
+/**
+ * 7-bar sparkline. Bar height encodes XP earned that day, capped at the
+ * week's max so a single big day doesn't flatten the rest. Inactive days
+ * render as a 1-px tick so the cadence is still visible.
+ */
+function DailySparkline({
+  buckets,
+}: {
+  buckets: ReadonlyArray<{ date: string; xp: number; active: boolean }>;
+}) {
+  const maxXp = Math.max(1, ...buckets.map((b) => b.xp));
+  return (
+    <div className="flex items-end gap-1 h-10">
+      {buckets.map((b) => {
+        const pct = b.active ? Math.max(0.15, b.xp / maxXp) : 0.04;
+        const day = new Date(`${b.date}T00:00:00`);
+        const wd = WEEKDAY_SHORT_UA[day.getDay()] ?? '';
+        return (
+          <div key={b.date} className="flex-1 flex flex-col items-center gap-0.5 min-w-0">
+            <div className="w-full flex items-end justify-center" style={{ height: '28px' }}>
+              <div
+                className={`w-full rounded-t transition-[height] duration-500 ${
+                  b.active ? 'bg-primary' : 'bg-ink-faint/20'
+                }`}
+                style={{ height: `${Math.round(pct * 100)}%` }}
+                title={`${wd}: ${b.xp} XP`}
+              />
+            </div>
+            <span className="text-[9px] text-ink-faint font-semibold leading-none">{wd}</span>
+          </div>
+        );
+      })}
+    </div>
   );
 }

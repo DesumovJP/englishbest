@@ -118,6 +118,7 @@ const GRANTS: Grant[] = [
   { action: 'api::reward-event.reward-event.findOne', roles: AUTH_ALL },
   { action: 'api::reward-event.reward-event.grant', roles: STAFF },
   { action: 'api::reward-event.reward-event.motivationSummary', roles: AUTH_ALL },
+  { action: 'api::reward-event.reward-event.weeklySummary', roles: AUTH_ALL },
 
   // Mini-task attempt
   //   - find / findOne — scoping inside controller (admin all, teacher own

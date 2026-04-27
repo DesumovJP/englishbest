@@ -228,4 +228,15 @@ Per-level unlocks live in a small static table (Phase E):
   routes through the new endpoint. `kids-profile.updateMe` now hard-blocks
   every currency / XP / streak field — the legacy `totalCoinsDelta`
   fallback (positive AND negative) is closed.
+- **2026-04-27** — Phase G #1 (tightening). New
+  `backend/src/lib/teacher-students.ts:teacherTeachesStudent` derives the
+  teacher↔student set from `session.attendees`; gates motivationSummary,
+  manual grant, and reward-event.find for the teacher role. Audit row
+  `meta.grantedBy` keeps history even when the teacher later loses
+  access. Phase G #3 (weekly summary). New
+  `GET /rewards/student/:id/weekly` endpoint returns rolling-7-day
+  digest (XP, coins, lessons, mini-tasks, homeworks + avg, achievements,
+  active days, daily sparkline buckets). Parent dashboard ChildBlock
+  now renders a "Тиждень" card with WeeklyStat KPIs and a
+  DailySparkline so parents see their kid's cadence at a glance.
 

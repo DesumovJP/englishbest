@@ -320,4 +320,177 @@ export default factories.createCoreController(EVENT_UID, ({ strapi }) => ({
       },
     };
   },
+
+  /**
+   * GET /rewards/student/:studentId/weekly — rolling-7-day activity
+   * digest for the parent dashboard.
+   *
+   * Aggregates exclusively from `reward-event` (XP, coins, daily series)
+   * + content tables (lessons, mini-task attempts, HW submissions,
+   * achievements) for the same window. Single round-trip, no FE math.
+   *
+   * Scope mirrors `motivationSummary`:
+   *   - admin   — any student.
+   *   - teacher — only own students (via `teacherTeachesStudent`).
+   *   - parent  — only own children.
+   *   - self    — own.
+   */
+  async weeklySummary(ctx) {
+    const user = ctx.state.user;
+    if (!user) return ctx.unauthorized();
+    const role = roleType(user);
+
+    const studentId = ctx.params?.studentId;
+    if (typeof studentId !== 'string' || !studentId) {
+      return ctx.badRequest('studentId required');
+    }
+
+    if (role === 'admin') {
+      // bypass.
+    } else if (role === 'teacher') {
+      const teacherId = await callerTeacherProfileId(strapi, user.id);
+      if (!teacherId) return ctx.forbidden('no teacher-profile');
+      const teaches = await teacherTeachesStudent(strapi, teacherId, studentId);
+      if (!teaches) return ctx.forbidden('not your student');
+    } else {
+      const callerProfile = await callerProfileId(strapi, user.id);
+      if (!callerProfile) return ctx.forbidden();
+      if (role === 'parent') {
+        const kidIds = await childProfileIds(strapi, callerProfile);
+        if (!kidIds.includes(studentId)) return ctx.forbidden('not your child');
+      } else if (callerProfile !== studentId) {
+        return ctx.forbidden();
+      }
+    }
+
+    // Window: rolling 7 calendar days, starting at midnight 6 days ago.
+    const now = new Date();
+    const todayUTCStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    const weekStart = new Date(todayUTCStart.getTime() - 6 * 86_400_000);
+    const weekStartIso = weekStart.toISOString();
+    const weekEndIso = now.toISOString();
+
+    // Reward events in window — drives XP / coins / active-days / sparkline.
+    const events: any[] = await strapi.documents(EVENT_UID).findMany({
+      filters: {
+        user: { documentId: { $eq: studentId } },
+        createdAt: { $gte: weekStartIso },
+      },
+      sort: { createdAt: 'asc' as any },
+      pagination: { pageSize: 500, page: 1 } as any,
+    });
+
+    // 7 daily buckets keyed by yyyy-mm-dd (UTC). Pre-seeded so the
+    // sparkline always has 7 points even if some days are zero.
+    const dayKey = (iso: string): string => iso.slice(0, 10);
+    const buckets = new Map<string, { date: string; xp: number; coins: number; events: number }>();
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(weekStart.getTime() + i * 86_400_000);
+      const k = d.toISOString().slice(0, 10);
+      buckets.set(k, { date: k, xp: 0, coins: 0, events: 0 });
+    }
+
+    let xpEarned = 0;
+    let coinsEarned = 0;
+    for (const e of events) {
+      const xp = Number(e.xpDelta ?? 0);
+      const coins = Number(e.coinsDelta ?? 0);
+      xpEarned += xp;
+      coinsEarned += coins;
+      const k = dayKey(typeof e.createdAt === 'string' ? e.createdAt : weekStartIso);
+      const b = buckets.get(k);
+      if (b) {
+        b.xp += xp;
+        b.coins += coins;
+        b.events += 1;
+      }
+    }
+    const daily = Array.from(buckets.values()).map((b) => ({
+      date: b.date,
+      xp: b.xp,
+      coins: b.coins,
+      active: b.events > 0,
+    }));
+    const activeDays = daily.filter((d) => d.active).length;
+
+    // Lessons completed in window — by user.id (numeric) for the existing
+    // `db.query` path. Fallback to 0 when userId can't be resolved.
+    let lessonsCompleted = 0;
+    try {
+      const profileForUserId: any = await strapi.documents(PROFILE_UID).findOne({
+        documentId: studentId,
+        populate: { user: { fields: ['id'] } },
+      });
+      const userIdNum = profileForUserId?.user?.id ?? null;
+      if (userIdNum != null) {
+        lessonsCompleted = await (strapi.db.query as any)('api::user-progress.user-progress').count({
+          where: {
+            user: { id: userIdNum },
+            status: 'completed',
+            completedAt: { $gte: weekStartIso },
+          },
+        });
+      }
+    } catch {
+      lessonsCompleted = 0;
+    }
+
+    const safeCount = async (uid: string, filters: Record<string, unknown>): Promise<number> => {
+      try {
+        return await (strapi.documents as any)(uid).count({ filters });
+      } catch {
+        return 0;
+      }
+    };
+
+    const miniTasksCompleted = await safeCount('api::mini-task-attempt.mini-task-attempt', {
+      user: { documentId: { $eq: studentId } },
+      completedAt: { $gte: weekStartIso },
+      score: { $gte: 50 },
+    });
+
+    // Homework: count + avg score among graded-this-week.
+    let homeworksGraded = 0;
+    let homeworkAvgScore: number | null = null;
+    try {
+      const hw: any[] = await strapi.documents('api::homework-submission.homework-submission').findMany({
+        filters: {
+          student: { documentId: { $eq: studentId } },
+          gradedAt: { $gte: weekStartIso },
+          score: { $notNull: true } as any,
+        },
+        fields: ['score'],
+        pagination: { pageSize: 200, page: 1 } as any,
+      });
+      homeworksGraded = hw.length;
+      if (hw.length > 0) {
+        const sum = hw.reduce((acc, r) => acc + (typeof r.score === 'number' ? r.score : 0), 0);
+        homeworkAvgScore = Math.round(sum / hw.length);
+      }
+    } catch {
+      /* tolerated */
+    }
+
+    const achievementsEarned = await safeCount('api::user-achievement.user-achievement', {
+      user: { documentId: { $eq: studentId } },
+      earnedAt: { $gte: weekStartIso },
+    });
+
+    ctx.body = {
+      data: {
+        studentId,
+        weekStart: weekStartIso,
+        weekEnd: weekEndIso,
+        xpEarned,
+        coinsEarned,
+        lessonsCompleted,
+        miniTasksCompleted,
+        homeworksGraded,
+        homeworkAvgScore,
+        achievementsEarned,
+        activeDays,
+        daily,
+      },
+    };
+  },
 }));
