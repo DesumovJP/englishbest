@@ -103,6 +103,12 @@
     "accentColor": {
       "type": "string",
       "regex": "^#[0-9a-fA-F]{6}$"
+    },
+    "vocabularySets": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::vocabulary-set.vocabulary-set",
+      "mappedBy": "lesson"
     }
   }
 }

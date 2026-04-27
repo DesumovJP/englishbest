@@ -78,18 +78,20 @@ function normalize(raw: any): VocabularySet | null {
     raw.lesson && typeof raw.lesson === 'object' && typeof raw.lesson.title === 'string'
       ? raw.lesson.title
       : null;
-  // Prefer set-specific cover, then derive from linked course's cover. The
-  // backend exposes covers as media relations (`coverImage`, `thumbnail`),
-  // not scalar URL strings — we read `.url` off the populated objects.
-  const ownCover =
-    typeof raw.coverImageUrl === 'string' && raw.coverImageUrl
-      ? raw.coverImageUrl
-      : null;
+  // Cover precedence: set's own coverImage (media) > legacy scalar URL >
+  // linked course's coverImage > linked course's thumbnail. Strapi exposes
+  // media as a relation that resolves to an object with `url`.
   const pickMediaUrl = (m: unknown): string | null => {
     if (!m || typeof m !== 'object') return null;
     const url = (m as { url?: unknown }).url;
     return typeof url === 'string' && url ? url : null;
   };
+  const ownMediaCover = pickMediaUrl((raw as { coverImage?: unknown }).coverImage);
+  const ownLegacyCover =
+    typeof raw.coverImageUrl === 'string' && raw.coverImageUrl
+      ? raw.coverImageUrl
+      : null;
+  const ownCover = ownMediaCover ?? ownLegacyCover;
   const courseCover =
     raw.course && typeof raw.course === 'object'
       ? pickMediaUrl((raw.course as { coverImage?: unknown }).coverImage) ??
@@ -121,6 +123,7 @@ const LIST_URL =
   '&populate[course][populate][coverImage][fields][0]=url' +
   '&populate[lesson][fields][0]=slug' +
   '&populate[lesson][fields][1]=title' +
+  '&populate[coverImage][fields][0]=url' +
   '&pagination[pageSize]=200' +
   '&sort=level:asc' +
   '&publicationState=live'; // Strapi v5 still honours this — keeps drafts out.

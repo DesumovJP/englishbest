@@ -44,12 +44,19 @@
     "course": {
       "type": "relation",
       "relation": "manyToOne",
-      "target": "api::course.course"
+      "target": "api::course.course",
+      "inversedBy": "vocabularySets"
     },
     "lesson": {
       "type": "relation",
       "relation": "manyToOne",
-      "target": "api::lesson.lesson"
+      "target": "api::lesson.lesson",
+      "inversedBy": "vocabularySets"
+    },
+    "coverImage": {
+      "type": "media",
+      "multiple": false,
+      "allowedTypes": ["images"]
     }
   }
 }

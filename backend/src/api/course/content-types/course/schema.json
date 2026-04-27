@@ -63,6 +63,12 @@
       "target": "api::lesson.lesson",
       "mappedBy": "course"
     },
+    "vocabularySets": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::vocabulary-set.vocabulary-set",
+      "mappedBy": "course"
+    },
     "tags": {
       "type": "json"
     },
