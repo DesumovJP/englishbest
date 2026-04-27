@@ -108,6 +108,21 @@ const GRANTS: Grant[] = [
   { action: 'api::mini-task.mini-task.update', roles: STAFF },
   { action: 'api::mini-task.mini-task.delete', roles: STAFF },
 
+  // Mini-task attempt
+  //   - find / findOne — scoping inside controller (admin all, teacher own
+  //     authored tasks, parent own kids, student own).
+  //   - submitMine / findMine — self-scoped /me endpoints; controller reads
+  //     `user-profile` from auth and never trusts client `user`.
+  //   - update — teacher review (sets score + feedback) on attempts of own
+  //     authored tasks; controller enforces ownership.
+  //   - delete — admin only (audit trail; learners can't redact own attempts).
+  { action: 'api::mini-task-attempt.mini-task-attempt.find', roles: AUTH_ALL },
+  { action: 'api::mini-task-attempt.mini-task-attempt.findOne', roles: AUTH_ALL },
+  { action: 'api::mini-task-attempt.mini-task-attempt.submitMine', roles: AUTH_ALL },
+  { action: 'api::mini-task-attempt.mini-task-attempt.findMine', roles: AUTH_ALL },
+  { action: 'api::mini-task-attempt.mini-task-attempt.update', roles: STAFF },
+  { action: 'api::mini-task-attempt.mini-task-attempt.delete', roles: ADMIN },
+
   // Thread + Message (scoped controllers: participants only)
   { action: 'api::thread.thread.find', roles: AUTH_ALL },
   { action: 'api::thread.thread.findOne', roles: AUTH_ALL },

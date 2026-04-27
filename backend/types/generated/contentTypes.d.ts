@@ -1018,7 +1018,7 @@ export interface ApiKidsProfileKidsProfile extends Struct.CollectionTypeSchema {
     showRealName: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
     streakDays: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
     streakLastAt: Schema.Attribute.DateTime;
-    totalCoins: Schema.Attribute.BigInteger & Schema.Attribute.DefaultTo<'0'>;
+    totalCoins: Schema.Attribute.BigInteger & Schema.Attribute.DefaultTo<'500'>;
     totalXp: Schema.Attribute.BigInteger & Schema.Attribute.DefaultTo<'0'>;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
@@ -1187,6 +1187,50 @@ export interface ApiMessageMessage extends Struct.CollectionTypeSchema {
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+  };
+}
+
+export interface ApiMiniTaskAttemptMiniTaskAttempt
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'mini_task_attempts';
+  info: {
+    description: 'Per-user submission of a mini-task. Auto-graded for closed-form exercises (mcq, fill-blank, translate, word-order, match-pairs); open-ended kinds wait for teacher review. Coins are awarded on the FIRST submission per (user, task) only \u2014 proportional to score.';
+    displayName: 'Mini Task Attempt';
+    pluralName: 'mini-task-attempts';
+    singularName: 'mini-task-attempt';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    answer: Schema.Attribute.JSON;
+    awardedCoins: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
+    completedAt: Schema.Attribute.DateTime;
+    correct: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::mini-task-attempt.mini-task-attempt'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    score: Schema.Attribute.Decimal;
+    status: Schema.Attribute.Enumeration<['submitted', 'reviewed']> &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'submitted'>;
+    task: Schema.Attribute.Relation<'manyToOne', 'api::mini-task.mini-task'>;
+    teacherFeedback: Schema.Attribute.Text;
+    timeSpentSec: Schema.Attribute.Integer;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    user: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::user-profile.user-profile'
+    >;
   };
 }
 
@@ -1851,6 +1895,14 @@ export interface ApiUserInventoryUserInventory
       'manyToMany',
       'api::shop-item.shop-item'
     >;
+    freeLootBoxes: Schema.Attribute.Integer &
+      Schema.Attribute.SetMinMax<
+        {
+          min: 0;
+        },
+        number
+      > &
+      Schema.Attribute.DefaultTo<1>;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
       'oneToMany',
@@ -2552,6 +2604,7 @@ declare module '@strapi/strapi' {
       'api::lesson-payment.lesson-payment': ApiLessonPaymentLessonPayment;
       'api::lesson.lesson': ApiLessonLesson;
       'api::message.message': ApiMessageMessage;
+      'api::mini-task-attempt.mini-task-attempt': ApiMiniTaskAttemptMiniTaskAttempt;
       'api::mini-task.mini-task': ApiMiniTaskMiniTask;
       'api::organization.organization': ApiOrganizationOrganization;
       'api::parent-link.parent-link': ApiParentLinkParentLink;

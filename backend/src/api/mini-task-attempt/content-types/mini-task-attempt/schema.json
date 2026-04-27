@@ -1,0 +1,54 @@
+{
+  "kind": "collectionType",
+  "collectionName": "mini_task_attempts",
+  "info": {
+    "singularName": "mini-task-attempt",
+    "pluralName": "mini-task-attempts",
+    "displayName": "Mini Task Attempt",
+    "description": "Per-user submission of a mini-task. Auto-graded for closed-form exercises (mcq, fill-blank, translate, word-order, match-pairs); open-ended kinds wait for teacher review. Coins are awarded on the FIRST submission per (user, task) only — proportional to score."
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "task": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::mini-task.mini-task"
+    },
+    "user": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::user-profile.user-profile"
+    },
+    "answer": {
+      "type": "json"
+    },
+    "score": {
+      "type": "decimal"
+    },
+    "correct": {
+      "type": "boolean",
+      "default": false
+    },
+    "awardedCoins": {
+      "type": "integer",
+      "default": 0
+    },
+    "status": {
+      "type": "enumeration",
+      "enum": ["submitted", "reviewed"],
+      "default": "submitted",
+      "required": true
+    },
+    "teacherFeedback": {
+      "type": "text"
+    },
+    "completedAt": {
+      "type": "datetime"
+    },
+    "timeSpentSec": {
+      "type": "integer"
+    }
+  }
+}

@@ -11,6 +11,7 @@ import { SHOP_ITEMS_BY_ID, SLOT_OFFSET } from "@/lib/shop-catalog";
 import type { PlacedItem } from "@/lib/kids-store";
 import { ContinueLessonWidget } from "@/components/kids/ContinueLessonWidget";
 import { CalendarWidget, CalendarDialog } from "@/components/kids/CalendarWidget";
+import { MiniTaskWidget } from "@/components/kids/MiniTaskWidget";
 
 const EMOTION_CYCLE: CharacterEmotion[] = [
   'idle', 'happy', 'celebrate', 'thinking', 'sleepy', 'surprised', 'sad', 'angry',
@@ -368,6 +369,7 @@ export default function KidsDashboardPage() {
       {/* Desktop/tablet HUD — left column */}
       <div className="hidden sm:flex absolute z-20 flex-col gap-2 md:gap-2.5 top-[calc(env(safe-area-inset-top,0px)+18px)] md:top-[calc(env(safe-area-inset-top,0px)+24px)] left-3 md:left-4 w-[min(185px,42vw)] md:w-[min(210px,46vw)]">
         <CalendarWidget />
+        <MiniTaskWidget />
         {streak >= 3 && <StreakWidget streak={streak} />}
         <LootBoxWidget coins={coins} freeBoxes={freeBoxes} onOpen={() => setOpenBox("common")} />
       </div>
