@@ -37,6 +37,8 @@ export default async function LessonPage({
   return (
     <LessonEngine
       lesson={lessonData}
+      lessonDocumentId={lesson.documentId}
+      courseDocumentId={lesson.courseDocumentId}
       nextLessonSlug={nextLessonSlug}
       backUrl="/kids/school"
     />

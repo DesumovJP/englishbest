@@ -1,7 +1,8 @@
 'use client';
 import { useEffect, useState } from 'react';
 import type { LessonData } from '@/mocks/lessons/types';
-import { useKidsState } from '@/lib/use-kids-store';
+import { emitKidsEvent } from '@/lib/kids-store';
+import { createProgress } from '@/lib/api';
 import { LessonProgress }     from './LessonProgress';
 import { LessonSuccess }      from './LessonSuccess';
 import { LessonCharacter }    from './LessonCharacter';
@@ -20,6 +21,14 @@ import RotateHint             from '@/components/kids/RotateHint';
 
 interface Props {
   lesson: LessonData;
+  /** Strapi documentId for the lesson — required to persist completion
+   *  through user-progress so the rewards lifecycle (coins, XP, streak,
+   *  achievements) actually fires. Optional only because legacy callers
+   *  may not have it yet; without it lesson completion is purely
+   *  optimistic and grants no real rewards. */
+  lessonDocumentId?: string;
+  /** Strapi documentId of the parent course. */
+  courseDocumentId?: string;
   nextLessonSlug?: string;
   backUrl?: string;
   /** Optional teacher-upsell CTA on the success screen. */
@@ -28,8 +37,16 @@ interface Props {
   callUrl?: string;
 }
 
-export function LessonEngine({ lesson, nextLessonSlug, backUrl = '/kids/school', teacherName, teacherPhoto, callUrl }: Props) {
-  const { state: kidsState, patch: patchKids } = useKidsState();
+export function LessonEngine({
+  lesson,
+  lessonDocumentId,
+  courseDocumentId,
+  nextLessonSlug,
+  backUrl = '/kids/school',
+  teacherName,
+  teacherPhoto,
+  callUrl,
+}: Props) {
   const [stepIdx,   setStepIdx]   = useState(0);
   const [mistakes,  setMistakes]  = useState(0);
   const [earned,    setEarned]    = useState<{ xp: number; coins: number } | null>(null);
@@ -62,18 +79,38 @@ export function LessonEngine({ lesson, nextLessonSlug, backUrl = '/kids/school',
       setCharEmotion(NON_EXERCISE.has(nextStep.type) ? 'idle' : 'thinking');
     }, 1800);
     if (stepIdx + 1 >= lesson.steps.length) {
-      const earnedXp    = Math.max(5, lesson.xp - mistakes * 2);
-      const earnedCoins = Math.ceil(earnedXp / 2);
-      // Flip to the success screen first; persist XP/coins in the background
-      // so a transient server failure can't strand the learner on the last step.
+      // Display values for the success screen — these mirror the matrix
+      // in `lib/rewards.ts` (LESSON_XP=15, LESSON_COINS=10) so what the
+      // kid sees on the success screen matches what actually got
+      // credited server-side. We don't try to scale by mistakes anymore;
+      // that's a future "score-aware" branch.
+      const earnedXp = 15;
+      const earnedCoins = 10;
       setEarned({ xp: earnedXp, coins: earnedCoins });
       setDone(true);
-      patchKids({
-        xp:    (kidsState.xp    ?? 0) + earnedXp,
-        coins: (kidsState.coins ?? 0) + earnedCoins,
-      }).catch(err => {
-        console.error('[LessonEngine] patchKids failed', err);
-      });
+
+      // Persist completion: writes user-progress, which tripges the
+      // server lifecycle → awardOnAction → coins / XP / streak /
+      // achievement evaluation. Then refresh the kids HUD so the new
+      // totals show up. Wrapped to never throw past the success screen.
+      if (lessonDocumentId) {
+        createProgress({
+          lessonDocumentId,
+          courseDocumentId,
+          status: 'completed',
+        })
+          .then(() => emitKidsEvent('kids:server-state-stale'))
+          .catch((err) => {
+            // If the server write fails, the kid still sees the success
+            // screen — they did the work. Next mount will reconcile.
+            console.error('[LessonEngine] createProgress failed', err);
+          });
+      } else {
+        // No documentId means the caller didn't migrate yet (legacy
+        // mock route). Without it we can't fire the reward pipeline,
+        // so coins/XP shown on the success screen are display-only.
+        console.warn('[LessonEngine] lessonDocumentId missing — rewards will not be awarded');
+      }
     } else {
       setStepIdx(i => i + 1);
     }

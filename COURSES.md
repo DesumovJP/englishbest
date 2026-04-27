@@ -240,3 +240,13 @@ plan is:
   `finish-{A0..C2}` achievements seeded. Tier-gold/platinum rewards
   align with the level — finishing C2 gives the biggest bonus
   (1000 coins + 1000 XP) since it's the longest journey.
+- **2026-04-27** — CRITICAL fix: kids `LessonEngine` was never calling
+  `createProgress` on completion. The reward pipeline (coins / XP /
+  streak / achievements) never fired from a kids course finish — only
+  from mini-tasks / homework grading / attendance. Now LessonEngine
+  takes `lessonDocumentId` + `courseDocumentId` props (passed from
+  the route), calls `createProgress({ status: 'completed' })` on the
+  last step, and emits `kids:server-state-stale` so the HUD refreshes
+  with the new totals. This unlocks the entire CEFR catalog as a real
+  reward source — finishing 15 A0 lessons now actually fires the
+  `finish-a0` achievement instead of being purely cosmetic.
