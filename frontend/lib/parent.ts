@@ -58,6 +58,17 @@ export interface SessionLite {
       lastName: string | null;
     } | null;
   } | null;
+  /** Course title — populated by /api/parent/me/children for canonical
+   *  session display (same field set as `Session` from `lib/sessions`). */
+  course?: { documentId: string; title: string } | null;
+  /** Attendee profiles — populated to render canonical "X учнів" labels.
+   *  Includes the caller's own child plus their group peers. */
+  attendees?: Array<{
+    documentId: string;
+    displayName: string | null;
+    firstName: string | null;
+    lastName: string | null;
+  }>;
 }
 
 export interface HomeworkPending {

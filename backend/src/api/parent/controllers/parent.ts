@@ -75,6 +75,10 @@ async function summaryForChild(strapi: any, childDocId: string) {
         startAt: { $gte: nowIso },
         status: { $in: ['scheduled', 'live'] },
       },
+      // Fields/populate kept in sync with `lib/session-display` canonical
+      // textual content — parent dashboard renders the same vocabulary
+      // (status / type / duration / course / attendees) as every other
+      // surface.
       fields: ['documentId', 'title', 'startAt', 'durationMin', 'type', 'status', 'joinUrl'],
       populate: {
         teacher: {
@@ -85,6 +89,8 @@ async function summaryForChild(strapi: any, childDocId: string) {
             },
           },
         },
+        course: { fields: ['documentId', 'title'] },
+        attendees: { fields: ['documentId', 'displayName', 'firstName', 'lastName'] },
       },
       sort: ['startAt:asc'],
       pagination: { pageSize: 5, page: 1 },

@@ -23,6 +23,7 @@ import {
   sessionStatusLabel,
   sessionTypeLabel,
   formatDuration,
+  attendeesCountLabel,
 } from '@/lib/session-display';
 
 const MONTHS_UA = ['Січ', 'Лют', 'Бер', 'Кві', 'Тра', 'Чер', 'Лип', 'Сер', 'Вер', 'Жов', 'Лис', 'Гру'];
@@ -70,6 +71,18 @@ function SessionRow({ session }: { session: SessionLite }) {
     ?? '—';
   const dayLabel = `${WEEKDAYS_UA[new Date(session.startAt).getDay()]}, ${formatDayShort(session.startAt)}`;
   const isLive = session.status === 'live';
+  const peers = session.attendees ?? [];
+  // Bring SessionLite attendees onto the canonical SessionAttendee shape so
+  // attendeesCountLabel produces the same "X учнів" wording every surface
+  // uses.
+  const peersForLabel = peers.map(p => ({
+    documentId: p.documentId,
+    displayName: p.displayName
+      ?? [p.firstName, p.lastName].filter(Boolean).join(' ')
+      ?? '—',
+    level: null,
+    avatarUrl: null,
+  }));
   return (
     <li className="flex items-center gap-3 px-5 py-3 border-t border-border first:border-t-0 hover:bg-surface-muted/40 transition-colors">
       <div className="w-11 text-center flex-shrink-0">
@@ -77,6 +90,11 @@ function SessionRow({ session }: { session: SessionLite }) {
         <p className="text-[15px] font-semibold text-ink tabular-nums mt-0.5">{formatTime(session.startAt)}</p>
       </div>
       <div className="flex-1 min-w-0">
+        {session.course?.title && (
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-faint truncate">
+            {session.course.title}
+          </p>
+        )}
         <div className="flex items-center gap-1.5 flex-wrap">
           <p className="text-[13px] font-semibold text-ink truncate">{session.title}</p>
           {isLive && (
@@ -89,6 +107,7 @@ function SessionRow({ session }: { session: SessionLite }) {
           З {teacherName}
           {session.durationMin ? ` · ${formatDuration(session.durationMin)}` : ''}
           {session.type ? ` · ${sessionTypeLabel(session.type)}` : ''}
+          {peers.length > 1 ? ` · ${attendeesCountLabel(peersForLabel)}` : ''}
         </p>
       </div>
       {session.joinUrl && (session.status === 'scheduled' || isLive) && (

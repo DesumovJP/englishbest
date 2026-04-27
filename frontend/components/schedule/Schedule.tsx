@@ -671,7 +671,7 @@ function SessionDetailModal({ session, onClose }: { session: Session; onClose: (
             rel="noopener noreferrer"
             className="w-full text-center py-2.5 rounded-xl font-semibold text-sm bg-primary text-white hover:bg-primary-dark transition-colors"
           >
-            Приєднатись до уроку
+            Приєднатися
           </a>
         )}
         {session.recordingUrl && session.status === 'completed' && (
