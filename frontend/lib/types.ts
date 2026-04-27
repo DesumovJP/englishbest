@@ -130,6 +130,11 @@ export type Course = {
   price?: number;
   currency?: Currency;
   thumbnailUrl?: string;
+  /** Per-course visual identity (admin-editable). */
+  coverImageUrl?: string;
+  accentColor?: string;
+  gradientFrom?: string;
+  gradientTo?: string;
   teacher?: TeacherSummary;
   sections: CourseSection[];
   tags?: string[];
@@ -170,6 +175,8 @@ export type Lesson = {
   // lesson page narrows via `toLessonData()` when handing it to LessonEngine.
   steps?: unknown[];
   xp?: number;
+  /** Per-lesson accent override (admin-editable). Falls back to course. */
+  accentColor?: string;
 
   // Legacy aliases
   lessonSlug?: string;

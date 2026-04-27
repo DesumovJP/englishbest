@@ -189,6 +189,11 @@ export function normalizeCourse(raw: any): Course {
     durationWeeks: raw?.durationWeeks ?? undefined,
     maxStudents: raw?.maxStudents ?? undefined,
 
+    coverImageUrl: mediaFrom(raw?.coverImage),
+    accentColor: typeof raw?.accentColor === 'string' && raw.accentColor ? raw.accentColor : undefined,
+    gradientFrom: typeof raw?.gradientFrom === 'string' && raw.gradientFrom ? raw.gradientFrom : undefined,
+    gradientTo: typeof raw?.gradientTo === 'string' && raw.gradientTo ? raw.gradientTo : undefined,
+
     // Legacy aliases — delete from Course type once all consumers migrate.
     teacherSlug: teacher?.publicSlug,
     teacherName: teacher?.displayName,
@@ -228,6 +233,7 @@ export function normalizeLesson(raw: any): Lesson {
     isFree: raw?.isFree ?? undefined,
     steps,
     xp,
+    accentColor: typeof raw?.accentColor === 'string' && raw.accentColor ? raw.accentColor : undefined,
 
     // Legacy aliases.
     lessonSlug: raw?.slug ?? '',

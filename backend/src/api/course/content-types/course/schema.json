@@ -124,6 +124,23 @@
     "isNew": {
       "type": "boolean",
       "default": false
+    },
+    "coverImage": {
+      "type": "media",
+      "multiple": false,
+      "allowedTypes": ["images"]
+    },
+    "accentColor": {
+      "type": "string",
+      "regex": "^#[0-9a-fA-F]{6}$"
+    },
+    "gradientFrom": {
+      "type": "string",
+      "regex": "^#[0-9a-fA-F]{6}$"
+    },
+    "gradientTo": {
+      "type": "string",
+      "regex": "^#[0-9a-fA-F]{6}$"
     }
   }
 }

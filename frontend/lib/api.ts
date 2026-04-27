@@ -65,6 +65,7 @@ const ORIGIN =
 const COURSE_POPULATE =
   'populate[teacher][populate][user][populate][avatar]=true' +
   '&populate[thumbnail]=true' +
+  '&populate[coverImage]=true' +
   '&populate[sections]=true';
 
 const LESSON_POPULATE =
