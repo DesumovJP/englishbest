@@ -414,59 +414,44 @@ function UnifiedCarousel({
         </Link>
       )}
 
-      {/* Course picker dropdown — opens beneath the ribbon when more than one
-          course is available. Click outside or pick a course to dismiss. */}
+      {/* Inline accordion — courses unfurl below the ribbon as part of the
+          document flow. No popover, no shadow, no z-stacking. Compact rows. */}
       {hasMore && pickerOpen && (
-        <>
-          <div
-            className="fixed inset-0 z-30"
-            onClick={() => setPickerOpen(false)}
-            aria-hidden
-          />
-          <div
-            role="menu"
-            aria-label="Виберіть курс"
-            className="absolute left-3 right-3 top-full mt-1 z-40 rounded-xl border border-border bg-surface-raised shadow-card-md overflow-hidden animate-fade-in-up"
-          >
-            {[activeCourse, ...otherCourses]
-              .filter((c): c is Course => !!c)
-              .map((c, i) => {
-                const isActive = c.slug === activeCourse?.slug;
-                return (
-                  <button
-                    key={c.slug}
-                    role="menuitemradio"
-                    aria-checked={isActive}
-                    onClick={() => {
-                      if (!isActive && onSelectCourse) onSelectCourse(c.slug);
-                      setPickerOpen(false);
-                    }}
-                    className={[
-                      'w-full flex items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-hover',
-                      i > 0 && 'border-t border-border',
-                      isActive && 'bg-surface-muted',
-                    ].filter(Boolean).join(' ')}
-                  >
-                    <div
-                      aria-hidden
-                      className="w-8 h-8 rounded-lg flex items-center justify-center text-[16px] flex-shrink-0"
-                      style={{ background: `${accentOf(c)}1a` }}
-                    >
-                      {emojiOf(c)}
-                    </div>
-                    <span className="flex-1 min-w-0 font-black text-[13.5px] text-ink truncate">
-                      {(c as Course & { titleUa?: string }).titleUa ?? c.title}
-                    </span>
-                    {isActive && (
-                      <span aria-hidden className="text-primary font-black text-base flex-shrink-0">
-                        ✓
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-          </div>
-        </>
+        <div
+          role="menu"
+          aria-label="Виберіть курс"
+          className="border-t border-border overflow-hidden"
+        >
+          {otherCourses.map((c, i) => (
+            <button
+              key={c.slug}
+              role="menuitemradio"
+              aria-checked={false}
+              onClick={() => {
+                if (onSelectCourse) onSelectCourse(c.slug);
+                setPickerOpen(false);
+              }}
+              className={[
+                'w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-surface-muted',
+                i > 0 && 'border-t border-border',
+              ].filter(Boolean).join(' ')}
+            >
+              <div
+                aria-hidden
+                className="w-7 h-7 rounded-md flex items-center justify-center text-[14px] flex-shrink-0"
+                style={{ background: `${accentOf(c)}1a` }}
+              >
+                {emojiOf(c)}
+              </div>
+              <span className="flex-1 min-w-0 font-black text-[12.5px] text-ink truncate">
+                {(c as Course & { titleUa?: string }).titleUa ?? c.title}
+              </span>
+              <span aria-hidden className="text-ink-faint text-[15px] font-black flex-shrink-0">
+                ›
+              </span>
+            </button>
+          ))}
+        </div>
       )}
       </div>
 
