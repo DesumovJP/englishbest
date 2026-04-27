@@ -23,6 +23,15 @@ import {
   type Session,
   type SessionStatus,
 } from '@/lib/sessions';
+// Status / type labels come from `lib/session-display` so every surface
+// (kids, teacher, parent, student calendar, student detail modal) reads
+// identically. Don't fork these locally.
+import {
+  SESSION_STATUS_LABEL as STATUS_LABEL,
+  sessionTypeLabel,
+  formatDuration,
+  attendeesCountLabel,
+} from '@/lib/session-display';
 
 type View = 'month' | 'week' | 'day';
 
@@ -38,14 +47,6 @@ const STATUS_DOT: Record<SessionStatus, string> = {
   completed: 'bg-ink-muted',
   cancelled: 'bg-danger',
   'no-show': 'bg-warning',
-};
-
-const STATUS_LABEL: Record<SessionStatus, string> = {
-  scheduled: 'Заплановано',
-  live:      'У процесі',
-  completed: 'Завершено',
-  cancelled: 'Скасовано',
-  'no-show': 'Не з\u2019явився',
 };
 
 const DAY_LABELS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'];
@@ -613,12 +614,19 @@ function SessionDetailModal({ session, onClose }: { session: Session; onClose: (
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-3">
-          <div>
-            {session.course?.title && (
-              <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary-dark">
-                {session.course.title}
-              </span>
-            )}
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {session.course?.title && (
+                <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary-dark">
+                  {session.course.title}
+                </span>
+              )}
+              {session.type && (
+                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-surface-muted text-ink-muted">
+                  {sessionTypeLabel(session.type)}
+                </span>
+              )}
+            </div>
             <h3 className="font-black text-ink text-lg mt-2">{session.title || 'Урок'}</h3>
             {session.teacher?.displayName && (
               <p className="text-sm text-ink-muted mt-0.5">
@@ -639,16 +647,19 @@ function SessionDetailModal({ session, onClose }: { session: Session; onClose: (
         </div>
 
         <div className="flex flex-col gap-2 text-sm text-ink-muted">
-          <div>{formatDateTime(session.startAt)} · {session.durationMin} хв</div>
+          <div className="tabular-nums">
+            {formatDateTime(session.startAt)}
+            {session.durationMin ? ` · ${formatDuration(session.durationMin)}` : ''}
+          </div>
           <div className="flex items-center gap-2">
             <span className={`w-2 h-2 rounded-full ${STATUS_DOT[session.status]}`} />
             <span className="font-semibold text-ink">{STATUS_LABEL[session.status]}</span>
           </div>
           {session.attendees.length > 0 && (
             <div>
-              {session.attendees.length === 1
-                ? session.attendees[0].displayName
-                : `${session.attendees.length} учнів: ${session.attendees.slice(0, 4).map(a => a.displayName).join(', ')}${session.attendees.length > 4 ? ` +${session.attendees.length - 4}` : ''}`}
+              <span className="font-semibold text-ink">{attendeesCountLabel(session.attendees)}: </span>
+              {session.attendees.slice(0, 4).map(a => a.displayName).join(', ')}
+              {session.attendees.length > 4 ? ` +${session.attendees.length - 4}` : ''}
             </div>
           )}
         </div>

@@ -6,6 +6,12 @@ import { LevelBadge } from '@/components/teacher/ui';
 import { fetchSessionsCached, type Session } from '@/lib/sessions';
 import { fetchSubmissionsCached, type Submission } from '@/lib/homework';
 import { fetchStudentProgress, type UserProgressRow } from '@/lib/user-progress';
+import {
+  sessionStatusLabel,
+  sessionTypeLabel,
+  formatDuration,
+  attendeesCountLabel,
+} from '@/lib/session-display';
 
 type AdminTab   = 'video';
 type TeacherTab = 'video' | 'history' | 'homework' | 'progress';
@@ -48,14 +54,65 @@ function formatDateTime(iso: string | null | undefined): string {
 }
 
 function SessionRow({ s }: { s: Session }) {
+  const teacher = s.teacher?.displayName ?? '';
+  const peers = attendeesCountLabel(s.attendees);
+  const typeLbl = sessionTypeLabel(s.type);
+  const statusLbl = sessionStatusLabel(s.status);
+  const dot =
+    s.status === 'completed' ? 'bg-primary'
+    : s.status === 'cancelled' ? 'bg-danger'
+    : s.status === 'live' ? 'bg-danger animate-pulse'
+    : 'bg-accent';
   return (
-    <li className="px-4 py-3 border-b border-border last:border-b-0 flex items-center gap-3">
-      <div className={`w-2 h-2 rounded-full ${s.status === 'completed' ? 'bg-primary' : s.status === 'cancelled' ? 'bg-danger' : 'bg-accent'}`} aria-hidden />
-      <div className="flex-1 min-w-0">
-        <p className="text-[13px] font-semibold text-ink truncate">{s.title ?? 'Урок'}</p>
-        <p className="text-[11px] text-ink-muted tabular-nums">{formatDateTime(s.startAt)} · {s.durationMin} хв</p>
+    <li className="px-4 py-3 border-b border-border last:border-b-0 flex flex-col gap-1.5">
+      <div className="flex items-start gap-3">
+        <div className={`w-2 h-2 rounded-full mt-1.5 ${dot}`} aria-hidden />
+        <div className="flex-1 min-w-0">
+          {s.course?.title && (
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-faint truncate">
+              {s.course.title}
+            </p>
+          )}
+          <p className="text-[13px] font-semibold text-ink truncate">{s.title || 'Урок'}</p>
+          <p className="text-[11px] text-ink-muted tabular-nums">
+            {formatDateTime(s.startAt)}
+            {s.durationMin ? ` · ${formatDuration(s.durationMin)}` : ''}
+            {typeLbl ? ` · ${typeLbl}` : ''}
+          </p>
+        </div>
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-ink-faint whitespace-nowrap">{statusLbl}</span>
       </div>
-      <span className="text-[10px] font-semibold uppercase tracking-wider text-ink-faint whitespace-nowrap">{s.status}</span>
+      {(teacher || peers) && (
+        <p className="text-[11px] text-ink-muted pl-5 truncate">
+          {teacher && <>З {teacher}</>}
+          {teacher && peers ? ' · ' : ''}
+          {peers && <>{peers}</>}
+        </p>
+      )}
+      {(s.joinUrl && (s.status === 'scheduled' || s.status === 'live')) || s.recordingUrl ? (
+        <div className="pl-5 flex items-center gap-3">
+          {s.joinUrl && (s.status === 'scheduled' || s.status === 'live') && (
+            <a
+              href={s.joinUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="text-[11px] font-semibold text-primary-dark hover:underline"
+            >
+              Приєднатися →
+            </a>
+          )}
+          {s.recordingUrl && (
+            <a
+              href={s.recordingUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="text-[11px] font-semibold text-ink-muted hover:text-ink hover:underline"
+            >
+              Запис →
+            </a>
+          )}
+        </div>
+      ) : null}
     </li>
   );
 }

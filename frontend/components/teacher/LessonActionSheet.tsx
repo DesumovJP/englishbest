@@ -16,6 +16,12 @@ import {
   type Session,
   type SessionStatus,
 } from '@/lib/sessions';
+import {
+  SESSION_STATUS_LABEL,
+  sessionTypeLabel,
+  formatDuration,
+  attendeesCountLabel,
+} from '@/lib/session-display';
 
 interface LessonActionSheetProps {
   session: Session | null;
@@ -30,19 +36,16 @@ type PendingAction =
   | { kind: 'note' }
   | null;
 
-const STATUS_STYLES: Record<SessionStatus, { label: string; cls: string }> = {
-  scheduled: { label: 'Заплановано',  cls: 'bg-surface-muted text-ink' },
-  live:      { label: 'У процесі',    cls: 'bg-success/15 text-success-dark' },
-  completed: { label: 'Проведено',    cls: 'bg-surface-muted text-ink-muted' },
-  cancelled: { label: 'Скасовано',    cls: 'bg-danger/10 text-danger-dark' },
-  'no-show': { label: 'Неявка',       cls: 'bg-warning/15 text-warning-dark' },
-};
-
-const TYPE_LABELS: Record<Session['type'], string> = {
-  group:          'Група',
-  'one-to-one':   '1-на-1',
-  trial:          'Пробне',
-  consultation:   'Консультація',
+// Labels mirror the canonical strings from `lib/session-display`. Only the
+// `cls` (visual chip background) stays local — every audience reads the same
+// status / type wording so a teacher and a student talking about the same
+// session use the same vocabulary.
+const STATUS_CLS: Record<SessionStatus, string> = {
+  scheduled: 'bg-surface-muted text-ink',
+  live:      'bg-success/15 text-success-dark',
+  completed: 'bg-surface-muted text-ink-muted',
+  cancelled: 'bg-danger/10 text-danger-dark',
+  'no-show': 'bg-warning/15 text-warning-dark',
 };
 
 const fieldLabel = 'text-xs font-black text-ink-muted uppercase tracking-wide';
@@ -66,12 +69,13 @@ export function LessonActionSheet({
 
   if (!session) return null;
 
-  const status = STATUS_STYLES[session.status];
+  const statusLabel = SESSION_STATUS_LABEL[session.status];
+  const statusCls = STATUS_CLS[session.status];
   const split = splitStartAt(session.startAt);
   const audience =
     session.attendees.length === 1
       ? session.attendees[0].displayName
-      : `${session.attendees.length} учнів`;
+      : attendeesCountLabel(session.attendees);
 
   function flash(msg: string) {
     setToast(msg);
@@ -246,14 +250,21 @@ export function LessonActionSheet({
       ) : (
         <div className="flex flex-col gap-4">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className={`text-xs font-bold px-2 py-0.5 rounded-md ${status.cls}`}>
-              {status.label}
+            <span className={`text-xs font-bold px-2 py-0.5 rounded-md ${statusCls}`}>
+              {statusLabel}
             </span>
             <span className="text-xs text-ink-muted">
-              {split.date || '—'} · {session.durationMin} хв · {TYPE_LABELS[session.type]}
+              {split.date || '—'}
+              {session.durationMin ? ` · ${formatDuration(session.durationMin)}` : ''}
+              {session.type ? ` · ${sessionTypeLabel(session.type)}` : ''}
             </span>
           </div>
 
+          {session.course?.title && (
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-faint">
+              {session.course.title}
+            </p>
+          )}
           {session.title && (
             <p className="text-sm font-semibold text-ink">{session.title}</p>
           )}

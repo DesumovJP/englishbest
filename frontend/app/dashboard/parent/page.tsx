@@ -19,6 +19,11 @@ import {
   type HomeworkPending,
   type ProgressEntry,
 } from '@/lib/parent';
+import {
+  sessionStatusLabel,
+  sessionTypeLabel,
+  formatDuration,
+} from '@/lib/session-display';
 
 const MONTHS_UA = ['Січ', 'Лют', 'Бер', 'Кві', 'Тра', 'Чер', 'Лип', 'Сер', 'Вер', 'Жов', 'Лис', 'Гру'];
 const WEEKDAYS_UA = ['Нд', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
@@ -64,6 +69,7 @@ function SessionRow({ session }: { session: SessionLite }) {
     ?? [teacherUser?.firstName, teacherUser?.lastName].filter(Boolean).join(' ')
     ?? '—';
   const dayLabel = `${WEEKDAYS_UA[new Date(session.startAt).getDay()]}, ${formatDayShort(session.startAt)}`;
+  const isLive = session.status === 'live';
   return (
     <li className="flex items-center gap-3 px-5 py-3 border-t border-border first:border-t-0 hover:bg-surface-muted/40 transition-colors">
       <div className="w-11 text-center flex-shrink-0">
@@ -71,10 +77,21 @@ function SessionRow({ session }: { session: SessionLite }) {
         <p className="text-[15px] font-semibold text-ink tabular-nums mt-0.5">{formatTime(session.startAt)}</p>
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-[13px] font-semibold text-ink truncate">{session.title}</p>
-        <p className="text-[11px] text-ink-muted truncate mt-0.5">{teacherName} · {session.durationMin} хв · {session.type}</p>
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <p className="text-[13px] font-semibold text-ink truncate">{session.title}</p>
+          {isLive && (
+            <span className="text-[9px] font-black uppercase tracking-wider text-danger-dark bg-danger/15 rounded-full px-1.5 py-0.5">
+              {sessionStatusLabel(session.status)}
+            </span>
+          )}
+        </div>
+        <p className="text-[11px] text-ink-muted truncate mt-0.5">
+          З {teacherName}
+          {session.durationMin ? ` · ${formatDuration(session.durationMin)}` : ''}
+          {session.type ? ` · ${sessionTypeLabel(session.type)}` : ''}
+        </p>
       </div>
-      {session.joinUrl && (
+      {session.joinUrl && (session.status === 'scheduled' || isLive) && (
         <a
           href={session.joinUrl}
           target="_blank"

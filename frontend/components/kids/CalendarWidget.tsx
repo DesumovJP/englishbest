@@ -9,28 +9,21 @@
 import { useEffect, useState } from 'react';
 import { HudCard } from '@/components/kids/ui';
 import { fetchSessions, type Session } from '@/lib/sessions';
+import {
+  formatSessionTime,
+  formatSessionDayShort,
+  formatDuration,
+  sessionTypeLabel,
+  sessionStatusLabel,
+  teacherDisplayName,
+  attendeesCountLabel,
+} from '@/lib/session-display';
 
 const MONTHS_UA = [
   'Січ', 'Лют', 'Бер', 'Кві', 'Тра', 'Чер',
   'Лип', 'Сер', 'Вер', 'Жов', 'Лис', 'Гру',
 ];
 const WEEKDAYS_UA = ['Нд', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
-
-function formatSessionTime(startAt: string): string {
-  const d = new Date(startAt);
-  if (Number.isNaN(d.getTime())) return '';
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
-
-function formatSessionDay(startAt: string, todayISO: string): string {
-  const d = new Date(startAt);
-  if (Number.isNaN(d.getTime())) return '';
-  const iso = d.toISOString().slice(0, 10);
-  if (iso === todayISO) return 'Сьогодні';
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${pad(d.getDate())} ${MONTHS_UA[d.getMonth()]}`;
-}
 
 function useSessions(enabled: boolean) {
   const [sessions, setSessions] = useState<Session[] | null>(null);
@@ -230,21 +223,57 @@ export function CalendarDialog({ open, onClose }: { open: boolean; onClose: () =
             </p>
           ) : (
             <ul className="flex flex-col gap-2">
-              {daySessions.map(ev => (
-                <li
-                  key={ev.documentId}
-                  className="flex items-center gap-3 rounded-2xl px-3 py-2.5 bg-surface-muted"
-                >
-                  <div className="w-2.5 h-2.5 rounded-full flex-shrink-0 bg-primary" />
-                  <div className="flex-1 min-w-0">
-                    <p className="font-black text-sm text-ink truncate">{ev.title || 'Заняття'}</p>
-                    <p className="font-bold text-[11px] text-ink-muted mt-0.5">
-                      {formatSessionTime(ev.startAt)}
-                      {ev.status === 'live' ? ' · в ефірі' : ''}
-                    </p>
-                  </div>
-                </li>
-              ))}
+              {daySessions.map(ev => {
+                const teacher = teacherDisplayName(ev.teacher);
+                const peers = attendeesCountLabel(ev.attendees);
+                const typeLbl = sessionTypeLabel(ev.type);
+                const isLive = ev.status === 'live';
+                return (
+                  <li
+                    key={ev.documentId}
+                    className="rounded-2xl px-3 py-2.5 bg-surface-muted flex flex-col gap-1.5"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 mt-1.5 ${isLive ? 'bg-danger animate-pulse' : 'bg-primary'}`} />
+                      <div className="flex-1 min-w-0">
+                        {ev.course?.title && (
+                          <p className="font-bold text-[10px] text-ink-faint uppercase tracking-wide truncate">
+                            {ev.course.title}
+                          </p>
+                        )}
+                        <p className="font-black text-sm text-ink leading-snug">{ev.title || 'Заняття'}</p>
+                        <p className="font-bold text-[11px] text-ink-muted mt-0.5 tabular-nums">
+                          {formatSessionTime(ev.startAt)}
+                          {ev.durationMin ? ` · ${formatDuration(ev.durationMin)}` : ''}
+                          {typeLbl ? ` · ${typeLbl}` : ''}
+                        </p>
+                      </div>
+                      {isLive && (
+                        <span className="text-[10px] font-black uppercase tracking-wider text-danger-dark bg-danger/15 rounded-full px-2 py-0.5 flex-shrink-0">
+                          {sessionStatusLabel(ev.status)}
+                        </span>
+                      )}
+                    </div>
+                    {(teacher || peers) && (
+                      <p className="text-[11px] font-semibold text-ink-muted pl-5 truncate">
+                        {teacher && <>👤 {teacher}</>}
+                        {teacher && peers ? ' · ' : ''}
+                        {peers && <>👥 {peers}</>}
+                      </p>
+                    )}
+                    {ev.joinUrl && (ev.status === 'scheduled' || isLive) && (
+                      <a
+                        href={ev.joinUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="ml-5 inline-flex items-center gap-1 text-[11px] font-black text-primary-dark hover:underline w-fit"
+                      >
+                        Приєднатися →
+                      </a>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>
@@ -299,16 +328,29 @@ export function CalendarWidget() {
               Поки подій немає
             </p>
           ) : (
-            <div className="flex flex-col gap-1.5 [@media(max-height:500px)]:hidden">
-              {upcomingPreview.map(ev => (
-                <div key={ev.documentId} className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full flex-shrink-0 bg-primary" />
-                  <p className="font-bold truncate text-[11.5px] text-ink flex-1">{ev.title || 'Заняття'}</p>
-                  <p className="font-bold flex-shrink-0 text-[11px] text-ink-muted">
-                    {formatSessionDay(ev.startAt, todayISO)} · {formatSessionTime(ev.startAt)}
-                  </p>
-                </div>
-              ))}
+            <div className="flex flex-col gap-2 [@media(max-height:500px)]:hidden">
+              {upcomingPreview.map(ev => {
+                const isLive = ev.status === 'live';
+                const teacher = teacherDisplayName(ev.teacher);
+                return (
+                  <div key={ev.documentId} className="flex items-start gap-2">
+                    <div className={`w-2 h-2 rounded-full flex-shrink-0 mt-1 ${isLive ? 'bg-danger animate-pulse' : 'bg-primary'}`} />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold truncate text-[11.5px] text-ink">{ev.title || 'Заняття'}</p>
+                      <p className="font-medium text-[10.5px] text-ink-muted tabular-nums truncate">
+                        {formatSessionDayShort(ev.startAt, todayISO)} · {formatSessionTime(ev.startAt)}
+                        {ev.durationMin ? ` · ${ev.durationMin} хв` : ''}
+                        {teacher ? ` · ${teacher}` : ''}
+                      </p>
+                    </div>
+                    {isLive && (
+                      <span className="text-[9px] font-black uppercase tracking-wider text-danger-dark bg-danger/15 rounded-full px-1.5 py-0.5 flex-shrink-0 mt-0.5">
+                        live
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
         </HudCard>

@@ -8,6 +8,12 @@ import {
   type GroupMember,
 } from '@/lib/groups';
 import { fetchSessions, type Session } from '@/lib/sessions';
+import {
+  sessionStatusLabel,
+  sessionTypeLabel,
+  formatDuration,
+  attendeesCountLabel,
+} from '@/lib/session-display';
 import { LevelBadge, SearchInput } from '@/components/teacher/ui';
 import { Modal } from '@/components/ui/Modal';
 import { CreateHomeworkModal } from '@/components/teacher/CreateHomeworkModal';
@@ -338,25 +344,50 @@ function GroupDetail({
 
 function SessionRow({ session }: { session: Session }) {
   const when = formatSessionWhen(session.startAt);
+  const isLive = session.status === 'live';
   return (
     <li className="flex items-center gap-3 px-6 py-2.5 border-t border-border first:border-t-0">
       <div className="flex-1 min-w-0">
-        <p className="text-[13px] font-semibold text-ink truncate">{session.title || 'Урок'}</p>
-        <p className="text-[11px] text-ink-muted tabular-nums">
-          {when} · {session.durationMin} хв · {session.attendees.length} учасників
+        {session.course?.title && (
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-faint truncate">
+            {session.course.title}
+          </p>
+        )}
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <p className="text-[13px] font-semibold text-ink truncate">{session.title || 'Урок'}</p>
+          {isLive && (
+            <span className="text-[9px] font-black uppercase tracking-wider text-danger-dark bg-danger/15 rounded-full px-1.5 py-0.5">
+              {sessionStatusLabel(session.status)}
+            </span>
+          )}
+        </div>
+        <p className="text-[11px] text-ink-muted tabular-nums truncate">
+          {when}
+          {session.durationMin ? ` · ${formatDuration(session.durationMin)}` : ''}
+          {session.type ? ` · ${sessionTypeLabel(session.type)}` : ''}
+          {session.attendees.length > 0 ? ` · ${attendeesCountLabel(session.attendees)}` : ''}
         </p>
       </div>
-      {session.joinUrl ? (
+      {session.joinUrl && (session.status === 'scheduled' || isLive) ? (
         <a
           href={session.joinUrl}
           target="_blank"
           rel="noopener noreferrer"
           className="ios-btn ios-btn-sm ios-btn-secondary"
         >
-          Join
+          Приєднатися
+        </a>
+      ) : session.recordingUrl ? (
+        <a
+          href={session.recordingUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="ios-btn ios-btn-sm ios-btn-ghost"
+        >
+          Запис
         </a>
       ) : (
-        <span className="text-[11px] text-ink-faint">{session.status}</span>
+        <span className="text-[11px] text-ink-faint">{sessionStatusLabel(session.status)}</span>
       )}
     </li>
   );
