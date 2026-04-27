@@ -101,12 +101,14 @@ const GRANTS: Grant[] = [
   { action: 'api::homework-submission.homework-submission.create', roles: ADMIN },
   { action: 'api::homework-submission.homework-submission.delete', roles: ADMIN },
 
-  // Vocabulary sets — public read (matches course/lesson); writes only
-  // via seed / admin panel. Was AUTH_ALL but the FE fetches without auth
-  // headers (same pattern as the library catalog), so anonymous reads
-  // were 401-ing → empty section.
+  // Vocabulary sets — public read (matches course/lesson); staff write
+  // so teachers can attach/create vocab from the lesson editor without
+  // leaving the dashboard.
   { action: 'api::vocabulary-set.vocabulary-set.find', roles: PUBLIC_ALL },
   { action: 'api::vocabulary-set.vocabulary-set.findOne', roles: PUBLIC_ALL },
+  { action: 'api::vocabulary-set.vocabulary-set.create', roles: STAFF },
+  { action: 'api::vocabulary-set.vocabulary-set.update', roles: STAFF },
+  { action: 'api::vocabulary-set.vocabulary-set.delete', roles: STAFF },
 
   // Mini-task (auth read, teacher write)
   { action: 'api::mini-task.mini-task.find', roles: AUTH_ALL },

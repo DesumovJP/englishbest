@@ -22,6 +22,7 @@ import { SegmentedControl, type SegmentedControlOption } from '@/components/teac
 import { BlockPicker } from '@/components/teacher/BlockPicker';
 import { LessonBlockEditor } from '@/components/teacher/LessonBlockEditor';
 import { LessonBlockPreview } from '@/components/teacher/LessonBlockPreview';
+import { LessonVocabularySection } from '@/components/teacher/LessonVocabularySection';
 import { DashboardPageShell } from '@/components/ui/shells';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -545,6 +546,13 @@ export default function LessonEditorPage() {
             <p className="text-[12px] text-danger-dark">{saveError}</p>
           )}
         </div>
+
+        <LessonVocabularySection
+          lessonDocumentId={docId}
+          lessonTitle={title}
+          lessonLevel={level}
+          readOnly={readOnly}
+        />
 
         {blocks.length === 0 ? (
           readOnly ? (
