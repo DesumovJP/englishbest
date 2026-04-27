@@ -9,13 +9,11 @@
 // `cefr/` source files are kept for reference but no longer imported
 // into `COURSE_SEEDS`.
 import { aFoundation } from './cefr-v2/a-foundation';
-import {
-  aMyWorld,
-  aPeoplePlaces,
-  bStories,
-  bIdeas,
-  bRealWorld,
-} from './cefr-v2/v2-shells';
+import { aMyWorld } from './cefr-v2/a-my-world';
+import { aPeoplePlaces } from './cefr-v2/a-people-places';
+import { bStories } from './cefr-v2/b-stories';
+import { bIdeas } from './cefr-v2/b-ideas';
+import { bRealWorld } from './cefr-v2/b-real-world';
 
 import type { CourseSeed } from './types';
 
@@ -65,14 +63,14 @@ export const LEGACY_COURSE_SLUGS: ReadonlyArray<string> = [
 ];
 
 export const COURSE_SEEDS: CourseSeed[] = [
-  // ─── A-band (3 courses, target 24 lessons) ──────────────────────────
+  // ─── A-band (3 courses, 24 lessons total) ───────────────────────────
   aFoundation,    // 8 deep lessons — production exemplar
-  aMyWorld,       // shell — 1 sample deep lesson
-  aPeoplePlaces,  // shell — 1 sample deep lesson
+  aMyWorld,       // 8 lessons — Дім, школа, їжа, час, плани
+  aPeoplePlaces,  // 8 lessons — опис, порівняння, минуле
   // ─── B-band (3 courses, target 24 lessons) ──────────────────────────
-  bStories,       // shell — 1 sample deep lesson
-  bIdeas,         // shell — 1 sample deep lesson
-  bRealWorld,     // shell — 1 sample deep lesson
+  bStories,       // 8 lessons — Past tenses + narrative
+  bIdeas,         // 8 lessons — Modal verbs + conditionals + tech
+  bRealWorld,     // shell — 1 sample lesson; lessons 2–8 pending
 ];
 
 export type { CourseSeed, LessonSeed } from './types';
