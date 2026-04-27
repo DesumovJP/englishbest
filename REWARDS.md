@@ -73,11 +73,16 @@ Per-level unlocks live in a small static table (Phase E):
   - [x] Permissions seed — `reward-event.find` / `findOne` for AUTH_ALL
         (scoped read).
 
-- [ ] **Phase B — Achievement engine extended**
-  - [ ] New criterion types: `homeworks-graded-good`, `perfect-week-attendance`,
-        `level-reached`, `mini-tasks-completed`, `mini-task-perfect-streak`.
-  - [ ] Eval triggered from every `awardOnAction` call (not just lesson lifecycle).
-  - [ ] Seed +5–8 new achievements covering the new criteria.
+- [x] **Phase B — Achievement engine extended**
+  - [x] New criterion types: `homeworks-graded-good`, `perfect-week-attendance`,
+        `level-reached` (XP-level), `mini-tasks-completed`, `mini-tasks-perfect`.
+  - [x] Eval triggered from every `awardOnAction` call (not just lesson lifecycle).
+  - [x] Seed +9 new achievements covering the new criteria
+        (`first-homework-good`, `homework-streak-5`, `homework-streak-20`,
+        `first-mini-task`, `mini-task-master-10`, `mini-task-perfect-5`,
+        `perfect-week-attendance`, `level-5`, `level-10`, `level-20`).
+        Old CEFR-shaped `level-up-a2` / `level-up-b1` slugs deprecated —
+        clean up manually in DB if previously seeded.
 
 - [ ] **Phase C — Kid-facing HUD**
   - [ ] XP bar + level chip in kids top HUD.
@@ -134,4 +139,9 @@ Per-level unlocks live in a small static table (Phase E):
   `kids-profile.updateMe` hardened: earning blocked, only legacy negative
   coin delta still passes (shop room-bg). Eight criterion types in the
   achievement engine, eval triggered on every award. Permissions seeded.
+- **2026-04-27** — Phase B done. Seed file rewritten to exercise the new
+  criterion types: 9 new achievements covering homework quality,
+  mini-tasks volume + perfection, perfect-week attendance, XP levels 5 / 10 / 20.
+  Old CEFR-shaped slugs deprecated in catalog (engine never matched
+  their `{ level: 'A2' }` shape).
 
