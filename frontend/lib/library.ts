@@ -17,6 +17,8 @@ export interface LibraryItem {
   slug: string;
   kind: LibKind;
   iconEmoji: string;
+  /** Per-item cover image (admin-uploaded). When absent, fallback gradient + emoji. */
+  coverImageUrl: string | null;
   title: string;        // English title
   titleUa: string;
   subtitle: string;
@@ -61,12 +63,20 @@ function toPreview(v: unknown): { title: string; text: string } | null {
   return { title, text };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function normalize(raw: any): LibraryItem | null {
   if (!raw?.slug || !raw?.title) return null;
+  const coverImageUrl =
+    typeof raw.coverImageUrl === "string" && raw.coverImageUrl
+      ? raw.coverImageUrl
+      : typeof raw.thumbnailUrl === "string" && raw.thumbnailUrl
+        ? raw.thumbnailUrl
+        : null;
   return {
     slug: String(raw.slug),
     kind: pickKind(raw.kind),
     iconEmoji: typeof raw.iconEmoji === "string" && raw.iconEmoji ? raw.iconEmoji : "📘",
+    coverImageUrl,
     title: String(raw.title),
     titleUa: typeof raw.titleUa === "string" ? raw.titleUa : String(raw.title),
     subtitle: typeof raw.subtitle === "string" ? raw.subtitle : "",
@@ -94,6 +104,7 @@ const cache = createCachedFetcher<LibraryItem[]>({
     const res = await fetch(LIBRARY_URL, { cache: 'no-store' });
     if (!res.ok) throw new Error(`fetchLibraryItems ${res.status}`);
     const json = await res.json().catch(() => ({}));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const rows: any[] = Array.isArray(json?.data) ? json.data : [];
     return rows.map(normalize).filter((x): x is LibraryItem => x !== null);
   },

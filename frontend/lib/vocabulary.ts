@@ -26,6 +26,8 @@ export interface VocabularySet {
   level: Level;
   topic: string;
   iconEmoji: string;
+  /** Cover image — set's own when present, falls back to linked course's. */
+  coverImageUrl: string | null;
   words: VocabularyWord[];
   courseSlug: string | null;
   courseTitle: string | null;
@@ -54,6 +56,7 @@ function normalizeWord(raw: unknown): VocabularyWord | null {
   };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function normalize(raw: any): VocabularySet | null {
   if (!raw?.slug || !raw?.title) return null;
   const words = Array.isArray(raw.words)
@@ -75,6 +78,19 @@ function normalize(raw: any): VocabularySet | null {
     raw.lesson && typeof raw.lesson === 'object' && typeof raw.lesson.title === 'string'
       ? raw.lesson.title
       : null;
+  // Prefer set-specific cover, then derive from linked course's cover.
+  const ownCover =
+    typeof raw.coverImageUrl === 'string' && raw.coverImageUrl
+      ? raw.coverImageUrl
+      : null;
+  const courseCover =
+    raw.course && typeof raw.course === 'object'
+      ? typeof raw.course.coverImageUrl === 'string' && raw.course.coverImageUrl
+        ? raw.course.coverImageUrl
+        : typeof raw.course.thumbnailUrl === 'string' && raw.course.thumbnailUrl
+          ? raw.course.thumbnailUrl
+          : null
+      : null;
   return {
     slug: String(raw.slug),
     title: String(raw.title),
@@ -83,6 +99,7 @@ function normalize(raw: any): VocabularySet | null {
     level: pickLevel(raw.level),
     topic: typeof raw.topic === 'string' ? raw.topic : '',
     iconEmoji: typeof raw.iconEmoji === 'string' && raw.iconEmoji ? raw.iconEmoji : '📚',
+    coverImageUrl: ownCover ?? courseCover,
     words,
     courseSlug,
     courseTitle,
@@ -96,6 +113,8 @@ const LIST_URL =
   '?populate[course][fields][0]=slug' +
   '&populate[course][fields][1]=title' +
   '&populate[course][fields][2]=titleUa' +
+  '&populate[course][fields][3]=coverImageUrl' +
+  '&populate[course][fields][4]=thumbnailUrl' +
   '&populate[lesson][fields][0]=slug' +
   '&populate[lesson][fields][1]=title' +
   '&pagination[pageSize]=200' +
@@ -114,6 +133,7 @@ const cache = createCachedFetcher<VocabularySet[]>({
       throw new Error(`fetchVocabularySets ${res.status}`);
     }
     const json = await res.json().catch(() => ({}));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const rows: any[] = Array.isArray(json?.data) ? json.data : [];
     if (rows.length === 0) {
       console.warn('[vocabulary] fetch returned 0 rows', json);

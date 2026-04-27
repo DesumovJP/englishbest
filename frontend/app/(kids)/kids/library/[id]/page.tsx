@@ -211,7 +211,7 @@ export default function KidsCourseDetailPage() {
     return (
       <div className={`min-h-[100dvh] bg-surface-raised ${PAGE_BOTTOM_PAD}`}>
         <Header onBack={() => router.back()} title="Курс" />
-        <div className="max-w-screen-md mx-auto w-full px-4 py-10">
+        <div className="px-4 py-10">
           <LoadingState shape="card" rows={1} />
         </div>
       </div>
@@ -222,7 +222,7 @@ export default function KidsCourseDetailPage() {
     return (
       <div className={`min-h-[100dvh] bg-surface-raised ${PAGE_BOTTOM_PAD}`}>
         <Header onBack={() => router.back()} title="Курс" />
-        <div className="max-w-screen-md mx-auto w-full px-4 py-10">
+        <div className="px-4 py-10">
           <EmptyState
             title="Курс не знайдено"
             description={
@@ -262,16 +262,26 @@ export default function KidsCourseDetailPage() {
 
       {/* HERO — compact, mirrors Vocab-detail */}
       <section className="px-4 md:px-6 py-5">
-        <div className="max-w-screen-md mx-auto w-full flex gap-4 md:gap-5 items-start">
-          <div
-            aria-hidden
-            className="flex-shrink-0 rounded-xl overflow-hidden flex items-center justify-center w-16 h-[88px] md:w-[88px] md:h-[120px] text-[36px] md:text-[44px] shadow-card"
-            style={{
-              background: `linear-gradient(160deg, ${accent} 0%, ${accent}99 100%)`,
-            }}
-          >
-            {heroIcon}
-          </div>
+        <div className="flex gap-4 md:gap-5 items-start">
+          {course.coverImageUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={course.coverImageUrl}
+              alt=""
+              aria-hidden
+              className="flex-shrink-0 rounded-xl object-cover w-16 h-[88px] md:w-[88px] md:h-[120px] shadow-card"
+            />
+          ) : (
+            <div
+              aria-hidden
+              className="flex-shrink-0 rounded-xl overflow-hidden flex items-center justify-center w-16 h-[88px] md:w-[88px] md:h-[120px] text-[36px] md:text-[44px] shadow-card"
+              style={{
+                background: `linear-gradient(160deg, ${accent} 0%, ${accent}99 100%)`,
+              }}
+            >
+              {heroIcon}
+            </div>
+          )}
 
           <div className="flex flex-col gap-2 flex-1 min-w-0">
             <div className="flex items-center gap-1.5 flex-wrap">
@@ -303,7 +313,7 @@ export default function KidsCourseDetailPage() {
 
         {/* Progress + CTA — single composition */}
         {totalLessons > 0 && (
-          <div className="max-w-screen-md mx-auto w-full mt-5">
+          <div className="mt-5">
             <div className="flex items-center justify-between mb-1.5">
               <span className={SECTION_LABEL_CLS}>Прогрес</span>
               <span className="font-bold text-[12px] text-ink-muted tabular-nums">
@@ -352,7 +362,7 @@ export default function KidsCourseDetailPage() {
       {longParas.length > 0 && (
         <>
           <section className="px-4 md:px-6 py-5">
-            <div className="max-w-screen-md mx-auto w-full">
+            <div className="">
               <p className={`${SECTION_LABEL_CLS} mb-2 px-1`}>Про курс</p>
               <div className="flex flex-col gap-3">
                 {longParas.map((p, i) => (
@@ -377,7 +387,7 @@ export default function KidsCourseDetailPage() {
           return (
             <>
               <section className="px-4 md:px-6 py-5">
-                <div className="max-w-screen-md mx-auto w-full">
+                <div className="">
                   <p className={`${SECTION_LABEL_CLS} mb-2 px-1`}>Словник курсу</p>
                   <div className="ios-list">
                     {anchor && (
@@ -449,7 +459,7 @@ export default function KidsCourseDetailPage() {
 
       {/* Lessons list */}
       <section className="px-4 md:px-6 py-5 flex-1">
-        <div className="max-w-screen-md mx-auto w-full">
+        <div className="">
           <p className={`${SECTION_LABEL_CLS} mb-2 px-1`}>Уроки</p>
           {totalLessons === 0 ? (
             <EmptyState
@@ -489,7 +499,7 @@ export default function KidsCourseDetailPage() {
 function Header({ onBack, title }: { onBack: () => void; title: string }) {
   return (
     <div className="sticky top-0 z-10 border-b border-border bg-surface-raised/95 backdrop-blur-md pt-[max(8px,env(safe-area-inset-top))]">
-      <div className="max-w-screen-md mx-auto w-full flex items-center gap-3 px-4 md:px-6 py-3">
+      <div className="flex items-center gap-3 px-4 md:px-6 py-3">
         <button
           onClick={onBack}
           aria-label="Назад"

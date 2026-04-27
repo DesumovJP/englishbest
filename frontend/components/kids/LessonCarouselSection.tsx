@@ -64,11 +64,13 @@ const TYPE_LABEL: Record<LessonType, string> = {
 
 function LessonCard({
   lesson,
+  course,
   status,
   accent,
   groupLabel,
 }: {
   lesson: Lesson;
+  course: Course;
   status: NodeStatus;
   accent: string;
   groupLabel?: string;
@@ -79,33 +81,57 @@ function LessonCard({
   const isDone = status === 'done';
   const isLocked = status === 'upcoming' && !isCurrent;
 
-  // One signal per state. No glow stack, no NOW pill — accent ring on the
-  // card IS the "current" indicator; check on the card IS "done".
+  // Cover precedence: lesson-specific cover > course cover > pure gradient
+  // fallback. Image gets a soft top→bottom darkening overlay so the white
+  // title text stays readable without obscuring the photo.
+  const bgImage = lesson.coverUrl || course.coverImageUrl || null;
+
   const ringStyle = isCurrent
-    ? { boxShadow: `inset 0 0 0 4px ${accent}` }
+    ? { boxShadow: `inset 0 0 0 4px white, inset 0 0 0 7px ${accent}` }
     : undefined;
 
-  // Card surface: pure course-accent gradient (no stock photo).
-  const surface = isLocked
-    ? 'linear-gradient(165deg, #2a2a30 0%, #14141a 100%)'
-    : `linear-gradient(160deg, ${accent} 0%, ${accent}c0 55%, rgba(0,0,0,0.35) 100%)`;
+  // Brighter, optimistic gradient — light-accent → accent → soft-deep-accent.
+  // No black stop. Avoids the "funereal" feel of the previous palette.
+  const gradient = `linear-gradient(155deg, color-mix(in srgb, ${accent} 65%, white) 0%, ${accent} 55%, color-mix(in srgb, ${accent} 80%, black) 100%)`;
+
+  const surfaceStyle: React.CSSProperties = bgImage
+    ? {
+        backgroundImage: `linear-gradient(180deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.55) 100%), url('${bgImage}')`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+      }
+    : isLocked
+      ? { background: `linear-gradient(160deg, ${accent}55 0%, ${accent}33 100%)` }
+      : { background: gradient };
 
   return (
     <div
       className="relative w-full h-full rounded-[28px] overflow-hidden select-none"
-      style={{ background: surface, ...ringStyle }}
+      style={{ ...surfaceStyle, ...ringStyle }}
     >
-      {isDone && <div aria-hidden className="absolute inset-0 bg-black/35" />}
+      {/* Decorative oversized type-emoji — only when no real cover image,
+          and only if not locked. Soft accent backdrop. */}
+      {!bgImage && !isLocked && (
+        <span
+          aria-hidden
+          className="absolute -top-6 -right-4 text-[180px] leading-none opacity-15 select-none pointer-events-none"
+          style={{ filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.15))' }}
+        >
+          {emoji}
+        </span>
+      )}
+
+      {isDone && <div aria-hidden className="absolute inset-0 bg-black/25" />}
 
       {isLocked ? (
         <div className="absolute inset-0 flex items-center justify-center">
-          <span aria-hidden className="text-[56px] opacity-60">🔒</span>
+          <span aria-hidden className="text-[56px] opacity-50">🔒</span>
         </div>
       ) : (
-        <div className="absolute inset-0 flex flex-col items-center justify-center px-6 text-center gap-4 pointer-events-none">
+        <div className="absolute inset-0 flex flex-col items-center justify-center px-6 text-center gap-3 pointer-events-none">
           <div
             aria-hidden
-            className="w-[80px] h-[80px] rounded-full flex items-center justify-center text-[40px] bg-white/15 border border-white/25 backdrop-blur-md"
+            className="w-[72px] h-[72px] rounded-full flex items-center justify-center text-[36px] bg-white/25 border border-white/40 backdrop-blur-md shadow-lg"
           >
             {emoji}
           </div>
@@ -118,12 +144,12 @@ function LessonCard({
               WebkitLineClamp: 3,
               WebkitBoxOrient: 'vertical',
               overflow: 'hidden',
-              textShadow: '0 1px 2px rgba(0,0,0,0.25)',
+              textShadow: '0 2px 6px rgba(0,0,0,0.35)',
             }}
           >
             {lesson.title}
           </p>
-          <p className="font-bold text-[13px] text-white/75 tracking-wide uppercase">
+          <p className="font-bold text-[12px] text-white/85 tracking-wide uppercase">
             {typeLabel}
           </p>
         </div>
@@ -162,9 +188,10 @@ interface UnifiedCarouselProps {
   currentSlug: string | null;
   completedTotal: number;
   lessonsTotal: number;
-  /** When true, suppress the in-carousel ribbon (a parent-level course
-   *  switcher already conveys the same identity + progress info). */
-  hideRibbon?: boolean;
+  /** Courses NOT currently shown — populates the ribbon switcher dropdown. */
+  otherCourses?: Course[];
+  /** Called when the kid picks another course from the ribbon dropdown. */
+  onSelectCourse?: (slug: string) => void;
 }
 
 function UnifiedCarousel({
@@ -172,8 +199,11 @@ function UnifiedCarousel({
   currentSlug,
   completedTotal,
   lessonsTotal,
-  hideRibbon = false,
+  otherCourses = [],
+  onSelectCourse,
 }: UnifiedCarouselProps) {
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const hasMore = otherCourses.length > 0 && !!onSelectCourse;
   const scrollRef = useRef<HTMLDivElement>(null);
   const currentRef = useRef<HTMLDivElement | null>(null);
   const cardRefs = useRef(new Map<string, HTMLDivElement>());
@@ -283,14 +313,18 @@ function UnifiedCarousel({
 
   return (
     <section className="flex flex-col h-full min-h-0">
-      {/* Sticky course ribbon — title + overall progress bar. Tappable to
-          open the course detail page (full description + lessons list).
-          Suppressed when a parent CourseSwitcher already shows identity. */}
-      {!hideRibbon && (
-      <Link
-        href={activeCourse ? `/kids/library/${activeCourse.slug}` : '/kids/school'}
-        className="flex items-center gap-3 px-4 py-2.5 bg-surface-raised border-b border-border flex-shrink-0 hover:bg-surface-muted transition-colors"
-      >
+      {/* Course ribbon — single line: identity + progress. When more than one
+          course is available, becomes a dropdown trigger; otherwise a link
+          to the course-detail page. */}
+      <div className="relative flex-shrink-0 border-b border-border bg-surface-raised">
+      {hasMore ? (
+        <button
+          type="button"
+          onClick={() => setPickerOpen((v) => !v)}
+          aria-haspopup="menu"
+          aria-expanded={pickerOpen}
+          className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-surface-muted transition-colors"
+        >
         <div
           className="w-9 h-9 rounded-lg flex items-center justify-center text-[18px] flex-shrink-0"
           style={{ background: `${activeAccent}1a` }}
@@ -300,7 +334,16 @@ function UnifiedCarousel({
         <div className="flex-1 min-w-0">
           <p className="font-black text-[13px] text-ink truncate leading-tight flex items-center gap-1">
             <span className="truncate">{activeCourse?.title ?? 'Уроки'}</span>
-            <span aria-hidden className="text-ink-faint flex-shrink-0">›</span>
+            <span
+              aria-hidden
+              className={[
+                'text-ink-faint flex-shrink-0 transition-transform',
+                hasMore ? '' : 'rotate-90',
+                pickerOpen ? 'rotate-180' : '',
+              ].join(' ')}
+            >
+              {hasMore ? '▾' : '›'}
+            </span>
           </p>
           {/*
             Progress meter — tokenised track with course-accent fill.
@@ -331,8 +374,101 @@ function UnifiedCarousel({
             </span>
           </div>
         </div>
-      </Link>
+        </button>
+      ) : (
+        <Link
+          href={activeCourse ? `/kids/library/${activeCourse.slug}` : '/kids/school'}
+          className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-surface-muted transition-colors"
+        >
+          <div
+            className="w-9 h-9 rounded-lg flex items-center justify-center text-[18px] flex-shrink-0"
+            style={{ background: `${activeAccent}1a` }}
+          >
+            {activeCourse ? emojiOf(activeCourse) : '🎓'}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-black text-[13px] text-ink truncate leading-tight flex items-center gap-1">
+              <span className="truncate">{activeCourse?.title ?? 'Уроки'}</span>
+              <span aria-hidden className="text-ink-faint flex-shrink-0">›</span>
+            </p>
+            <div className="flex items-center gap-2.5 mt-1.5">
+              <div
+                className="relative flex-1 h-2 rounded-full bg-surface-sunk overflow-hidden ring-1 ring-inset ring-black/[0.04]"
+                role="progressbar"
+                aria-valuenow={pct}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-label="Прогрес курсу"
+              >
+                <div
+                  className="absolute inset-y-0 left-0 rounded-full transition-[width] duration-500 ease-out"
+                  style={{ width: `${pct}%`, background: activeAccent }}
+                />
+              </div>
+              <span className="font-black text-[11px] tabular-nums leading-none flex-shrink-0">
+                <span style={{ color: activeAccent }}>{completedTotal}</span>
+                <span className="font-bold text-ink-faint">/{lessonsTotal}</span>
+              </span>
+            </div>
+          </div>
+        </Link>
       )}
+
+      {/* Course picker dropdown — opens beneath the ribbon when more than one
+          course is available. Click outside or pick a course to dismiss. */}
+      {hasMore && pickerOpen && (
+        <>
+          <div
+            className="fixed inset-0 z-30"
+            onClick={() => setPickerOpen(false)}
+            aria-hidden
+          />
+          <div
+            role="menu"
+            aria-label="Виберіть курс"
+            className="absolute left-3 right-3 top-full mt-1 z-40 rounded-xl border border-border bg-surface-raised shadow-card-md overflow-hidden animate-fade-in-up"
+          >
+            {[activeCourse, ...otherCourses]
+              .filter((c): c is Course => !!c)
+              .map((c, i) => {
+                const isActive = c.slug === activeCourse?.slug;
+                return (
+                  <button
+                    key={c.slug}
+                    role="menuitemradio"
+                    aria-checked={isActive}
+                    onClick={() => {
+                      if (!isActive && onSelectCourse) onSelectCourse(c.slug);
+                      setPickerOpen(false);
+                    }}
+                    className={[
+                      'w-full flex items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-hover',
+                      i > 0 && 'border-t border-border',
+                      isActive && 'bg-surface-muted',
+                    ].filter(Boolean).join(' ')}
+                  >
+                    <div
+                      aria-hidden
+                      className="w-8 h-8 rounded-lg flex items-center justify-center text-[16px] flex-shrink-0"
+                      style={{ background: `${accentOf(c)}1a` }}
+                    >
+                      {emojiOf(c)}
+                    </div>
+                    <span className="flex-1 min-w-0 font-black text-[13.5px] text-ink truncate">
+                      {(c as Course & { titleUa?: string }).titleUa ?? c.title}
+                    </span>
+                    {isActive && (
+                      <span aria-hidden className="text-primary font-black text-base flex-shrink-0">
+                        ✓
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+          </div>
+        </>
+      )}
+      </div>
 
       {/* Unified horizontal scroll-snap carousel — flex-1 so it vertically centers */}
       <div
@@ -380,6 +516,7 @@ function UnifiedCarousel({
                 >
                   <LessonCard
                     lesson={lesson}
+                    course={course}
                     status={status}
                     accent={accent}
                     groupLabel={groupLabel}
@@ -734,79 +871,20 @@ function CourseScopedCarousel({
   const selected =
     courses.find((c) => c.course.slug === selectedSlug) ?? courses[0];
   const flat = flatten([selected]);
-  // Stable per-course key so the carousel fully remounts on course switch
-  // — this resets scroll position, the intro animation cooldown, and
-  // refs (cardRefs Map) cleanly instead of trying to morph in place.
+  const otherCourses = courses
+    .filter((c) => c.course.slug !== selected.course.slug)
+    .map((c) => c.course);
   return (
     <section className="flex flex-col h-full min-h-0">
-      {courses.length > 1 && (
-        <CourseSwitcher
-          courses={courses}
-          selectedSlug={selected.course.slug}
-          onSelect={setSelectedSlug}
-        />
-      )}
       <UnifiedCarousel
         key={selected.course.slug}
         nodes={flat.nodes}
         currentSlug={flat.currentSlug}
         completedTotal={flat.completedTotal}
         lessonsTotal={flat.lessonsTotal}
-        hideRibbon={courses.length > 1}
+        otherCourses={otherCourses}
+        onSelectCourse={setSelectedSlug}
       />
     </section>
-  );
-}
-
-function CourseSwitcher({
-  courses,
-  selectedSlug,
-  onSelect,
-}: {
-  courses: CourseData[];
-  selectedSlug: string;
-  onSelect: (slug: string) => void;
-}) {
-  return (
-    <div
-      role="tablist"
-      aria-label="Курс"
-      className="flex flex-shrink-0 gap-2 px-3 py-2 overflow-x-auto bg-surface-raised border-b border-border"
-      style={{ scrollbarWidth: 'none' }}
-    >
-      {courses.map((cd) => {
-        const c = cd.course;
-        const isActive = c.slug === selectedSlug;
-        const total = cd.lessons.length;
-        const done = cd.completedSlugs.size;
-        return (
-          <button
-            key={c.slug}
-            role="tab"
-            aria-selected={isActive}
-            onClick={() => onSelect(c.slug)}
-            className={[
-              'flex items-center gap-2 flex-shrink-0 rounded-full px-3 py-1.5 transition-colors border',
-              isActive
-                ? 'bg-primary text-white border-primary shadow-card-sm'
-                : 'bg-surface-raised text-ink border-border hover:bg-surface-muted',
-            ].join(' ')}
-          >
-            <span aria-hidden className="text-[15px] leading-none">{emojiOf(c)}</span>
-            <span className="font-black text-[12.5px] leading-none truncate max-w-[160px]">
-              {(c as Course & { titleUa?: string }).titleUa ?? c.title}
-            </span>
-            <span
-              className={[
-                'font-bold text-[10.5px] tabular-nums leading-none',
-                isActive ? 'text-white/80' : 'text-ink-faint',
-              ].join(' ')}
-            >
-              {done}/{total}
-            </span>
-          </button>
-        );
-      })}
-    </div>
   );
 }

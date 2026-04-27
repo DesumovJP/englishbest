@@ -107,12 +107,25 @@ function VocabRow({
       style={rowVars}
       onClick={onNavigate}
     >
-      <div className={[
-        'flex-shrink-0 rounded-lg md:rounded-xl overflow-hidden flex items-center justify-center w-16 h-[88px] text-[36px] md:w-24 md:h-[130px] md:text-[52px] shadow-card-md bg-[image:var(--cover-bg)]',
-        isLocked && 'grayscale-50',
-      ].filter(Boolean).join(' ')}>
-        {set.iconEmoji}
-      </div>
+      {set.coverImageUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={set.coverImageUrl}
+          alt=""
+          aria-hidden
+          className={[
+            'flex-shrink-0 rounded-lg md:rounded-xl object-cover w-16 h-[88px] md:w-24 md:h-[130px] shadow-card-md',
+            isLocked && 'grayscale-50',
+          ].filter(Boolean).join(' ')}
+        />
+      ) : (
+        <div className={[
+          'flex-shrink-0 rounded-lg md:rounded-xl overflow-hidden flex items-center justify-center w-16 h-[88px] text-[36px] md:w-24 md:h-[130px] md:text-[52px] shadow-card-md bg-[image:var(--cover-bg)]',
+          isLocked && 'grayscale-50',
+        ].filter(Boolean).join(' ')}>
+          {set.iconEmoji}
+        </div>
+      )}
 
       <div className="flex-1 min-w-0 flex flex-col">
         <p className="font-black leading-snug text-[15px] md:text-lg text-ink -tracking-[0.02em]">
