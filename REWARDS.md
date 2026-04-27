@@ -119,9 +119,12 @@ Per-level unlocks live in a small static table (Phase E):
   - [x] Parent dashboard ChildBlock: per-child level KPI, fetches
         motivation summary, surfaces top 3 recent achievements as a
         small card.
-  - Note: teacher → student relationship not yet formalised in schema —
+  - ~~Note: teacher → student relationship not yet formalised in schema —
     `motivationSummary` allows any teacher to read any student. Tighten
-    this when groups / teacher.students relation lands.
+    this when groups / teacher.students relation lands.~~ TIGHTENED in
+    Phase G via shared `lib/teacher-students.ts:teacherTeachesStudent`
+    (de-facto link = `session.attendees`); applies to motivation
+    summary, manual grant, and `reward-event.find`.
 
 - [x] **Phase E — Polish**
   - [x] Achievement catalog with tier visuals on `/kids/achievements`

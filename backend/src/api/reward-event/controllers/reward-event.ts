@@ -11,6 +11,7 @@
 import { factories } from '@strapi/strapi';
 import { scopedFind } from '../../../lib/scoped-find';
 import { awardOnAction } from '../../../lib/rewards';
+import { teacherTeachesStudent } from '../../../lib/teacher-students';
 
 const EVENT_UID = 'api::reward-event.reward-event';
 const PROFILE_UID = 'api::user-profile.user-profile';
@@ -64,7 +65,19 @@ export default factories.createCoreController(EVENT_UID, ({ strapi }) => ({
     if (role === 'admin') return (super.find as any)(ctx);
 
     let scopeFilter: Record<string, unknown>;
-    if (role === 'parent') {
+    if (role === 'teacher') {
+      const teacherId = await callerTeacherProfileId(strapi, user.id);
+      if (!teacherId) return ctx.forbidden('no teacher-profile');
+      const studentIds = await (await import('../../../lib/teacher-students')).teacherStudentIds(strapi, teacherId);
+      if (studentIds.length === 0) {
+        ctx.body = {
+          data: [],
+          meta: { pagination: { page: 1, pageSize: 0, pageCount: 0, total: 0 } },
+        };
+        return;
+      }
+      scopeFilter = { user: { documentId: { $in: studentIds } } };
+    } else if (role === 'parent') {
       const profileId = await callerProfileId(strapi, user.id);
       if (!profileId) return ctx.forbidden();
       const kidIds = await childProfileIds(strapi, profileId);
@@ -160,6 +173,14 @@ export default factories.createCoreController(EVENT_UID, ({ strapi }) => ({
     const grantedByProfile = await callerProfileId(strapi, user.id);
     const grantedBy = grantedByTeacher ?? grantedByProfile ?? `user:${user.id}`;
 
+    // Phase G: teacher can only grant to students they actually teach.
+    // Admin keeps the unrestricted path.
+    if (role === 'teacher') {
+      if (!grantedByTeacher) return ctx.forbidden('no teacher-profile');
+      const teaches = await teacherTeachesStudent(strapi, grantedByTeacher, studentId);
+      if (!teaches) return ctx.forbidden('not your student');
+    }
+
     const sourceKey = `grant:${grantedBy}:${Date.now()}`;
 
     const award = await awardOnAction(strapi, {
@@ -187,10 +208,12 @@ export default factories.createCoreController(EVENT_UID, ({ strapi }) => ({
    * "motivation" tab and the parent dashboard per-child widget. One
    * round-trip instead of three.
    *
-   * Scope:
+   * Scope (Phase G — tightened):
    *   - admin   — any student.
-   *   - teacher — any student (loose; tighten when teacher↔student
-   *     relationship is formalised).
+   *   - teacher — only students they actually teach (i.e. attendee on at
+   *               least one of the teacher's sessions). Single shared
+   *               helper `teacherTeachesStudent` matches the rule the
+   *               messaging / homework controllers already use.
    *   - parent  — only own children (parentalConsentBy).
    *   - self    — own snapshot.
    *   - others  — forbidden.
@@ -205,7 +228,14 @@ export default factories.createCoreController(EVENT_UID, ({ strapi }) => ({
       return ctx.badRequest('studentId required');
     }
 
-    if (role !== 'admin' && role !== 'teacher') {
+    if (role === 'admin') {
+      // bypass — admin sees everyone.
+    } else if (role === 'teacher') {
+      const teacherId = await callerTeacherProfileId(strapi, user.id);
+      if (!teacherId) return ctx.forbidden('no teacher-profile');
+      const teaches = await teacherTeachesStudent(strapi, teacherId, studentId);
+      if (!teaches) return ctx.forbidden('not your student');
+    } else {
       const callerProfile = await callerProfileId(strapi, user.id);
       if (!callerProfile) return ctx.forbidden();
       if (role === 'parent') {
