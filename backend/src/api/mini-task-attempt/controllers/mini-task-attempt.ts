@@ -23,12 +23,12 @@
  */
 import { factories } from '@strapi/strapi';
 import { scopedFind } from '../../../lib/scoped-find';
+import { awardOnAction } from '../../../lib/rewards';
 
 const ATTEMPT_UID = 'api::mini-task-attempt.mini-task-attempt';
 const TASK_UID = 'api::mini-task.mini-task';
 const PROFILE_UID = 'api::user-profile.user-profile';
 const TEACHER_UID = 'api::teacher-profile.teacher-profile';
-const KIDS_PROFILE_UID = 'api::kids-profile.kids-profile';
 
 function roleType(u: any): string {
   return (u?.role?.type ?? '').toLowerCase();
@@ -272,7 +272,9 @@ export default factories.createCoreController(ATTEMPT_UID, ({ strapi }) => ({
 
     const { score, correct } = gradeExercise(task.exercise, answer);
 
-    // First-attempt detection for coin reward (idempotent on retries).
+    // First-attempt detection — drives whether rewards fire. The rewards
+    // service has its own idempotency on the per-(user,task) sourceKey too,
+    // so a glitchy retry can't double-credit even if `isFirst` mis-fires.
     const prior = await strapi.documents(ATTEMPT_UID).findMany({
       filters: {
         user: { documentId: { $eq: profileId } },
@@ -282,13 +284,6 @@ export default factories.createCoreController(ATTEMPT_UID, ({ strapi }) => ({
       limit: 1,
     });
     const isFirst = prior.length === 0;
-
-    let awardedCoins = 0;
-    if (isFirst && score !== null && score > 0) {
-      const reward =
-        typeof task.coinReward === 'number' ? task.coinReward : 0;
-      awardedCoins = Math.floor((reward * score) / 100);
-    }
 
     // Bypass `super.create` — its validateInput trips on the `user`
     // relation when the caller (kids/student) lacks `user-profile.find`.
@@ -301,38 +296,50 @@ export default factories.createCoreController(ATTEMPT_UID, ({ strapi }) => ({
         answer,
         score,
         correct,
-        awardedCoins,
+        awardedCoins: 0, // populated below from the rewards service.
         status: score !== null ? 'reviewed' : 'submitted',
         completedAt: new Date().toISOString(),
         timeSpentSec,
       } as any,
     });
 
-    if (awardedCoins > 0) {
-      const [kp]: any[] = await strapi.documents(KIDS_PROFILE_UID).findMany({
-        filters: { user: { documentId: { $eq: profileId } } },
-        fields: ['documentId', 'totalCoins'],
-        limit: 1,
+    // First passing attempt → fire the rewards pipeline. Service handles
+    // coin + XP credit, achievement evaluation, and ledger persistence.
+    let award = null as Awaited<ReturnType<typeof awardOnAction>> | null;
+    if (isFirst && score !== null) {
+      award = await awardOnAction(strapi, {
+        userProfileId: profileId,
+        action: 'minitask',
+        sourceKey: `minitask:${profileId}:${taskId}`,
+        meta: {
+          score,
+          coinReward: typeof task.coinReward === 'number' ? task.coinReward : 0,
+          taskKind: task.kind,
+        },
       });
-      if (kp) {
-        const cur =
-          typeof kp.totalCoins === 'bigint'
-            ? Number(kp.totalCoins)
-            : Number(kp.totalCoins ?? 0);
-        await strapi.documents(KIDS_PROFILE_UID).update({
-          documentId: kp.documentId,
-          data: { totalCoins: (cur + awardedCoins) as any },
+
+      if (award.applied && award.coinsDelta > 0) {
+        // Mirror the awarded coins onto the attempt for FE display — the
+        // ledger is canonical, this is just an inline convenience field.
+        await strapi.documents(ATTEMPT_UID).update({
+          documentId: (created as any).documentId,
+          data: { awardedCoins: award.coinsDelta } as any,
         });
+        (created as any).awardedCoins = award.coinsDelta;
       }
     }
 
     ctx.body = {
       data: {
         ...created,
-        awardedCoins,
+        awardedCoins: award?.coinsDelta ?? 0,
         score,
         correct,
         isFirstAttempt: isFirst,
+        xpDelta: award?.xpDelta ?? 0,
+        levelUp: award?.levelUp ?? false,
+        level: award?.level ?? null,
+        achievementsEarned: award?.achievementsEarned ?? [],
       },
     };
   },

@@ -1502,6 +1502,58 @@ export interface ApiReviewReview extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiRewardEventRewardEvent extends Struct.CollectionTypeSchema {
+  collectionName: 'reward_events';
+  info: {
+    description: 'Append-only ledger of every coin/XP delta awarded to a kid. `sourceKey` is the idempotency key \u2014 `awardOnAction` skips the write when a row already exists for the same key, so retries (lifecycle replays, double POSTs, etc.) cannot double-credit. Powers the per-kid motivation report and any future reconciliation against `kids-profile.totalCoins` / `totalXp`.';
+    displayName: 'Reward Event';
+    pluralName: 'reward-events';
+    singularName: 'reward-event';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    action: Schema.Attribute.Enumeration<
+      [
+        'lesson',
+        'minitask',
+        'homework',
+        'attendance',
+        'streak',
+        'achievement',
+        'grant',
+      ]
+    > &
+      Schema.Attribute.Required;
+    coinsDelta: Schema.Attribute.Integer &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<0>;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::reward-event.reward-event'
+    > &
+      Schema.Attribute.Private;
+    meta: Schema.Attribute.JSON;
+    publishedAt: Schema.Attribute.DateTime;
+    sourceKey: Schema.Attribute.String & Schema.Attribute.Required;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    user: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::user-profile.user-profile'
+    >;
+    xpDelta: Schema.Attribute.Integer &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<0>;
+  };
+}
+
 export interface ApiRoomRoom extends Struct.CollectionTypeSchema {
   collectionName: 'rooms';
   info: {
@@ -2611,6 +2663,7 @@ declare module '@strapi/strapi' {
       'api::parent-profile.parent-profile': ApiParentProfileParentProfile;
       'api::refresh-token.refresh-token': ApiRefreshTokenRefreshToken;
       'api::review.review': ApiReviewReview;
+      'api::reward-event.reward-event': ApiRewardEventRewardEvent;
       'api::room.room': ApiRoomRoom;
       'api::session.session': ApiSessionSession;
       'api::shop-item.shop-item': ApiShopItemShopItem;

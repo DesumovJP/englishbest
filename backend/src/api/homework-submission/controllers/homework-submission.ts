@@ -16,6 +16,7 @@
  */
 import { factories } from '@strapi/strapi';
 import { scopedFind, sanitizeOutputTrusted } from '../../../lib/scoped-find';
+import { awardOnAction } from '../../../lib/rewards';
 
 const SUB_UID = 'api::homework-submission.homework-submission';
 const HOMEWORK_UID = 'api::homework.homework';
@@ -186,7 +187,25 @@ export default factories.createCoreController(SUB_UID, ({ strapi }) => ({
         data.gradedAt = new Date().toISOString();
       }
       (ctx.request.body as any).data = data;
-      return (super.update as any)(ctx);
+      const result = await (super.update as any)(ctx);
+
+      // Fire the homework reward on the FIRST grading. SourceKey is the
+      // submission docId (no gradedAt) so re-grades don't re-credit. If a
+      // teacher needs to correct a wrong grade after the fact, use a manual
+      // `grant` action — see REWARDS.md.
+      if (typeof data.score === 'number' && Number.isFinite(data.score)) {
+        const studentProfileId = (entity as any).student?.documentId;
+        if (studentProfileId) {
+          await awardOnAction(strapi, {
+            userProfileId: studentProfileId,
+            action: 'homework',
+            sourceKey: `homework:${ctx.params.id}`,
+            meta: { score: data.score },
+            setMood: 'proud',
+          });
+        }
+      }
+      return result;
     }
 
     if (role === 'parent') {

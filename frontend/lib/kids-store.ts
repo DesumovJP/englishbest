@@ -453,17 +453,23 @@ export const kidsStateStore = {
     const current = _cache ?? (await kidsStateStore.get());
 
     // Route writes by field into the two backend endpoints.
+    //
+    // Earning is server-owned: coins / XP / streak no longer accept positive
+    // deltas from the client (rewards service is the only writer). Spending
+    // legacy cosmetics (room background) still patches a NEGATIVE coin
+    // delta until that flow migrates to a user-inventory endpoint
+    // (REWARDS.md → Phase E).
     const profileBody: Record<string, unknown> = {};
     if (partial.coins !== undefined) {
       const delta = partial.coins - current.coins;
-      if (delta !== 0) profileBody.totalCoinsDelta = delta;
+      if (delta < 0) profileBody.totalCoinsDelta = delta;
+      // Positive coin deltas are silently dropped — the FE used to call
+      // patch({ coins: balance + reward }) optimistically; that path is now
+      // illegal. Reward credits land via the rewards service + a refetch
+      // updates the cache from the server's authoritative balance.
     }
-    if (partial.xp !== undefined) {
-      const delta = partial.xp - current.xp;
-      if (delta > 0) profileBody.totalXpDelta = delta;
-      // XP never decreases on the server — negative deltas are dropped.
-    }
-    if (partial.streak !== undefined) profileBody.streakDays = partial.streak;
+    // partial.xp and partial.streak are intentionally NOT forwarded —
+    // server rejects them with 400.
 
     const inventoryBody: Record<string, unknown> = {};
     if (partial.outfit !== undefined) inventoryBody.outfit = partial.outfit;

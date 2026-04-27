@@ -11,6 +11,7 @@
  */
 import { factories } from '@strapi/strapi';
 import { scopedFind, sanitizeOutputTrusted } from '../../../lib/scoped-find';
+import { awardOnAction } from '../../../lib/rewards';
 
 const RECORD_UID = 'api::attendance-record.attendance-record';
 const SESSION_UID = 'api::session.session';
@@ -197,11 +198,28 @@ export default factories.createCoreController(RECORD_UID, ({ strapi }) => ({
         documentId: existing.documentId,
         data: data as any,
       });
+      // Award fires only on the FIRST record creation per (session, student),
+      // never on status flips — sourceKey is the record's docId. If a
+      // teacher needs to switch present↔late after the fact, the original
+      // award sticks (matches homework grade behaviour; see REWARDS.md).
       const sanitized = await sanitizeOutputTrusted(RECORD_UID, updated);
       return this.transformResponse(sanitized);
     }
 
     const created = await strapi.documents(RECORD_UID).create({ data: data as any });
+
+    // Fire attendance reward on the first record. Status drives the size
+    // (present > late/excused > absent=0). Routes through the central
+    // service so XP, achievements, and ledger row are kept consistent.
+    if (typeof data.status === 'string' && data.status !== 'absent') {
+      await awardOnAction(strapi, {
+        userProfileId: studentId,
+        action: 'attendance',
+        sourceKey: `attendance:${(created as any).documentId}`,
+        meta: { status: data.status },
+      });
+    }
+
     const sanitized = await sanitizeOutputTrusted(RECORD_UID, created);
     ctx.status = 201;
     return this.transformResponse(sanitized);

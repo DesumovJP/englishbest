@@ -1,0 +1,50 @@
+{
+  "kind": "collectionType",
+  "collectionName": "reward_events",
+  "info": {
+    "singularName": "reward-event",
+    "pluralName": "reward-events",
+    "displayName": "Reward Event",
+    "description": "Append-only ledger of every coin/XP delta awarded to a kid. `sourceKey` is the idempotency key — `awardOnAction` skips the write when a row already exists for the same key, so retries (lifecycle replays, double POSTs, etc.) cannot double-credit. Powers the per-kid motivation report and any future reconciliation against `kids-profile.totalCoins` / `totalXp`."
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "user": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::user-profile.user-profile"
+    },
+    "action": {
+      "type": "enumeration",
+      "enum": [
+        "lesson",
+        "minitask",
+        "homework",
+        "attendance",
+        "streak",
+        "achievement",
+        "grant"
+      ],
+      "required": true
+    },
+    "sourceKey": {
+      "type": "string",
+      "required": true
+    },
+    "xpDelta": {
+      "type": "integer",
+      "default": 0,
+      "required": true
+    },
+    "coinsDelta": {
+      "type": "integer",
+      "default": 0,
+      "required": true
+    },
+    "meta": {
+      "type": "json"
+    }
+  }
+}

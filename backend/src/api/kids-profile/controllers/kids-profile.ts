@@ -66,6 +66,22 @@ export default factories.createCoreController(
       return { data: kp };
     },
 
+    /**
+     * Patch self-mutable fields on the caller's kids-profile.
+     *
+     * EARNING is server-owned: `totalCoinsDelta > 0`, `totalXpDelta`,
+     * `streakDays`, `streakLastAt` are rejected — coins and XP only flow
+     * through `lib/rewards.ts:awardOnAction`, streaks advance there too.
+     * The previous unlocked path was a forge surface (compromised auth →
+     * arbitrary credit).
+     *
+     * SPENDING coins via `totalCoinsDelta < 0` is still accepted for legacy
+     * cosmetic purchases (room background) that haven't been migrated to a
+     * server-side endpoint yet (see REWARDS.md → Phase E). Server validates
+     * balance — never goes negative.
+     *
+     * Free-form profile fields (mood, companion, showRealName) pass through.
+     */
     async updateMe(ctx: any) {
       const user = ctx.state.user;
       if (!user) return ctx.unauthorized();
@@ -80,35 +96,29 @@ export default factories.createCoreController(
       const data = body?.data ?? body;
       const patch: Record<string, unknown> = {};
 
+      // Hard-block fields that should never come from the client — earning,
+      // XP, streak. (Spending via negative coin delta is handled below.)
+      const SERVER_OWNED = ['totalXpDelta', 'totalCoins', 'totalXp', 'streakDays', 'streakLastAt'];
+      const forbidden = SERVER_OWNED.filter((k) => k in data);
+      if (forbidden.length > 0) {
+        return ctx.badRequest(
+          `field(s) ${forbidden.join(', ')} are server-owned — coins/XP/streak flow only through the rewards service`,
+        );
+      }
+
       if ('totalCoinsDelta' in data) {
         const delta = toInt((data as any).totalCoinsDelta);
         if (delta === null) return ctx.badRequest('totalCoinsDelta must be integer');
-        const current = Number((kp as any).totalCoins ?? 0);
-        const next = current + delta;
-        if (next < 0) return ctx.badRequest('insufficient coins');
-        patch.totalCoins = next;
-      }
-
-      if ('totalXpDelta' in data) {
-        const delta = toInt((data as any).totalXpDelta);
-        if (delta === null || delta < 0) return ctx.badRequest('totalXpDelta must be non-negative integer');
-        patch.totalXp = Number((kp as any).totalXp ?? 0) + delta;
-      }
-
-      if ('streakDays' in data) {
-        const v = toInt((data as any).streakDays);
-        if (v === null || v < 0) return ctx.badRequest('streakDays must be non-negative integer');
-        patch.streakDays = v;
-      }
-
-      if ('streakLastAt' in data) {
-        const raw = (data as any).streakLastAt;
-        if (raw === null) {
-          patch.streakLastAt = null;
-        } else if (typeof raw === 'string' && !Number.isNaN(Date.parse(raw))) {
-          patch.streakLastAt = raw;
-        } else {
-          return ctx.badRequest('streakLastAt must be ISO datetime or null');
+        if (delta > 0) {
+          return ctx.badRequest(
+            'totalCoinsDelta > 0 forbidden — earning is server-owned (rewards service)',
+          );
+        }
+        if (delta < 0) {
+          const current = Number((kp as any).totalCoins ?? 0);
+          const next = current + delta;
+          if (next < 0) return ctx.badRequest('insufficient coins');
+          patch.totalCoins = next;
         }
       }
 
@@ -118,6 +128,16 @@ export default factories.createCoreController(
           return ctx.badRequest('characterMood invalid');
         }
         patch.characterMood = mood;
+      }
+
+      if ('companionAnimal' in data) {
+        patch.companionAnimal = (data as any).companionAnimal;
+      }
+      if ('companionName' in data) {
+        patch.companionName = (data as any).companionName;
+      }
+      if ('showRealName' in data) {
+        patch.showRealName = Boolean((data as any).showRealName);
       }
 
       await strapi.documents(KIDS_PROFILE_UID).update({

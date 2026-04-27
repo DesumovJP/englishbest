@@ -108,6 +108,13 @@ const GRANTS: Grant[] = [
   { action: 'api::mini-task.mini-task.update', roles: STAFF },
   { action: 'api::mini-task.mini-task.delete', roles: STAFF },
 
+  // Reward event (audit ledger)
+  //   - find / findOne — scoped inside controller: admin all, parent own
+  //     kids, everyone else own. Writes happen exclusively from
+  //     `lib/rewards.ts` server-side; no public create/update/delete.
+  { action: 'api::reward-event.reward-event.find', roles: AUTH_ALL },
+  { action: 'api::reward-event.reward-event.findOne', roles: AUTH_ALL },
+
   // Mini-task attempt
   //   - find / findOne — scoping inside controller (admin all, teacher own
   //     authored tasks, parent own kids, student own).
