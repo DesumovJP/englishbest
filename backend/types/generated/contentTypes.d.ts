@@ -1940,6 +1940,7 @@ export interface ApiUserInventoryUserInventory
       'api::character.character'
     >;
     activeRoom: Schema.Attribute.Relation<'manyToOne', 'api::room.room'>;
+    activeRoomBackground: Schema.Attribute.String;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -1966,6 +1967,7 @@ export interface ApiUserInventoryUserInventory
       'manyToMany',
       'api::character.character'
     >;
+    ownedRoomBackgrounds: Schema.Attribute.JSON;
     ownedShopItems: Schema.Attribute.Relation<
       'manyToMany',
       'api::shop-item.shop-item'

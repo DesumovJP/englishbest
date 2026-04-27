@@ -620,6 +620,7 @@ function ShopPageInner() {
     equipShopItem,
     placeItem,
     openLootBox,
+    selectRoomBackground,
   } = useKidsState();
   const { items: customItems } = useCustomItems();
   const { items: serverItems } = useShopCatalog();
@@ -684,13 +685,33 @@ function ShopPageInner() {
     character:   allItems.filter(i => i.tab === "outfit" || i.tab === "special").length,
   };
 
-  const activeBg = kidsState.roomBackground ?? "url('/kids-dashboard-bg.jpg') center bottom / cover";
+  // Source of truth for "which bg is active" is the server-persisted slug;
+  // visual CSS lives in the FE catalog (`lib/room-bg-catalog`). Match by
+  // slug first, fall back to legacy bgValue match for kids whose state was
+  // last written before the Phase F migration.
+  const activeBgItem =
+    BACKGROUNDS.find((b) => b.id === kidsState.roomBackgroundSlug)
+    ?? BACKGROUNDS.find((b) => b.bgValue === kidsState.roomBackground)
+    ?? BACKGROUNDS[0];
+  const activeBg = activeBgItem?.bgValue ?? "url('/kids-dashboard-bg.jpg') center bottom / cover";
 
   async function handleBuyBackground(item: BgItem) {
-    if (item.price > 0 && balance < item.price) return;
-    const newBalance = balance - item.price;
-    await patchState({ roomBackground: item.bgValue, coins: Math.max(0, newBalance) });
-    setToast(`Room background set to "${item.nameEn}"!`);
+    const ownedSlugs = kidsState.ownedRoomBackgrounds ?? [];
+    const isDefault = item.id === BACKGROUNDS[0]?.id;
+    const owned = isDefault || ownedSlugs.includes(item.id);
+    if (!owned && item.price > 0 && balance < item.price) {
+      setToast('Не вистачає монет');
+      setTimeout(() => setToast(null), 2500);
+      return;
+    }
+    const ok = await selectRoomBackground(item.id);
+    if (ok) {
+      setToast(owned
+        ? `Активовано: "${item.nameEn}"`
+        : `Куплено: "${item.nameEn}"!`);
+    } else {
+      setToast('Не вдалося застосувати тло — перевір баланс');
+    }
     setTimeout(() => setToast(null), 3000);
   }
 

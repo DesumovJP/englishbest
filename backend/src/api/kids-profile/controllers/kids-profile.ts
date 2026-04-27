@@ -69,16 +69,14 @@ export default factories.createCoreController(
     /**
      * Patch self-mutable fields on the caller's kids-profile.
      *
-     * EARNING is server-owned: `totalCoinsDelta > 0`, `totalXpDelta`,
-     * `streakDays`, `streakLastAt` are rejected — coins and XP only flow
-     * through `lib/rewards.ts:awardOnAction`, streaks advance there too.
-     * The previous unlocked path was a forge surface (compromised auth →
-     * arbitrary credit).
-     *
-     * SPENDING coins via `totalCoinsDelta < 0` is still accepted for legacy
-     * cosmetic purchases (room background) that haven't been migrated to a
-     * server-side endpoint yet (see REWARDS.md → Phase E). Server validates
-     * balance — never goes negative.
+     * Currency / XP / streak are FULLY server-owned after Phase F:
+     *   - Earning flows only through `lib/rewards.ts:awardOnAction`.
+     *   - Spending (cosmetic purchases, loot boxes, room unlocks, room
+     *     backgrounds) flows only through the matching `user-inventory`
+     *     endpoint, which debits coins atomically.
+     *   - The previous `totalCoinsDelta` (positive AND negative) path is
+     *     closed — it was a client-trusted balance mutation surface and
+     *     no longer has any legitimate caller.
      *
      * Free-form profile fields (mood, companion, showRealName) pass through.
      */
@@ -96,30 +94,22 @@ export default factories.createCoreController(
       const data = body?.data ?? body;
       const patch: Record<string, unknown> = {};
 
-      // Hard-block fields that should never come from the client — earning,
-      // XP, streak. (Spending via negative coin delta is handled below.)
-      const SERVER_OWNED = ['totalXpDelta', 'totalCoins', 'totalXp', 'streakDays', 'streakLastAt'];
+      // Hard-block currency / XP / streak fields. The client may not move
+      // these in either direction. Earn → rewards service. Spend →
+      // user-inventory endpoints. Anything else is forgery.
+      const SERVER_OWNED = [
+        'totalCoinsDelta',
+        'totalXpDelta',
+        'totalCoins',
+        'totalXp',
+        'streakDays',
+        'streakLastAt',
+      ];
       const forbidden = SERVER_OWNED.filter((k) => k in data);
       if (forbidden.length > 0) {
         return ctx.badRequest(
-          `field(s) ${forbidden.join(', ')} are server-owned — coins/XP/streak flow only through the rewards service`,
+          `field(s) ${forbidden.join(', ')} are server-owned — coins / XP / streak flow only through the rewards + user-inventory services`,
         );
-      }
-
-      if ('totalCoinsDelta' in data) {
-        const delta = toInt((data as any).totalCoinsDelta);
-        if (delta === null) return ctx.badRequest('totalCoinsDelta must be integer');
-        if (delta > 0) {
-          return ctx.badRequest(
-            'totalCoinsDelta > 0 forbidden — earning is server-owned (rewards service)',
-          );
-        }
-        if (delta < 0) {
-          const current = Number((kp as any).totalCoins ?? 0);
-          const next = current + delta;
-          if (next < 0) return ctx.badRequest('insufficient coins');
-          patch.totalCoins = next;
-        }
       }
 
       if ('characterMood' in data) {

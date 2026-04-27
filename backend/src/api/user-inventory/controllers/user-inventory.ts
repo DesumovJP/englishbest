@@ -26,12 +26,16 @@
  * character and `bedroom` as unlocked+active room, so the kid has a
  * usable scene before spending anything.
  */
+import { findRoomBackground, ROOM_BACKGROUND_CATALOG } from '../../../lib/room-backgrounds';
+
 const INVENTORY_UID = 'api::user-inventory.user-inventory';
 const PROFILE_UID = 'api::user-profile.user-profile';
 const KIDS_PROFILE_UID = 'api::kids-profile.kids-profile';
 const CHARACTER_UID = 'api::character.character';
 const ROOM_UID = 'api::room.room';
 const SHOP_ITEM_UID = 'api::shop-item.shop-item';
+
+const DEFAULT_ROOM_BACKGROUND_SLUG = ROOM_BACKGROUND_CATALOG[0]?.slug ?? 'bg_default';
 
 const STARTER_CHARACTER_SLUG = 'fox';
 const STARTER_ROOM_SLUG = 'bedroom';
@@ -44,6 +48,8 @@ const POPULATE: any = {
   activeCharacter: { fields: ['slug'] },
   unlockedRooms: { fields: ['slug'] },
   activeRoom: { fields: ['slug'] },
+  // Scalar `activeRoomBackground` + json `ownedRoomBackgrounds` flow back
+  // implicitly via the default scalar populate — no relation populate needed.
 };
 
 async function callerProfileId(strapi: any, userId: number | string): Promise<string | null> {
@@ -390,6 +396,97 @@ export default {
         },
       });
       throw err;
+    }
+
+    const fresh = await strapi.documents(INVENTORY_UID).findOne({
+      documentId: (inventory as any).documentId,
+      populate: POPULATE,
+    });
+    return { data: fresh };
+  },
+
+  /**
+   * Select a room background by slug. First selection of a paid background
+   * debits coins (server-side catalog lookup — client-supplied price is
+   * ignored). Subsequent selects of the same slug, or any select of the
+   * default `bg_default`, are free.
+   *
+   * Replaces the legacy `kids-profile.updateMe` negative-coin-delta path
+   * for cosmetic purchases. Compensating order matches `unlockRoom`:
+   * append-then-debit, revert ownership on debit failure.
+   */
+  async selectRoomBackground(ctx: any) {
+    const user = ctx.state.user;
+    if (!user) return ctx.unauthorized();
+
+    const profileId = await callerProfileId(strapi, user.id);
+    if (!profileId) return ctx.forbidden('no user-profile');
+
+    const kp = await callerKidsProfile(strapi, profileId);
+    if (!kp) return ctx.forbidden('not a kid');
+
+    const body = ctx.request.body ?? {};
+    const data = body?.data ?? body;
+    const slug = typeof data?.slug === 'string' ? data.slug : null;
+    if (!slug) return ctx.badRequest('slug required');
+
+    const bg = findRoomBackground(slug);
+    if (!bg) return ctx.notFound(`room-background '${slug}' not found`);
+
+    const inventory = await getOrCreateInventory(strapi, profileId);
+    const ownedRaw = (inventory as any).ownedRoomBackgrounds;
+    const owned: string[] = Array.isArray(ownedRaw)
+      ? ownedRaw.filter((s: unknown): s is string => typeof s === 'string')
+      : [];
+
+    // Default bg is implicitly owned by everyone — never charged, no
+    // need to track ownership for it.
+    const isDefault = slug === DEFAULT_ROOM_BACKGROUND_SLUG;
+    const alreadyOwned = isDefault || owned.includes(slug);
+
+    let nextOwned = owned;
+    let needsDebit = 0;
+    if (!alreadyOwned && bg.price > 0) {
+      const balance = toInt((kp as any).totalCoins) ?? 0;
+      if (balance < bg.price) return ctx.badRequest('insufficient coins');
+      needsDebit = bg.price;
+      nextOwned = [...owned, slug];
+    } else if (!alreadyOwned) {
+      // Free non-default background — still record ownership so future
+      // catalog price changes don't suddenly re-charge.
+      nextOwned = [...owned, slug];
+    }
+
+    // Append-then-debit. Activate the slug + extend ownership in one
+    // inventory write so the kid sees the new bg even if the debit
+    // ultimately fails (we revert below).
+    await strapi.documents(INVENTORY_UID).update({
+      documentId: (inventory as any).documentId,
+      data: {
+        activeRoomBackground: slug,
+        ownedRoomBackgrounds: nextOwned,
+      },
+    });
+
+    if (needsDebit > 0) {
+      const balance = toInt((kp as any).totalCoins) ?? 0;
+      try {
+        await strapi.documents(KIDS_PROFILE_UID).update({
+          documentId: (kp as any).documentId,
+          data: { totalCoins: balance - needsDebit },
+        });
+      } catch (err) {
+        // Revert ownership + activation so the kid isn't stuck owning a
+        // background they never paid for.
+        await strapi.documents(INVENTORY_UID).update({
+          documentId: (inventory as any).documentId,
+          data: {
+            activeRoomBackground: (inventory as any).activeRoomBackground ?? null,
+            ownedRoomBackgrounds: owned,
+          },
+        });
+        throw err;
+      }
     }
 
     const fresh = await strapi.documents(INVENTORY_UID).findOne({

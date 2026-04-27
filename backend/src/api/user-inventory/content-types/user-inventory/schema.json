@@ -61,6 +61,12 @@
       "type": "relation",
       "relation": "manyToOne",
       "target": "api::room.room"
+    },
+    "activeRoomBackground": {
+      "type": "string"
+    },
+    "ownedRoomBackgrounds": {
+      "type": "json"
     }
   }
 }

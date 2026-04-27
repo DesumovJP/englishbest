@@ -11,6 +11,7 @@
  */
 
 import { levelFromXp } from "./level";
+import { bgCssForSlug } from "./room-bg-catalog";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -119,8 +120,14 @@ export interface KidsState {
   unlockedRoomIds: string[];
   /** Characters the user owns (slug list). */
   ownedCharacterIds: string[];
-  /** CSS background value or image URL for the dashboard room */
+  /** CSS background value or image URL for the dashboard room — derived
+   *  client-side from `roomBackgroundSlug` via the FE BACKGROUNDS catalog,
+   *  so the source of truth on the server stays the slug only. */
   roomBackground?: string;
+  /** Server-truth slug for the active room background. Drives `roomBackground`. */
+  roomBackgroundSlug?: string;
+  /** Slugs the kid has already paid for. Default `bg_default` always owned. */
+  ownedRoomBackgrounds: string[];
   /** outfit slots for the active character */
   outfit: {
     hat?: string;
@@ -283,6 +290,7 @@ export const DEFAULT_STATE: KidsState = {
   equippedItemIds: [],
   freeLootBoxes: 0,
   seedVersion: 0,
+  ownedRoomBackgrounds: [],
 };
 
 type InventoryDto = {
@@ -297,6 +305,10 @@ type InventoryDto = {
   activeCharacter?: { slug: string } | null;
   unlockedRooms?: Array<{ slug: string }>;
   activeRoom?: { slug: string } | null;
+  /** Cosmetic dashboard scenery — slug from the BE / FE catalogs. */
+  activeRoomBackground?: string | null;
+  /** Slugs the kid has already paid for (default bg is implicitly owned). */
+  ownedRoomBackgrounds?: string[] | null;
 };
 
 type KidsProfileDto = {
@@ -427,6 +439,14 @@ async function fetchState(): Promise<KidsState> {
     activeCharacterId: i?.activeCharacter?.slug ?? DEFAULT_STATE.activeCharacterId,
     unlockedRoomIds: (i?.unlockedRooms ?? []).map((x) => x.slug),
     activeRoomId: i?.activeRoom?.slug ?? undefined,
+    roomBackgroundSlug: typeof i?.activeRoomBackground === 'string' ? i.activeRoomBackground : undefined,
+    // Resolve CSS visual once at fetch time so consumers (dashboard, shop)
+    // don't repeat the lookup on every render. Falls back to default when
+    // slug is missing or doesn't match any catalog entry.
+    roomBackground: bgCssForSlug(i?.activeRoomBackground),
+    ownedRoomBackgrounds: Array.isArray(i?.ownedRoomBackgrounds)
+      ? (i!.ownedRoomBackgrounds as string[]).filter((s): s is string => typeof s === 'string')
+      : [],
     outfit: (i?.outfit as KidsState["outfit"]) ?? {},
     placedItems: Array.isArray(i?.placedItems) ? (i!.placedItems as PlacedItem[]) : [],
     freeLootBoxes: toNum(i?.freeLootBoxes),
@@ -471,22 +491,12 @@ export const kidsStateStore = {
 
     // Route writes by field into the two backend endpoints.
     //
-    // Earning is server-owned: coins / XP / streak no longer accept positive
-    // deltas from the client (rewards service is the only writer). Spending
-    // legacy cosmetics (room background) still patches a NEGATIVE coin
-    // delta until that flow migrates to a user-inventory endpoint
-    // (REWARDS.md → Phase E).
+    // Currency is fully server-owned after Phase F: earn flows through
+    // the rewards service, spend flows through user-inventory endpoints
+    // (purchaseShopItem / unlockRoom / openLootBox / selectRoomBackground).
+    // No coin / XP / streak field reaches `kids-profile.updateMe` from
+    // the FE anymore — server rejects all of them with 400.
     const profileBody: Record<string, unknown> = {};
-    if (partial.coins !== undefined) {
-      const delta = partial.coins - current.coins;
-      if (delta < 0) profileBody.totalCoinsDelta = delta;
-      // Positive coin deltas are silently dropped — the FE used to call
-      // patch({ coins: balance + reward }) optimistically; that path is now
-      // illegal. Reward credits land via the rewards service + a refetch
-      // updates the cache from the server's authoritative balance.
-    }
-    // partial.xp and partial.streak are intentionally NOT forwarded —
-    // server rejects them with 400.
 
     const inventoryBody: Record<string, unknown> = {};
     if (partial.outfit !== undefined) inventoryBody.outfit = partial.outfit;
@@ -644,6 +654,30 @@ export const kidsStateStore = {
       _cache = null;
       const body = await res.json().catch(() => null);
       const msg = body?.error?.message ?? `unlockRoom failed (${res.status})`;
+      throw new Error(msg);
+    }
+    const fresh = await fetchState();
+    _cache = fresh;
+    return fresh;
+  },
+
+  /**
+   * Select a room background by slug. Server validates against the
+   * BE catalog, debits coins on first paid purchase, persists ownership
+   * + active slug. Replaces the legacy `patch({ coins, roomBackground })`
+   * client-side debit (which was server-rejected after Phase A).
+   */
+  selectRoomBackground: async (slug: string): Promise<KidsState> => {
+    const res = await fetch("/api/user-inventory/me/select-room-background", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ slug }),
+    });
+    if (!res.ok) {
+      _cache = null;
+      const body = await res.json().catch(() => null);
+      const msg = body?.error?.message ?? `selectRoomBackground failed (${res.status})`;
       throw new Error(msg);
     }
     const fresh = await fetchState();

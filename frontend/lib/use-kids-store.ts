@@ -444,6 +444,25 @@ export function useKidsState() {
     [],
   );
 
+  /**
+   * Select a room background by slug. Server validates + debits + persists.
+   * Returns true on success (caller flips local visual state); false on
+   * any 4xx (insufficient coins, unknown slug).
+   */
+  const selectRoomBackground = useCallback(
+    async (slug: string): Promise<boolean> => {
+      try {
+        await kidsStateStore.selectRoomBackground(slug);
+        emitKidsEvent("kids:state-changed");
+        return true;
+      } catch {
+        emitKidsEvent("kids:state-changed");
+        return false;
+      }
+    },
+    [],
+  );
+
   return {
     state,
     loading,
@@ -455,5 +474,6 @@ export function useKidsState() {
     placeItem,
     movePlacement,
     removePlacement,
+    selectRoomBackground,
   };
 }

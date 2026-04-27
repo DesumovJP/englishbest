@@ -48,5 +48,11 @@ export default {
       handler: 'api::user-inventory.user-inventory.openLootBox',
       config: { policies: ['global::is-authenticated'] },
     },
+    {
+      method: 'POST',
+      path: '/user-inventory/me/select-room-background',
+      handler: 'api::user-inventory.user-inventory.selectRoomBackground',
+      config: { policies: ['global::is-authenticated'] },
+    },
   ],
 };

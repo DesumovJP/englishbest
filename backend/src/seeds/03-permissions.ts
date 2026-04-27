@@ -219,6 +219,7 @@ const GRANTS: Grant[] = [
   { action: 'api::user-inventory.user-inventory.purchaseShopItem', roles: AUTH_ALL },
   { action: 'api::user-inventory.user-inventory.equipShopItem', roles: AUTH_ALL },
   { action: 'api::user-inventory.user-inventory.openLootBox', roles: AUTH_ALL },
+  { action: 'api::user-inventory.user-inventory.selectRoomBackground', roles: AUTH_ALL },
 
   // Organization (auth read, admin write)
   { action: 'api::organization.organization.findOne', roles: AUTH_ALL },

@@ -135,12 +135,14 @@ Per-level unlocks live in a small static table (Phase E):
         through the streak ledger row.
   - [x] `mini-task.coinReward` server-side clamp 5..100 (and
         `durationMin` 1..30) — applied on both create and update.
-  - [ ] Server-side shop room-background purchase — DEFERRED to Phase F.
-        Needs new `activeRoomBackground` field on user-inventory + a
-        server-side BG catalog mirror + POST endpoint. Until then the
-        legacy negative `totalCoinsDelta` path stays open — server still
-        validates balance, just doesn't gate the bg slug. Tracked
-        explicitly so the next session knows not to touch it ad-hoc.
+  - [x] Server-side shop room-background purchase (closed in Phase F).
+        New `activeRoomBackground` + `ownedRoomBackgrounds` fields on
+        `user-inventory`; `lib/room-backgrounds.ts` server catalog with
+        slug + price; `POST /user-inventory/me/select-room-background`
+        endpoint validates slug, debits on first paid purchase, records
+        ownership, atomically activates. FE shop migrated; legacy
+        `totalCoinsDelta` (positive AND negative) is now fully closed in
+        `kids-profile.updateMe`.
 
 ---
 
@@ -213,4 +215,14 @@ Per-level unlocks live in a small static table (Phase E):
   tier hue. Locked entries stay neutral so the catalog doesn't become a
   rainbow. Shop room-bg server migration deferred to Phase F (needs
   schema field + BG catalog mirror).
+- **2026-04-27** — Phase F (shop bg + currency lockdown). New
+  `activeRoomBackground` + `ownedRoomBackgrounds` fields on
+  `user-inventory`. Server catalog `backend/src/lib/room-backgrounds.ts`
+  + FE mirror `frontend/lib/room-bg-catalog.ts` (slugs in lockstep, FE
+  carries the visual CSS). `POST /user-inventory/me/select-room-background`
+  validates slug, debits on first paid purchase with append-then-debit
+  compensating order, persists ownership. FE shop `handleBuyBackground`
+  routes through the new endpoint. `kids-profile.updateMe` now hard-blocks
+  every currency / XP / streak field — the legacy `totalCoinsDelta`
+  fallback (positive AND negative) is closed.
 
