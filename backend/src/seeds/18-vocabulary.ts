@@ -524,24 +524,41 @@ export async function up(strapi: any): Promise<void> {
     if (courseId) data.course = courseId;
     if (lessonId) data.lesson = lessonId;
 
-    const [existing] = await strapi.documents(VOCAB_UID).findMany({
+    // Look up the published version first; fall back to draft. Mirrors
+    // the upsert pattern in 11-real-lessons.
+    const [published] = await strapi.documents(VOCAB_UID).findMany({
       filters: { slug: set.slug },
       limit: 1,
+      status: 'published',
     });
+    const [draft] = published
+      ? [published]
+      : await strapi.documents(VOCAB_UID).findMany({
+          filters: { slug: set.slug },
+          limit: 1,
+        });
+    const existing = draft;
+
     if (existing) {
-      // Refresh content + relations on every boot so editorial updates land.
-      await strapi.documents(VOCAB_UID).update({
-        documentId: (existing as any).documentId,
-        data: data as any,
-        status: 'published',
-      });
-      updated += 1;
+      try {
+        await strapi.documents(VOCAB_UID).update({
+          documentId: (existing as any).documentId,
+          data: data as any,
+          status: 'published',
+        });
+        updated += 1;
+      } catch (err) {
+        strapi.log.warn(
+          `[seed] vocabulary: failed to update set '${set.slug}': ${(err as Error).message}`,
+        );
+        skipped += 1;
+      }
       continue;
     }
 
     try {
       await strapi.documents(VOCAB_UID).create({
-        data: data as any,
+        data: { ...data, publishedAt: new Date().toISOString() } as any,
         status: 'published',
       });
       created += 1;
