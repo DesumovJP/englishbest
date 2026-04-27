@@ -9,12 +9,14 @@ import {
   canAccessLevel,
   type LibTabId, type LibKind, type LibraryItem,
 } from '@/lib/library';
+import { LessonTreeSection } from '@/components/kids/LessonTreeSection';
 import { LessonCarouselSection } from '@/components/kids/LessonCarouselSection';
 import { VocabularySection } from '@/components/kids/VocabularySection';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { EmptyState } from '@/components/ui/EmptyState';
 
 type PageTab = 'lessons' | 'vocab' | 'library';
+type LessonView = 'carousel' | 'list';
 
 function LibListItem({ item, isLocked, onNavigate }: {
   item: LibraryItem; isLocked: boolean; onNavigate: () => void;
@@ -204,6 +206,7 @@ function LibraryCatalog() {
 
 export default function SchoolPage() {
   const [tab, setTab] = useState<PageTab>('lessons');
+  const [lessonView, setLessonView] = useState<LessonView>('carousel');
   const { level: kidsLevel } = useKidsIdentity();
 
   return (
@@ -229,13 +232,45 @@ export default function SchoolPage() {
           })}
         </div>
 
+        {tab === 'lessons' && (
+          <div className="ml-auto inline-flex rounded-full bg-surface-muted border border-border p-0.5 sm:p-1 flex-shrink-0">
+            {([
+              { id: 'carousel', label: 'Карусель' },
+              { id: 'list',     label: 'Список' },
+            ] as { id: LessonView; label: string }[]).map(v => {
+              const active = lessonView === v.id;
+              return (
+                <button
+                  key={v.id}
+                  onClick={() => setLessonView(v.id)}
+                  className={[
+                    'px-2.5 sm:px-3.5 py-1 sm:py-1.5 rounded-full font-black text-[11px] sm:text-[12.5px] transition-colors',
+                    active ? 'bg-primary text-white shadow-card-sm' : 'text-ink-muted',
+                  ].join(' ')}
+                >
+                  {v.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       <div className="flex-1 overflow-hidden flex flex-col">
         {tab === 'lessons' ? (
-          <LessonCarouselSection level={kidsLevel} />
+          lessonView === 'carousel' ? (
+            <div className="flex-1 min-h-0 w-full overflow-hidden pb-[calc(env(safe-area-inset-bottom,0px)+72px)]">
+              <LessonCarouselSection level={kidsLevel} />
+            </div>
+          ) : (
+            <div className="flex-1 overflow-y-auto max-w-screen-md mx-auto w-full">
+              <div className="px-4 py-6">
+                <LessonTreeSection level={kidsLevel} />
+              </div>
+            </div>
+          )
         ) : tab === 'vocab' ? (
-          <div className="flex-1 overflow-y-auto pb-[calc(env(safe-area-inset-bottom,0px)+72px)]">
+          <div className="flex-1 overflow-y-auto max-w-screen-md mx-auto w-full pb-[calc(env(safe-area-inset-bottom,0px)+72px)]">
             <VocabularySection level={kidsLevel} />
           </div>
         ) : <LibraryCatalog />}

@@ -1,20 +1,18 @@
 /**
- * Kids course detail — radical redesign.
+ * Kids course detail.
  *
- *   1. Sticky back header (neutral).
- *   2. HERO — full-bleed gradient (course theme), big course emoji,
- *      title, level + audience + lessons-count chips, circular progress
- *      ring, large "Продовжити" CTA, fox stamp.
- *   3. "Що ти навчишся" — checklist parsed from descriptionLong (each
- *      paragraph ≈ one outcome).
- *   4. Vocabulary cards — anchor card big + per-lesson chips inline.
- *   5. Lessons grouped by Unit — each lesson rendered as a tile via
- *      `<LessonTileCard>`; current lesson is highlighted with a pulsing
- *      course-accent ring.
+ * Renders a real course-detail experience for the v2 catalog:
+ *   - hero (icon, title, level, audience badge, subtitle)
+ *   - long description paragraphs
+ *   - progress bar (completed / total lessons)
+ *   - lessons list grouped by `course.sections` (falls back to flat list),
+ *     each row showing type emoji, title, durationMin, and a per-lesson
+ *     status pill (✓ done / current / upcoming)
+ *   - sticky bottom CTA → first incomplete lesson ("Продовжити" / "Почати")
  *
- * Course visuals are admin-editable: `accentColor`, `gradientFrom/To`,
- * `coverImage` flow through `themeForCourse(course)`. No code change
- * required to re-skin a course in production.
+ * Data is live: courses + lessons + own progress, all SWR-cached. Anything
+ * archived is filtered server-side, so deep-links to deleted v0/v1 courses
+ * land on the empty state.
  */
 'use client';
 import { useEffect, useMemo, useState } from 'react';
@@ -36,39 +34,55 @@ import {
   peekVocabularySets,
   type VocabularySet,
 } from '@/lib/vocabulary';
-import type { Course, Lesson } from '@/lib/types';
+import type { Course, Lesson, LessonType } from '@/lib/types';
 import { useKidsIdentity } from '@/lib/use-kids-identity';
-import { themeForCourse, type CourseTheme } from '@/lib/course-theme';
-import { CourseHero } from '@/components/kids/CourseHero';
-import { LessonTileCard, type LessonStatus } from '@/components/kids/LessonTileCard';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Button } from '@/components/ui/Button';
 
-type Level = 'A0' | 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2';
-const LEVEL_ORDER: Level[] = ['A0', 'A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
+type LessonStatus = 'done' | 'current' | 'upcoming';
+
+const LEVEL_ORDER = ['A0', 'A1', 'A2', 'B1', 'B2', 'C1', 'C2'] as const;
+type Level = (typeof LEVEL_ORDER)[number];
 
 function canAccessLevel(userLevel: Level, req: Level): boolean {
   return LEVEL_ORDER.indexOf(userLevel) >= LEVEL_ORDER.indexOf(req);
 }
+
+const TYPE_EMOJI: Record<LessonType, string> = {
+  video: '🎬',
+  reading: '📖',
+  quiz: '🎯',
+  interactive: '✏️',
+};
+
+const TYPE_LABEL: Record<LessonType, string> = {
+  video: 'Відео',
+  reading: 'Читання',
+  quiz: 'Тест',
+  interactive: 'Урок',
+};
 
 interface LessonRow {
   lesson: Lesson;
   status: LessonStatus;
 }
 
-interface UnitGroup {
-  slug: string;
-  title: string;
-  rows: LessonRow[];
-}
-
-function pickStatuses(lessons: Lesson[], progress: UserProgressRow[]): LessonRow[] {
+function pickStatuses(
+  lessons: Lesson[],
+  progress: UserProgressRow[],
+): LessonRow[] {
   const completed = new Set(
     progress
       .filter((r) => r.status === 'completed' && r.lesson?.documentId)
       .map((r) => r.lesson!.documentId),
   );
+  const inProgress = new Set(
+    progress
+      .filter((r) => r.status === 'inProgress' && r.lesson?.documentId)
+      .map((r) => r.lesson!.documentId),
+  );
+
   const sorted = [...lessons].sort(
     (a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0),
   );
@@ -79,13 +93,22 @@ function pickStatuses(lessons: Lesson[], progress: UserProgressRow[]): LessonRow
     }
     if (!firstUnfinishedSeen) {
       firstUnfinishedSeen = true;
+      // First not-completed lesson is "current" whether the kid started it
+      // or not. Subsequent lessons are "upcoming".
+      void inProgress;
       return { lesson, status: 'current' as const };
     }
     return { lesson, status: 'upcoming' as const };
   });
 }
 
-function groupBySection(course: Course, rows: LessonRow[]): UnitGroup[] {
+interface SectionGroup {
+  slug: string;
+  title: string;
+  rows: LessonRow[];
+}
+
+function groupBySection(course: Course, rows: LessonRow[]): SectionGroup[] {
   const sections = (course.sections ?? []).slice().sort(
     (a, b) => (a.order ?? 0) - (b.order ?? 0),
   );
@@ -95,7 +118,7 @@ function groupBySection(course: Course, rows: LessonRow[]): UnitGroup[] {
   const byLessonSlug = new Map<string, LessonRow>();
   rows.forEach((r) => byLessonSlug.set(r.lesson.slug, r));
   const used = new Set<string>();
-  const groups: UnitGroup[] = sections.map((s) => {
+  const groups: SectionGroup[] = sections.map((s) => {
     const sectionRows: LessonRow[] = [];
     for (const slug of s.lessonSlugs ?? []) {
       const row = byLessonSlug.get(slug);
@@ -106,6 +129,7 @@ function groupBySection(course: Course, rows: LessonRow[]): UnitGroup[] {
     }
     return { slug: s.slug, title: s.title, rows: sectionRows };
   });
+  // Lessons not in any section land in a trailing "Інше" group.
   const orphans = rows.filter((r) => !used.has(r.lesson.slug));
   if (orphans.length > 0) {
     groups.push({ slug: '__orphans', title: 'Інше', rows: orphans });
@@ -119,9 +143,15 @@ export default function KidsCourseDetailPage() {
   const { level: kidsLevel } = useKidsIdentity();
 
   const [courses, setCourses] = useState<Course[] | null>(() => peekCourses());
-  const [lessons, setLessons] = useState<Lesson[] | null>(() => peekLessonsByCourse(id));
-  const [progress, setProgress] = useState<UserProgressRow[] | null>(() => peekMyProgress());
-  const [vocabSets, setVocabSets] = useState<VocabularySet[] | null>(() => peekVocabularySets());
+  const [lessons, setLessons] = useState<Lesson[] | null>(() =>
+    peekLessonsByCourse(id),
+  );
+  const [progress, setProgress] = useState<UserProgressRow[] | null>(() =>
+    peekMyProgress(),
+  );
+  const [vocabSets, setVocabSets] = useState<VocabularySet[] | null>(() =>
+    peekVocabularySets(),
+  );
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -166,18 +196,21 @@ export default function KidsCourseDetailPage() {
   const totalLessons = lessons?.length ?? 0;
   const completedCount = lessonRows.filter((r) => r.status === 'done').length;
   const pct = totalLessons === 0 ? 0 : Math.round((completedCount / totalLessons) * 100);
+
   const nextRow = lessonRows.find((r) => r.status === 'current') ?? null;
   const isComplete = totalLessons > 0 && completedCount === totalLessons;
   const courseLevel = (course?.level ?? 'A1') as Level;
   const isLocked = course ? !canAccessLevel(kidsLevel, courseLevel) : false;
+
   const loading = courses === null || lessons === null || progress === null;
 
+  // Bottom padding clears the fixed kids footer (72px tab bar + safe-area).
   const PAGE_BOTTOM_PAD = 'pb-[calc(env(safe-area-inset-bottom,0px)+96px)]';
 
   if (loading && !course) {
     return (
-      <div className={`min-h-[100dvh] bg-surface ${PAGE_BOTTOM_PAD}`}>
-        <BackHeader title="Курс" onBack={() => router.back()} />
+      <div className={`min-h-[100dvh] bg-surface-raised ${PAGE_BOTTOM_PAD}`}>
+        <Header onBack={() => router.back()} title="Курс" />
         <div className="max-w-screen-md mx-auto w-full px-4 py-10">
           <LoadingState shape="card" rows={1} />
         </div>
@@ -187,8 +220,8 @@ export default function KidsCourseDetailPage() {
 
   if (!course) {
     return (
-      <div className={`min-h-[100dvh] bg-surface ${PAGE_BOTTOM_PAD}`}>
-        <BackHeader title="Курс" onBack={() => router.back()} />
+      <div className={`min-h-[100dvh] bg-surface-raised ${PAGE_BOTTOM_PAD}`}>
+        <Header onBack={() => router.back()} title="Курс" />
         <div className="max-w-screen-md mx-auto w-full px-4 py-10">
           <EmptyState
             title="Курс не знайдено"
@@ -199,7 +232,9 @@ export default function KidsCourseDetailPage() {
             }
             icon={<span aria-hidden>😕</span>}
             action={
-              <Button onClick={() => router.push('/kids/school')}>← До Школи</Button>
+              <Button onClick={() => router.push('/kids/school')}>
+                ← До Школи
+              </Button>
             }
           />
         </div>
@@ -207,7 +242,6 @@ export default function KidsCourseDetailPage() {
     );
   }
 
-  const theme = themeForCourse(course);
   const longParas: string[] =
     course.descriptionLong && course.descriptionLong.length > 0
       ? course.descriptionLong
@@ -217,167 +251,219 @@ export default function KidsCourseDetailPage() {
           ? [course.descriptionShort]
           : [];
 
-  const courseSets = (vocabSets ?? []).filter((s) => s.courseSlug === course.slug);
-  const anchorVocab = courseSets.find((s) => !s.lessonSlug) ?? null;
-  const lessonVocabSets = courseSets.filter((s) => s.lessonSlug);
-  const eyebrowChips = [
-    courseLevel,
-    course.audience === 'kids' ? 'Діти' : course.audience ?? null,
-    totalLessons > 0 ? `${totalLessons} уроків` : null,
-  ].filter(Boolean) as string[];
+  const heroIcon = course.iconEmoji ?? '🎓';
+  const titleUa = course.titleUa ?? course.title;
+  const subtitle = course.subtitle ?? '';
 
   return (
-    <div className={`min-h-[100dvh] bg-surface ${PAGE_BOTTOM_PAD}`}>
-      <BackHeader title={course.titleUa ?? course.title} onBack={() => router.push('/kids/school')} />
+    <div className={`flex flex-col min-h-[100dvh] bg-surface-raised ${PAGE_BOTTOM_PAD}`}>
+      <Header
+        onBack={() => router.push('/kids/school')}
+        title={course.title}
+      />
 
-      {/* HERO */}
-      <div className="px-4 sm:px-6 pt-4">
+      {/* Hero — primary CTA lives here so a kid can start the course
+          immediately without scrolling past the lessons list. */}
+      <section className="px-5 md:px-10 pt-6 pb-6 border-b border-border">
         <div className="max-w-screen-md mx-auto w-full">
-          <CourseHero
-            theme={theme}
-            eyebrow={eyebrowChips.join(' · ')}
-            focalEmoji={course.iconEmoji ?? '🎓'}
-            title={course.titleUa ?? course.title}
-            subtitle={course.subtitle ?? course.descriptionShort ?? ''}
+        <div className="flex items-start gap-4">
+          <div
+            aria-hidden
+            className="flex-shrink-0 w-[88px] h-[88px] rounded-2xl bg-primary/10 flex items-center justify-center text-[44px] shadow-card-sm"
           >
-            <div className="flex items-center gap-4 mt-1">
-              <ProgressRing pct={pct} />
-              <div className="flex flex-col">
-                <p className="font-black text-[24px] tabular-nums leading-none">
-                  {completedCount}<span className="text-white/70">/{totalLessons}</span>
-                </p>
-                <p className="font-bold text-[11px] text-white/80 mt-1 uppercase tracking-widest">
-                  завершено
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-4 flex items-center gap-2 flex-wrap">
-              {isLocked ? (
-                <span className="inline-flex items-center gap-2 rounded-2xl px-4 h-12 bg-white/15 border border-white/25 backdrop-blur-sm font-black text-[13px]">
-                  🔒 Потрібен рівень {courseLevel}
+            {heroIcon}
+          </div>
+          <div className="flex-1 min-w-0 pt-1">
+            <div className="flex items-center gap-2 flex-wrap mb-1">
+              <span className="rounded-md px-2 py-0.5 font-bold text-[11px] bg-primary/12 text-primary-dark border border-primary/20">
+                {courseLevel}
+              </span>
+              {course.audience && (
+                <span className="rounded-md px-2 py-0.5 font-bold text-[11px] bg-surface-muted text-ink-muted border border-border capitalize">
+                  {course.audience === 'kids' ? 'Діти' : course.audience}
                 </span>
-              ) : isComplete ? (
-                <Link
-                  href={`/courses/${course.slug}/lessons/${lessonRows[0]?.lesson.slug ?? ''}`}
-                  className="inline-flex items-center justify-center gap-2 px-5 h-12 rounded-2xl bg-white font-black text-[15px] shadow-card-md active:translate-y-0.5 active:shadow-card-sm transition-all"
-                  style={{ color: theme.accentDark }}
-                >
-                  Повторити
-                </Link>
-              ) : nextRow ? (
-                <Link
-                  href={`/courses/${course.slug}/lessons/${nextRow.lesson.slug}`}
-                  className="inline-flex items-center justify-center gap-2 px-5 h-12 rounded-2xl bg-white font-black text-[15px] shadow-card-md active:translate-y-0.5 active:shadow-card-sm transition-all"
-                  style={{ color: theme.accentDark }}
-                >
-                  {completedCount > 0 ? 'Продовжити' : 'Почати курс'}
-                  <span aria-hidden>→</span>
-                </Link>
-              ) : null}
-              {anchorVocab && !isLocked && (
-                <Link
-                  href={`/kids/vocab/${anchorVocab.slug}`}
-                  className="inline-flex items-center gap-2 px-4 h-12 rounded-2xl bg-white/15 border border-white/25 backdrop-blur-sm text-white font-black text-[13px] hover:bg-white/20 transition-colors"
-                >
-                  Словник <span aria-hidden>→</span>
-                </Link>
+              )}
+              {totalLessons > 0 && (
+                <span className="rounded-md px-2 py-0.5 font-bold text-[11px] bg-surface-muted text-ink-muted border border-border">
+                  {totalLessons} уроків
+                </span>
               )}
             </div>
-          </CourseHero>
+            <h1 className="font-black text-[22px] md:text-[26px] text-ink leading-tight tracking-tight">
+              {titleUa}
+            </h1>
+            {subtitle && (
+              <p className="font-medium text-[13px] text-ink-faint mt-1">{subtitle}</p>
+            )}
+          </div>
         </div>
-      </div>
 
-      {/* "Що ти навчишся" — bullet outcomes parsed from descriptionLong. */}
-      {longParas.length > 0 && (
-        <section className="px-4 sm:px-6 py-6">
-          <div className="max-w-screen-md mx-auto w-full">
-            <SectionLabel>Що ти навчишся</SectionLabel>
-            <ul className="mt-3 space-y-2.5">
-              {longParas.slice(0, 5).map((p, i) => (
-                <li key={i} className="flex items-start gap-3">
-                  <span
-                    aria-hidden
-                    className="flex-shrink-0 mt-0.5 w-6 h-6 rounded-full flex items-center justify-center font-black text-[13px] text-white"
-                    style={{ background: theme.accent }}
-                  >
-                    ✓
-                  </span>
-                  <p className="font-medium text-[14px] text-ink leading-[1.55]">{p}</p>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </section>
-      )}
-
-      {/* Vocabulary */}
-      {courseSets.length > 0 && (
-        <section className="px-4 sm:px-6 py-4">
-          <div className="max-w-screen-md mx-auto w-full">
-            <SectionLabel>Словник курсу</SectionLabel>
-            <div className="mt-3 space-y-2.5">
-              {anchorVocab && (
-                <Link
-                  href={`/kids/vocab/${anchorVocab.slug}`}
-                  className="block active:scale-[0.99] transition-transform"
-                >
-                  <div
-                    className="flex items-center gap-3 px-4 py-3.5 rounded-2xl text-white shadow-card-sm"
-                    style={{ background: theme.gradient }}
-                  >
-                    <span aria-hidden className="text-[28px]">{anchorVocab.iconEmoji}</span>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-black text-[14.5px] leading-tight truncate">
-                        {anchorVocab.titleUa}
-                      </p>
-                      <p className="font-bold text-[11.5px] text-white/85 tabular-nums mt-0.5">
-                        Ключові слова курсу · {anchorVocab.words.length} слів
-                      </p>
-                    </div>
-                    <span aria-hidden className="font-black">→</span>
-                  </div>
-                </Link>
-              )}
-              {lessonVocabSets.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {lessonVocabSets.map((s) => (
-                    <Link
-                      key={s.slug}
-                      href={`/kids/vocab/${s.slug}`}
-                      className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-surface-raised border border-border hover:bg-surface-muted transition-colors"
-                    >
-                      <span aria-hidden>{s.iconEmoji}</span>
-                      <span className="font-black text-[12.5px] text-ink truncate max-w-[140px]">
-                        {s.titleUa}
-                      </span>
-                      <span className="font-bold text-[10.5px] text-ink-faint tabular-nums">
-                        {s.words.length}
-                      </span>
-                    </Link>
-                  ))}
-                </div>
-              )}
+        {/* Progress */}
+        {totalLessons > 0 && (
+          <div className="mt-5">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="font-black text-[11px] text-ink-faint uppercase tracking-[0.08em]">
+                Прогрес
+              </span>
+              <span className="font-black text-[12px] text-ink-muted">
+                {completedCount} / {totalLessons} · {pct}%
+              </span>
             </div>
-          </div>
-        </section>
-      )}
-
-      {/* Lessons grouped by Unit */}
-      <section className="px-4 sm:px-6 py-4">
-        <div className="max-w-screen-md mx-auto w-full">
-          <SectionLabel>Уроки</SectionLabel>
-          {totalLessons === 0 ? (
-            <div className="mt-3">
-              <EmptyState
-                title="Уроки скоро зʼявляться"
-                description="Цей курс ще наповнюється — слідкуй за оновленнями."
+            <div className="h-2 rounded-full bg-surface-muted overflow-hidden">
+              <div
+                className="h-full bg-primary transition-[width] duration-500"
+                style={{ width: `${pct}%` }}
               />
             </div>
+          </div>
+        )}
+
+        {/* Primary CTA — pinned at the top of the page so it's always
+            reachable; mirrors detail-page patterns on Steam, Coursera. */}
+        {totalLessons > 0 && (
+          <div className="mt-5">
+            {isLocked ? (
+              <div className="inline-flex items-center gap-2 rounded-2xl px-4 py-3 bg-surface-muted border border-border">
+                <span aria-hidden>🔒</span>
+                <span className="font-black text-[13px] text-ink-faint">
+                  Потрібен рівень {courseLevel}
+                </span>
+              </div>
+            ) : isComplete ? (
+              <Link
+                href={`/courses/${course.slug}/lessons/${lessonRows[0]?.lesson.slug ?? ''}`}
+                className="inline-flex items-center justify-center w-full rounded-2xl bg-primary text-white font-black text-[15px] h-12 shadow-card-sm active:scale-[0.99] transition-transform"
+              >
+                Повторити перший урок
+              </Link>
+            ) : nextRow ? (
+              <Link
+                href={`/courses/${course.slug}/lessons/${nextRow.lesson.slug}`}
+                className="inline-flex items-center justify-center gap-2 w-full rounded-2xl bg-primary text-white font-black text-[15px] h-12 shadow-card-sm active:scale-[0.99] transition-transform"
+              >
+                {completedCount > 0 ? 'Продовжити' : 'Почати курс'}
+                <span aria-hidden>→</span>
+              </Link>
+            ) : null}
+          </div>
+        )}
+        </div>
+      </section>
+
+      {/* Description */}
+      {longParas.length > 0 && (
+        <section className="px-5 md:px-10 py-6 border-b border-border">
+          <div className="max-w-screen-md mx-auto w-full">
+            <p className="font-black mb-3 text-[11px] text-ink-faint uppercase tracking-[0.09em]">
+              Про курс
+            </p>
+            <div className="flex flex-col gap-3">
+              {longParas.map((p, i) => (
+                <p key={i} className="font-medium text-[14.5px] text-ink leading-[1.7]">
+                  {p}
+                </p>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Vocabulary attached to this course */}
+      {vocabSets && course ? (
+        (() => {
+          const courseSets = vocabSets.filter((s) => s.courseSlug === course.slug);
+          if (courseSets.length === 0) return null;
+          const anchor = courseSets.find((s) => !s.lessonSlug) ?? null;
+          const lessonSets = courseSets.filter((s) => s.lessonSlug);
+          return (
+            <section className="px-5 md:px-10 py-6 border-b border-border">
+              <div className="max-w-screen-md mx-auto w-full">
+              <p className="font-black mb-3 text-[11px] text-ink-faint uppercase tracking-[0.09em]">
+                Словник курсу
+              </p>
+              <div className="flex flex-col gap-2">
+                {anchor && (
+                  <Link
+                    href={`/kids/vocab/${anchor.slug}`}
+                    className="flex items-center gap-3 px-4 py-3 rounded-2xl border-2 border-primary/20 bg-primary/5 hover:bg-primary/10 transition-colors"
+                  >
+                    <span aria-hidden className="text-[24px]">{anchor.iconEmoji}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-black text-[14px] text-ink leading-snug truncate">
+                        {anchor.titleUa}
+                      </p>
+                      <p className="font-medium text-[11.5px] text-ink-muted mt-0.5">
+                        Ключові слова курсу · {anchor.words.length} слів
+                      </p>
+                    </div>
+                    <span aria-hidden className="text-ink-faint font-black">›</span>
+                  </Link>
+                )}
+                {lessonSets.length > 0 && (
+                  <details className="group rounded-2xl border border-border bg-surface-raised">
+                    <summary className="flex items-center gap-2 px-4 py-3 cursor-pointer select-none list-none">
+                      <span className="font-black text-[12.5px] text-ink flex-1">
+                        Слова за уроками ({lessonSets.length})
+                      </span>
+                      <span aria-hidden className="text-ink-faint font-black transition-transform group-open:rotate-90">›</span>
+                    </summary>
+                    <div className="px-2 pb-2 flex flex-col gap-1.5">
+                      {lessonSets.map((s) => (
+                        <Link
+                          key={s.slug}
+                          href={`/kids/vocab/${s.slug}`}
+                          className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-surface-muted transition-colors"
+                        >
+                          <span aria-hidden className="text-[18px]">{s.iconEmoji}</span>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-bold text-[13px] text-ink truncate">{s.titleUa}</p>
+                            <p className="font-medium text-[11px] text-ink-faint">{s.words.length} слів</p>
+                          </div>
+                          <span aria-hidden className="text-ink-faint">›</span>
+                        </Link>
+                      ))}
+                    </div>
+                  </details>
+                )}
+              </div>
+              </div>
+            </section>
+          );
+        })()
+      ) : null}
+
+      {/* Lessons list */}
+      <section className="px-5 md:px-10 py-6 flex-1">
+        <div className="max-w-screen-md mx-auto w-full">
+          <p className="font-black mb-3 text-[11px] text-ink-faint uppercase tracking-[0.09em]">
+            Уроки
+          </p>
+          {totalLessons === 0 ? (
+            <EmptyState
+              title="Уроки скоро зʼявляться"
+              description="Цей курс ще наповнюється — слідкуй за оновленнями."
+            />
           ) : (
-            <div className="mt-3 space-y-4">
+            <div className="flex flex-col gap-5">
               {groups.map((g) => (
-                <Unit key={g.slug} group={g} courseSlug={course.slug} accent={theme.accent} isLocked={isLocked} />
+                <div key={g.slug}>
+                  {g.title && (
+                    <p className="font-bold text-[12px] text-ink-muted mb-2 px-1">
+                      {g.title}
+                    </p>
+                  )}
+                  <ol className="rounded-2xl border border-border bg-surface-raised overflow-hidden divide-y divide-border">
+                    {g.rows.map((row, idx) => (
+                      <LessonListItem
+                        key={row.lesson.documentId}
+                        row={row}
+                        index={idx}
+                        courseSlug={course.slug}
+                        isLocked={isLocked}
+                      />
+                    ))}
+                  </ol>
+                </div>
               ))}
             </div>
           )}
@@ -387,87 +473,10 @@ export default function KidsCourseDetailPage() {
   );
 }
 
-function ProgressRing({ pct }: { pct: number }) {
-  const size = 72;
-  const stroke = 7;
-  const r = (size - stroke) / 2;
-  const c = 2 * Math.PI * r;
-  const dash = (pct / 100) * c;
+function Header({ onBack, title }: { onBack: () => void; title: string }) {
   return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="flex-shrink-0">
-      <circle
-        cx={size / 2}
-        cy={size / 2}
-        r={r}
-        fill="none"
-        stroke="rgba(255,255,255,0.25)"
-        strokeWidth={stroke}
-      />
-      <circle
-        cx={size / 2}
-        cy={size / 2}
-        r={r}
-        fill="none"
-        stroke="white"
-        strokeWidth={stroke}
-        strokeLinecap="round"
-        strokeDasharray={`${dash} ${c - dash}`}
-        transform={`rotate(-90 ${size / 2} ${size / 2})`}
-      />
-      <text
-        x="50%"
-        y="50%"
-        textAnchor="middle"
-        dominantBaseline="central"
-        className="font-black"
-        fontSize="20"
-        fill="white"
-      >
-        {pct}%
-      </text>
-    </svg>
-  );
-}
-
-function Unit({
-  group,
-  courseSlug,
-  accent,
-  isLocked,
-}: {
-  group: UnitGroup;
-  courseSlug: string;
-  accent: string;
-  isLocked: boolean;
-}) {
-  return (
-    <div>
-      {group.title && (
-        <p className="font-black text-[13px] text-ink mb-2 px-1 leading-tight">
-          {group.title}
-        </p>
-      )}
-      <div className="space-y-2">
-        {group.rows.map((row, idx) => (
-          <LessonTileCard
-            key={row.lesson.documentId}
-            lesson={row.lesson}
-            index={idx}
-            status={row.status}
-            href={`/courses/${courseSlug}/lessons/${row.lesson.slug}`}
-            courseAccent={accent}
-            isLocked={isLocked}
-          />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function BackHeader({ title, onBack }: { title: string; onBack: () => void }) {
-  return (
-    <div className="sticky top-0 z-10 border-b border-border bg-surface-raised/95 backdrop-blur-md pt-[max(12px,env(safe-area-inset-top))]">
-      <div className="max-w-screen-md mx-auto w-full flex items-center gap-3 px-4 sm:px-6 py-3">
+    <div className="sticky top-0 z-10 border-b border-border bg-surface-raised pt-[max(12px,env(safe-area-inset-top))]">
+      <div className="max-w-screen-md mx-auto w-full flex items-center gap-3 px-4 md:px-6 py-3">
         <button
           onClick={onBack}
           aria-label="Назад"
@@ -481,10 +490,76 @@ function BackHeader({ title, onBack }: { title: string; onBack: () => void }) {
   );
 }
 
-function SectionLabel({ children }: { children: React.ReactNode }) {
+function LessonListItem({
+  row,
+  index,
+  courseSlug,
+  isLocked,
+}: {
+  row: LessonRow;
+  index: number;
+  courseSlug: string;
+  isLocked: boolean;
+}) {
+  const { lesson, status } = row;
+  const emoji = TYPE_EMOJI[lesson.type] ?? '📘';
+  const typeLabel = TYPE_LABEL[lesson.type] ?? 'Урок';
+  const disabled = isLocked;
+  const href = disabled ? '#' : `/courses/${courseSlug}/lessons/${lesson.slug}`;
+
+  const dotClass =
+    status === 'done'
+      ? 'bg-success text-white'
+      : status === 'current'
+        ? 'bg-primary text-white ring-4 ring-primary/15'
+        : 'bg-surface-muted text-ink-faint';
+
   return (
-    <p className="font-black uppercase tracking-widest text-[10.5px] text-ink-faint">
-      {children}
-    </p>
+    <li>
+      <Link
+        href={href}
+        aria-disabled={disabled}
+        onClick={(e) => {
+          if (disabled) e.preventDefault();
+        }}
+        className={[
+          'flex items-center gap-3 px-4 py-3.5 transition-colors',
+          disabled ? 'opacity-55 cursor-not-allowed' : 'hover:bg-surface-muted active:bg-surface-muted',
+        ].join(' ')}
+      >
+        <span
+          aria-hidden
+          className={[
+            'flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-black text-[12px] transition-colors',
+            dotClass,
+          ].join(' ')}
+        >
+          {status === 'done' ? '✓' : index + 1}
+        </span>
+        <span aria-hidden className="flex-shrink-0 text-[20px]">
+          {emoji}
+        </span>
+        <div className="flex-1 min-w-0">
+          <p
+            className={[
+              'font-black text-[14px] leading-snug truncate',
+              status === 'upcoming' ? 'text-ink-muted' : 'text-ink',
+            ].join(' ')}
+          >
+            {lesson.title}
+          </p>
+          <p className="font-medium text-[11.5px] text-ink-faint mt-0.5">
+            {typeLabel}
+            {lesson.durationMin ? ` · ${lesson.durationMin} хв` : ''}
+            {status === 'current' ? ' · Поточний' : ''}
+          </p>
+        </div>
+        {!disabled && (
+          <span aria-hidden className="text-ink-faint font-black text-[16px]">
+            ›
+          </span>
+        )}
+      </Link>
+    </li>
   );
 }
