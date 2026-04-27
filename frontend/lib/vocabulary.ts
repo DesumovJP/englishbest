@@ -99,16 +99,25 @@ const LIST_URL =
   '&populate[lesson][fields][0]=slug' +
   '&populate[lesson][fields][1]=title' +
   '&pagination[pageSize]=200' +
-  '&sort=level:asc';
+  '&sort=level:asc' +
+  '&publicationState=live'; // Strapi v5 still honours this — keeps drafts out.
 
 const cache = createCachedFetcher<VocabularySet[]>({
-  key: 'vocabulary',
+  key: 'vocabulary:v2',
   ttlMs: 5 * 60 * 1000,
   fetch: async () => {
     const res = await fetch(LIST_URL, { cache: 'no-store' });
-    if (!res.ok) throw new Error(`fetchVocabularySets ${res.status}`);
+    if (!res.ok) {
+      // Surface the status so the empty-state page can hint at the cause
+      // instead of silently rendering "Словничок наповнюється".
+      console.error('[vocabulary] fetch failed', res.status, await res.text().catch(() => ''));
+      throw new Error(`fetchVocabularySets ${res.status}`);
+    }
     const json = await res.json().catch(() => ({}));
     const rows: any[] = Array.isArray(json?.data) ? json.data : [];
+    if (rows.length === 0) {
+      console.warn('[vocabulary] fetch returned 0 rows', json);
+    }
     return rows.map(normalize).filter((x): x is VocabularySet => x !== null);
   },
 });

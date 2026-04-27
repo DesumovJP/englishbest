@@ -204,11 +204,14 @@ export default function KidsCourseDetailPage() {
 
   const loading = courses === null || lessons === null || progress === null;
 
+  // Bottom padding clears the fixed kids footer (72px tab bar + safe-area).
+  const PAGE_BOTTOM_PAD = 'pb-[calc(env(safe-area-inset-bottom,0px)+96px)]';
+
   if (loading && !course) {
     return (
-      <div className="min-h-[100dvh] bg-surface-raised">
+      <div className={`min-h-[100dvh] bg-surface-raised ${PAGE_BOTTOM_PAD}`}>
         <Header onBack={() => router.back()} title="Курс" />
-        <div className="px-4 py-10">
+        <div className="max-w-screen-md mx-auto w-full px-4 py-10">
           <LoadingState shape="card" rows={1} />
         </div>
       </div>
@@ -217,9 +220,9 @@ export default function KidsCourseDetailPage() {
 
   if (!course) {
     return (
-      <div className="min-h-[100dvh] bg-surface-raised">
+      <div className={`min-h-[100dvh] bg-surface-raised ${PAGE_BOTTOM_PAD}`}>
         <Header onBack={() => router.back()} title="Курс" />
-        <div className="px-4 py-10">
+        <div className="max-w-screen-md mx-auto w-full px-4 py-10">
           <EmptyState
             title="Курс не знайдено"
             description={
@@ -253,15 +256,17 @@ export default function KidsCourseDetailPage() {
   const subtitle = course.subtitle ?? '';
 
   return (
-    <div className="flex flex-col min-h-[100dvh] bg-surface-raised">
+    <div className={`flex flex-col min-h-[100dvh] bg-surface-raised ${PAGE_BOTTOM_PAD}`}>
       <Header
         onBack={() => router.push('/kids/school')}
         title={course.title}
       />
 
-      {/* Hero */}
-      <section className="px-5 md:px-10 pt-6 pb-5 border-b border-border">
-        <div className="flex items-start gap-4 max-w-screen-md">
+      {/* Hero — primary CTA lives here so a kid can start the course
+          immediately without scrolling past the lessons list. */}
+      <section className="px-5 md:px-10 pt-6 pb-6 border-b border-border">
+        <div className="max-w-screen-md mx-auto w-full">
+        <div className="flex items-start gap-4">
           <div
             aria-hidden
             className="flex-shrink-0 w-[88px] h-[88px] rounded-2xl bg-primary/10 flex items-center justify-center text-[44px] shadow-card-sm"
@@ -295,7 +300,7 @@ export default function KidsCourseDetailPage() {
 
         {/* Progress */}
         {totalLessons > 0 && (
-          <div className="mt-5 max-w-screen-md">
+          <div className="mt-5">
             <div className="flex items-center justify-between mb-1.5">
               <span className="font-black text-[11px] text-ink-faint uppercase tracking-[0.08em]">
                 Прогрес
@@ -312,20 +317,53 @@ export default function KidsCourseDetailPage() {
             </div>
           </div>
         )}
+
+        {/* Primary CTA — pinned at the top of the page so it's always
+            reachable; mirrors detail-page patterns on Steam, Coursera. */}
+        {totalLessons > 0 && (
+          <div className="mt-5">
+            {isLocked ? (
+              <div className="inline-flex items-center gap-2 rounded-2xl px-4 py-3 bg-surface-muted border border-border">
+                <span aria-hidden>🔒</span>
+                <span className="font-black text-[13px] text-ink-faint">
+                  Потрібен рівень {courseLevel}
+                </span>
+              </div>
+            ) : isComplete ? (
+              <Link
+                href={`/courses/${course.slug}/lessons/${lessonRows[0]?.lesson.slug ?? ''}`}
+                className="inline-flex items-center justify-center w-full rounded-2xl bg-primary text-white font-black text-[15px] h-12 shadow-card-sm active:scale-[0.99] transition-transform"
+              >
+                Повторити перший урок
+              </Link>
+            ) : nextRow ? (
+              <Link
+                href={`/courses/${course.slug}/lessons/${nextRow.lesson.slug}`}
+                className="inline-flex items-center justify-center gap-2 w-full rounded-2xl bg-primary text-white font-black text-[15px] h-12 shadow-card-sm active:scale-[0.99] transition-transform"
+              >
+                {completedCount > 0 ? 'Продовжити' : 'Почати курс'}
+                <span aria-hidden>→</span>
+              </Link>
+            ) : null}
+          </div>
+        )}
+        </div>
       </section>
 
       {/* Description */}
       {longParas.length > 0 && (
         <section className="px-5 md:px-10 py-6 border-b border-border">
-          <p className="font-black mb-3 text-[11px] text-ink-faint uppercase tracking-[0.09em]">
-            Про курс
-          </p>
-          <div className="flex flex-col gap-3 max-w-[680px]">
-            {longParas.map((p, i) => (
-              <p key={i} className="font-medium text-[14.5px] text-ink leading-[1.7]">
-                {p}
-              </p>
-            ))}
+          <div className="max-w-screen-md mx-auto w-full">
+            <p className="font-black mb-3 text-[11px] text-ink-faint uppercase tracking-[0.09em]">
+              Про курс
+            </p>
+            <div className="flex flex-col gap-3">
+              {longParas.map((p, i) => (
+                <p key={i} className="font-medium text-[14.5px] text-ink leading-[1.7]">
+                  {p}
+                </p>
+              ))}
+            </div>
           </div>
         </section>
       )}
@@ -339,10 +377,11 @@ export default function KidsCourseDetailPage() {
           const lessonSets = courseSets.filter((s) => s.lessonSlug);
           return (
             <section className="px-5 md:px-10 py-6 border-b border-border">
+              <div className="max-w-screen-md mx-auto w-full">
               <p className="font-black mb-3 text-[11px] text-ink-faint uppercase tracking-[0.09em]">
                 Словник курсу
               </p>
-              <div className="flex flex-col gap-2 max-w-screen-md">
+              <div className="flex flex-col gap-2">
                 {anchor && (
                   <Link
                     href={`/kids/vocab/${anchor.slug}`}
@@ -387,6 +426,7 @@ export default function KidsCourseDetailPage() {
                   </details>
                 )}
               </div>
+              </div>
             </section>
           );
         })()
@@ -394,83 +434,58 @@ export default function KidsCourseDetailPage() {
 
       {/* Lessons list */}
       <section className="px-5 md:px-10 py-6 flex-1">
-        <p className="font-black mb-3 text-[11px] text-ink-faint uppercase tracking-[0.09em]">
-          Уроки
-        </p>
-        {totalLessons === 0 ? (
-          <EmptyState
-            title="Уроки скоро зʼявляться"
-            description="Цей курс ще наповнюється — слідкуй за оновленнями."
-          />
-        ) : (
-          <div className="flex flex-col gap-5 max-w-screen-md">
-            {groups.map((g) => (
-              <div key={g.slug}>
-                {g.title && (
-                  <p className="font-bold text-[12px] text-ink-muted mb-2 px-1">
-                    {g.title}
-                  </p>
-                )}
-                <ol className="rounded-2xl border border-border bg-surface-raised overflow-hidden divide-y divide-border">
-                  {g.rows.map((row, idx) => (
-                    <LessonListItem
-                      key={row.lesson.documentId}
-                      row={row}
-                      index={idx}
-                      courseSlug={course.slug}
-                      isLocked={isLocked}
-                    />
-                  ))}
-                </ol>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
-
-      {/* Sticky CTA */}
-      {totalLessons > 0 && (
-        <div className="sticky bottom-0 inset-x-0 px-5 md:px-10 py-3 border-t border-border bg-surface-raised pb-[calc(env(safe-area-inset-bottom,0px)+12px)]">
-          {isLocked ? (
-            <div className="inline-flex items-center gap-2 rounded-xl px-4 py-3 bg-surface-muted border border-border">
-              <span aria-hidden>🔒</span>
-              <span className="font-black text-[13px] text-ink-faint">
-                Потрібен рівень {courseLevel}
-              </span>
+        <div className="max-w-screen-md mx-auto w-full">
+          <p className="font-black mb-3 text-[11px] text-ink-faint uppercase tracking-[0.09em]">
+            Уроки
+          </p>
+          {totalLessons === 0 ? (
+            <EmptyState
+              title="Уроки скоро зʼявляться"
+              description="Цей курс ще наповнюється — слідкуй за оновленнями."
+            />
+          ) : (
+            <div className="flex flex-col gap-5">
+              {groups.map((g) => (
+                <div key={g.slug}>
+                  {g.title && (
+                    <p className="font-bold text-[12px] text-ink-muted mb-2 px-1">
+                      {g.title}
+                    </p>
+                  )}
+                  <ol className="rounded-2xl border border-border bg-surface-raised overflow-hidden divide-y divide-border">
+                    {g.rows.map((row, idx) => (
+                      <LessonListItem
+                        key={row.lesson.documentId}
+                        row={row}
+                        index={idx}
+                        courseSlug={course.slug}
+                        isLocked={isLocked}
+                      />
+                    ))}
+                  </ol>
+                </div>
+              ))}
             </div>
-          ) : isComplete ? (
-            <Link
-              href={`/courses/${course.slug}/lessons/${lessonRows[0]?.lesson.slug ?? ''}`}
-              className="inline-flex items-center justify-center w-full max-w-screen-md rounded-2xl bg-primary text-white font-black text-[15px] h-12 shadow-card-sm active:scale-[0.99] transition-transform"
-            >
-              Повторити перший урок
-            </Link>
-          ) : nextRow ? (
-            <Link
-              href={`/courses/${course.slug}/lessons/${nextRow.lesson.slug}`}
-              className="inline-flex items-center justify-center gap-2 w-full max-w-screen-md rounded-2xl bg-primary text-white font-black text-[15px] h-12 shadow-card-sm active:scale-[0.99] transition-transform"
-            >
-              {completedCount > 0 ? 'Продовжити' : 'Почати курс'}
-              <span aria-hidden>→</span>
-            </Link>
-          ) : null}
+          )}
         </div>
-      )}
+      </section>
     </div>
   );
 }
 
 function Header({ onBack, title }: { onBack: () => void; title: string }) {
   return (
-    <div className="sticky top-0 z-10 flex items-center gap-3 px-4 md:px-6 py-3 border-b border-border bg-surface-raised pt-[max(12px,env(safe-area-inset-top))]">
-      <button
-        onClick={onBack}
-        aria-label="Назад"
-        className="w-9 h-9 rounded-lg flex items-center justify-center font-black text-lg flex-shrink-0 bg-surface-muted text-ink active:scale-90 transition-transform"
-      >
-        ←
-      </button>
-      <p className="font-black text-[14.5px] text-ink truncate">{title}</p>
+    <div className="sticky top-0 z-10 border-b border-border bg-surface-raised pt-[max(12px,env(safe-area-inset-top))]">
+      <div className="max-w-screen-md mx-auto w-full flex items-center gap-3 px-4 md:px-6 py-3">
+        <button
+          onClick={onBack}
+          aria-label="Назад"
+          className="w-9 h-9 rounded-lg flex items-center justify-center font-black text-lg flex-shrink-0 bg-surface-muted text-ink active:scale-90 transition-transform"
+        >
+          ←
+        </button>
+        <p className="font-black text-[14.5px] text-ink truncate">{title}</p>
+      </div>
     </div>
   );
 }

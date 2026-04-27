@@ -315,7 +315,7 @@ const PER_LESSON: VocabSet[] = [
     topic: 'countries',
     iconEmoji: '🌍',
     courseSlug: 'a-foundation',
-    lessonSlug: 'a-foundation-2-countries',
+    lessonSlug: 'a-foundation-2-where-from',
     words: [
       { word: 'Ukraine', translation: 'Україна', example: 'I am from Ukraine.', exampleTranslation: 'Я з України.', partOfSpeech: 'noun' },
       { word: 'Ukrainian', translation: 'українець / українка', example: "I am Ukrainian.", exampleTranslation: 'Я українець.', partOfSpeech: 'adjective' },
@@ -338,7 +338,7 @@ const PER_LESSON: VocabSet[] = [
     topic: 'numbers-age',
     iconEmoji: '🔢',
     courseSlug: 'a-foundation',
-    lessonSlug: 'a-foundation-3-numbers',
+    lessonSlug: 'a-foundation-3-numbers-age',
     words: [
       { word: 'one', translation: '1', example: 'I have one brother.', exampleTranslation: 'У мене один брат.' },
       { word: 'two', translation: '2', example: 'I see two cats.', exampleTranslation: 'Я бачу двох котів.' },
@@ -361,7 +361,7 @@ const PER_LESSON: VocabSet[] = [
     topic: 'family',
     iconEmoji: '👨‍👩‍👧',
     courseSlug: 'a-foundation',
-    lessonSlug: 'a-foundation-4-family',
+    lessonSlug: 'a-foundation-4-my-family',
     words: [
       { word: 'mother', translation: 'мати', example: 'My mother loves me.', exampleTranslation: 'Моя мати мене любить.', partOfSpeech: 'noun' },
       { word: 'father', translation: 'батько', example: 'My father works hard.', exampleTranslation: 'Мій батько багато працює.', partOfSpeech: 'noun' },
@@ -384,7 +384,7 @@ const PER_LESSON: VocabSet[] = [
     topic: 'objects-articles',
     iconEmoji: '✏️',
     courseSlug: 'a-foundation',
-    lessonSlug: 'a-foundation-5-objects',
+    lessonSlug: 'a-foundation-5-whats-this',
     words: [
       { word: 'book', translation: 'книга', example: 'This is a good book.', exampleTranslation: 'Це гарна книга.', partOfSpeech: 'noun' },
       { word: 'pen', translation: 'ручка', example: 'I need a pen.', exampleTranslation: 'Мені потрібна ручка.', partOfSpeech: 'noun' },
@@ -430,7 +430,7 @@ const PER_LESSON: VocabSet[] = [
     topic: 'likes',
     iconEmoji: '❤️',
     courseSlug: 'a-foundation',
-    lessonSlug: 'a-foundation-7-likes',
+    lessonSlug: 'a-foundation-7-i-like',
     words: [
       { word: 'like', translation: 'подобається', example: 'I like ice cream.', exampleTranslation: 'Мені подобається морозиво.', partOfSpeech: 'verb' },
       { word: "don't like", translation: 'не подобається', example: "I don't like spinach.", exampleTranslation: 'Мені не подобається шпинат.', partOfSpeech: 'phrase' },
@@ -546,6 +546,17 @@ export async function up(strapi: any): Promise<void> {
           data: data as any,
           status: 'published',
         });
+        // Belt-and-braces: ensure a published version exists. If the row
+        // had only a draft revision (older seed without `status:'published'`),
+        // publish() promotes it; if a published version is already there
+        // it's a no-op.
+        try {
+          await strapi.documents(VOCAB_UID).publish({
+            documentId: (existing as any).documentId,
+          });
+        } catch {
+          /* publish() throws if already published — ignore. */
+        }
         updated += 1;
       } catch (err) {
         strapi.log.warn(

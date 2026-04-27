@@ -12,8 +12,14 @@ const nunito = Nunito({
 });
 
 export const metadata: Metadata = {
-  title: "EnglishBest — Learn English Online",
-  description: "Fun, effective English learning for kids, teens, and adults.",
+  title: {
+    default: "EnglishBest — Уроки англійської онлайн",
+    template: "%s · EnglishBest",
+  },
+  description:
+    "Англійська для дітей, підлітків і дорослих. Живі уроки, ігрова мотивація, словничок і досягнення — від нуля до B2.",
+  applicationName: "EnglishBest",
+  appleWebApp: { title: "EnglishBest" },
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {

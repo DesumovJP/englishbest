@@ -81,3 +81,6 @@ next-env.d.ts
 !frontend/public/**/*.png
 !frontend/public/**/*.jpg
 !frontend/public/**/*.jpeg
+# Next.js auto-detected app icons (favicon + apple-touch).
+!frontend/app/icon.png
+!frontend/app/apple-icon.png
