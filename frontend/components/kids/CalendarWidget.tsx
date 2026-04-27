@@ -121,7 +121,7 @@ export function CalendarDialog({ open, onClose }: { open: boolean; onClose: () =
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-md pt-3 px-3 pb-[calc(env(safe-area-inset-bottom,0px)+76px)] sm:p-4"
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-kid-ink/80 backdrop-blur-md pt-3 px-3 pb-[calc(env(safe-area-inset-bottom,0px)+76px)] sm:p-4"
       role="dialog"
       aria-modal="true"
       aria-label="Розклад занять"

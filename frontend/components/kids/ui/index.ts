@@ -36,4 +36,5 @@ export { HudCard } from "./HudCard";
 export { KidsLevelBar } from "./KidsLevelBar";
 export { SpeechBubble } from "./SpeechBubble";
 export { XpBadge } from "./XpBadge";
+export { RewardChip } from "./RewardChip";
 export { ProgressBar } from "./ProgressBar";

@@ -41,10 +41,16 @@
   --color-kids-green:      #58CC02; /* Duolingo-lime; distinct from adult --color-primary */
   --color-kids-green-dark: #4aa001;
 
-  /* ── Coin / shop ────────────────────────────────────────────── */
+  /* ── Reward currencies ──────────────────────────────────────── */
+  /* Coin: amber family — matches /public/coin.png. */
   --color-coin:        #b45309;
   --color-coin-bg:     #fffbeb;
   --color-coin-border: #fde68a;
+  /* XP: violet family — matches /public/xp.png. Mirrors the coin trio so
+     `<RewardChip kind="xp" />` can use the same token shape. */
+  --color-xp:          #7c3aed;
+  --color-xp-bg:       #f5f3ff;
+  --color-xp-border:   #ddd6fe;
 
   /* ── Surfaces ───────────────────────────────────────────────── */
   --color-surface:         #FAFAF8;

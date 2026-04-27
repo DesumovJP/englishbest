@@ -145,27 +145,28 @@ export default function AchievementsPage() {
                   <div className="flex flex-col items-end gap-1 flex-shrink-0">
                     <div
                       className={[
-                        "rounded-xl px-2 py-0.5 flex items-center gap-1 border",
+                        "rounded-xl px-2 py-1 flex items-center gap-1.5 border",
                         a.earned ? tone.rewardBg : "bg-surface-muted border-border",
                       ].join(" ")}
                     >
                       {a.xpReward > 0 && (
-                        <>
+                        <span className="inline-flex items-center gap-0.5">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src="/xp.png" alt="" aria-hidden width={12} height={12} className={["object-contain flex-shrink-0", a.earned ? "" : "opacity-50"].join(" ")} />
                           <span className={["font-black text-[11px] tabular-nums leading-none", a.earned ? tone.rewardText : "text-ink-faint"].join(" ")}>
                             +{a.xpReward}
                           </span>
-                          <span className={["text-[9px] font-bold leading-none uppercase tracking-wider", a.earned ? tone.rewardText : "text-ink-faint"].join(" ")}>
-                            xp
-                          </span>
-                        </>
+                        </span>
                       )}
                       {a.coinReward > 0 && (
-                        <>
-                          {a.xpReward > 0 && <span className="opacity-50">·</span>}
+                        <span className="inline-flex items-center gap-0.5">
+                          {a.xpReward > 0 && <span className={["opacity-50 mr-0.5", a.earned ? tone.rewardText : "text-ink-faint"].join(" ")}>·</span>}
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src="/coin.png" alt="" aria-hidden width={12} height={12} className={["object-contain flex-shrink-0", a.earned ? "" : "opacity-50"].join(" ")} />
                           <span className={["font-black text-[11px] tabular-nums leading-none", a.earned ? tone.rewardText : "text-ink-faint"].join(" ")}>
-                            +{a.coinReward}🪙
+                            +{a.coinReward}
                           </span>
-                        </>
+                        </span>
                       )}
                     </div>
                     {a.earned && (

@@ -17,7 +17,7 @@
  */
 'use client';
 import { useEffect, useMemo, useState } from 'react';
-import { KidsButton, KidsCoinBadge } from '@/components/kids/ui';
+import { KidsButton, KidsCoinBadge, RewardChip } from '@/components/kids/ui';
 import type { MiniTask } from '@/lib/mini-tasks';
 import { submitAttempt, type SubmitAttemptResult } from '@/lib/mini-task-attempts';
 import { emitKidsEvent } from '@/lib/kids-store';
@@ -144,7 +144,7 @@ export function MiniTaskPlayer({ task, onClose, onCompleted }: MiniTaskPlayerPro
   // ─── Render: doing → submitting → done ────────────────────────────────
   return (
     <div
-      className="fixed inset-0 z-[60] bg-kid-ink/85 backdrop-blur-md flex items-end sm:items-center justify-center pt-3 px-3 pb-[calc(env(safe-area-inset-bottom,0px)+76px)] sm:p-4"
+      className="fixed inset-0 z-[60] bg-kid-ink/80 backdrop-blur-md flex items-end sm:items-center justify-center pt-3 px-3 pb-[calc(env(safe-area-inset-bottom,0px)+76px)] sm:p-4"
       role="dialog"
       aria-modal="true"
       aria-label={task.title}
@@ -448,24 +448,18 @@ function ResultScreen({
       {(result.awardedCoins > 0 || result.xpDelta > 0) && (
         <div className="flex items-center gap-2 flex-wrap justify-center">
           {result.awardedCoins > 0 && (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-coin-bg border border-coin-border">
-              <span className="text-base" aria-hidden>🪙</span>
-              <span className="font-black text-coin text-[14px] tabular-nums">+{result.awardedCoins}</span>
-            </div>
+            <RewardChip kind="coin" amount={result.awardedCoins} size="md" />
           )}
           {result.xpDelta > 0 && (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-purple/15 border border-purple/40">
-              <span className="font-black text-purple-dark text-[10px] uppercase tracking-wider leading-none">XP</span>
-              <span className="font-black text-purple-dark text-[14px] tabular-nums leading-none">+{result.xpDelta}</span>
-            </div>
+            <RewardChip kind="xp" amount={result.xpDelta} size="md" />
           )}
         </div>
       )}
 
       {result.levelUp && result.level !== null && (
-        <div className="w-full rounded-2xl bg-purple/15 border-2 border-purple px-4 py-3 text-center animate-bounce-in">
-          <p className="text-[10px] font-black uppercase tracking-wider text-purple-dark/70">level up!</p>
-          <p className="text-[18px] font-black text-purple-dark mt-0.5">Рівень {result.level}</p>
+        <div className="w-full rounded-2xl bg-xp-bg border-2 border-xp-border px-4 py-3 text-center animate-bounce-in">
+          <p className="text-[10px] font-black uppercase tracking-wider text-xp/70">level up!</p>
+          <p className="text-[18px] font-black text-xp mt-0.5">Рівень {result.level}</p>
         </div>
       )}
 
@@ -474,19 +468,18 @@ function ResultScreen({
           {result.achievementsEarned.map((a) => (
             <div
               key={a.slug}
-              className="flex items-center gap-2.5 px-3 py-2 rounded-2xl bg-accent/10 border-2 border-accent/40 animate-bounce-in"
+              className="flex items-center gap-2.5 px-3 py-2.5 rounded-2xl bg-accent/10 border-2 border-accent/40 animate-bounce-in"
             >
-              <span className="text-2xl flex-shrink-0" aria-hidden>🏆</span>
+              <span className="flex-shrink-0 w-9 h-9 rounded-xl bg-accent/20 flex items-center justify-center text-[20px] leading-none" aria-hidden>🏆</span>
               <div className="flex-1 min-w-0 text-left">
-                <p className="text-[10px] font-black uppercase tracking-wider text-accent-dark/70">нове досягнення</p>
-                <p className="text-[14px] font-black text-accent-dark truncate">{a.title}</p>
+                <p className="text-[10px] font-black uppercase tracking-wider text-accent-dark/70 leading-tight">нове досягнення</p>
+                <p className="text-[14px] font-black text-accent-dark truncate leading-tight mt-0.5">{a.title}</p>
               </div>
               {(a.coinReward > 0 || a.xpReward > 0) && (
-                <span className="text-[11px] font-bold text-ink-muted flex-shrink-0 tabular-nums whitespace-nowrap">
-                  {a.coinReward > 0 ? `+${a.coinReward}🪙` : ''}
-                  {a.coinReward > 0 && a.xpReward > 0 ? ' ' : ''}
-                  {a.xpReward > 0 ? `+${a.xpReward}XP` : ''}
-                </span>
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  {a.coinReward > 0 && <RewardChip kind="coin" amount={a.coinReward} size="xs" />}
+                  {a.xpReward > 0 && <RewardChip kind="xp" amount={a.xpReward} size="xs" />}
+                </div>
               )}
             </div>
           ))}

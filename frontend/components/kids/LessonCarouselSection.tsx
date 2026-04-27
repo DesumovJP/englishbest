@@ -31,6 +31,7 @@ import {
   type UserProgressRow,
 } from '@/lib/user-progress';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { RewardChip } from '@/components/kids/ui';
 
 interface Props {
   level: Level;
@@ -134,8 +135,8 @@ function LessonCard({
             {typeLabel}
           </p>
           {typeof lesson.xp === 'number' && lesson.xp > 0 && (
-            <div className="flex items-center gap-2 mt-1 rounded-full px-3.5 py-1.5 bg-white/20 backdrop-blur border border-white/25">
-              <span className="font-black text-white text-[15px]">+{lesson.xp} XP</span>
+            <div className="mt-1">
+              <RewardChip kind="xp" amount={lesson.xp} size="md" tone="onDark" />
             </div>
           )}
         </div>
