@@ -24,7 +24,7 @@ import {
   peekCourses,
   peekLessonsByCourse,
 } from '@/lib/api';
-import type { Course, Lesson, Level, LessonType } from '@/lib/types';
+import type { Course, Lesson, Level } from '@/lib/types';
 import {
   fetchMyProgressCached,
   peekMyProgress,
@@ -48,129 +48,105 @@ interface FlatNode {
 
 type NodeStatus = 'done' | 'current' | 'upcoming';
 
-const TYPE_EMOJI: Record<LessonType, string> = {
-  video: '🎬',
-  reading: '📖',
-  quiz: '🎯',
-  interactive: '✏️',
-};
-
-const TYPE_LABEL: Record<LessonType, string> = {
-  video: 'Відео',
-  reading: 'Читання',
-  quiz: 'Тест',
-  interactive: 'Урок',
-};
-
 function LessonCard({
   lesson,
   course,
   status,
   accent,
   groupLabel,
+  index,
 }: {
   lesson: Lesson;
   course: Course;
   status: NodeStatus;
   accent: string;
   groupLabel?: string;
+  /** 1-based ordinal across the carousel — shown bottom-left of the card. */
+  index: number;
 }) {
-  const emoji = TYPE_EMOJI[lesson.type] ?? '📘';
-  const typeLabel = TYPE_LABEL[lesson.type] ?? 'Урок';
   const isCurrent = status === 'current';
   const isDone = status === 'done';
   const isLocked = status === 'upcoming' && !isCurrent;
 
-  // Cover precedence: lesson-specific cover > course cover > pure gradient
-  // fallback. Image gets a soft top→bottom darkening overlay so the white
-  // title text stays readable without obscuring the photo.
+  // Cover precedence: lesson-specific cover > course cover > pure gradient.
   const bgImage = lesson.coverUrl || course.coverImageUrl || null;
 
   const ringStyle = isCurrent
     ? { boxShadow: `inset 0 0 0 4px white, inset 0 0 0 7px ${accent}` }
     : undefined;
 
-  // Brighter, optimistic gradient — light-accent → accent → soft-deep-accent.
-  // No black stop. Avoids the "funereal" feel of the previous palette.
-  const gradient = `linear-gradient(155deg, color-mix(in srgb, ${accent} 65%, white) 0%, ${accent} 55%, color-mix(in srgb, ${accent} 80%, black) 100%)`;
+  const gradient = `linear-gradient(155deg, color-mix(in srgb, ${accent} 60%, white) 0%, ${accent} 55%, color-mix(in srgb, ${accent} 75%, black) 100%)`;
 
   const surfaceStyle: React.CSSProperties = bgImage
     ? {
-        backgroundImage: `linear-gradient(180deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.55) 100%), url('${bgImage}')`,
+        backgroundImage: `linear-gradient(180deg, rgba(0,0,0,0.10) 0%, rgba(0,0,0,0.60) 100%), url('${bgImage}')`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
       }
-    : isLocked
-      ? { background: `linear-gradient(160deg, ${accent}55 0%, ${accent}33 100%)` }
-      : { background: gradient };
+    : { background: gradient };
 
   return (
     <div
-      className="relative w-full h-full rounded-[28px] overflow-hidden select-none"
+      className={[
+        'relative w-full h-full rounded-[28px] overflow-hidden select-none',
+        isLocked && 'opacity-50',
+      ].filter(Boolean).join(' ')}
       style={{ ...surfaceStyle, ...ringStyle }}
     >
-      {/* Decorative oversized type-emoji — only when no real cover image,
-          and only if not locked. Soft accent backdrop. */}
-      {!bgImage && !isLocked && (
-        <span
-          aria-hidden
-          className="absolute -top-6 -right-4 text-[180px] leading-none opacity-15 select-none pointer-events-none"
-          style={{ filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.15))' }}
-        >
-          {emoji}
-        </span>
-      )}
+      {/* Soft full-card dim for done state — keeps title legible while
+          signalling "completed". */}
+      {isDone && <div aria-hidden className="absolute inset-0 bg-black/30" />}
 
-      {isDone && <div aria-hidden className="absolute inset-0 bg-black/25" />}
-
-      {isLocked ? (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <span aria-hidden className="text-[56px] opacity-50">🔒</span>
+      {/* 3-zone layout: top meta · centred title · bottom meta. Every zone
+          is meaningful — group label, ordinal, duration. No decorative
+          glyphs, no type chip ("Урок"). */}
+      <div className="absolute inset-0 flex flex-col p-5 md:p-6 pointer-events-none">
+        {/* TOP */}
+        <div className="flex items-start justify-between gap-2 min-h-7">
+          {groupLabel ? (
+            <span className="rounded-full px-2.5 py-1 bg-black/40 backdrop-blur-sm font-black text-white text-[10px] tracking-widest truncate max-w-[75%]">
+              {groupLabel}
+            </span>
+          ) : <span aria-hidden />}
+          {isDone && (
+            <span
+              aria-hidden
+              className="w-7 h-7 rounded-full flex items-center justify-center bg-white/95 text-success-dark font-black text-[15px] flex-shrink-0"
+            >
+              ✓
+            </span>
+          )}
+          {isLocked && (
+            <span className="rounded-full px-2.5 py-1 bg-black/45 backdrop-blur-sm font-black text-white/85 text-[9.5px] tracking-widest uppercase flex-shrink-0">
+              Закрито
+            </span>
+          )}
         </div>
-      ) : (
-        <div className="absolute inset-0 flex flex-col items-center justify-center px-6 text-center gap-3 pointer-events-none">
-          <div
-            aria-hidden
-            className="w-[72px] h-[72px] rounded-full flex items-center justify-center text-[36px] bg-white/25 border border-white/40 backdrop-blur-md shadow-lg"
-          >
-            {emoji}
-          </div>
-          <p
-            className="font-black text-white leading-tight"
+
+        {/* CENTRE — title only. Left-aligned for a strong column rhythm. */}
+        <div className="flex-1 flex items-center">
+          <h3
+            className="font-black text-white leading-[1.1]"
             style={{
-              fontSize: 'clamp(20px, 2.6vw, 26px)',
+              fontSize: 'clamp(22px, 3vw, 30px)',
               letterSpacing: '-0.02em',
               display: '-webkit-box',
-              WebkitLineClamp: 3,
+              WebkitLineClamp: 4,
               WebkitBoxOrient: 'vertical',
               overflow: 'hidden',
-              textShadow: '0 2px 6px rgba(0,0,0,0.35)',
+              textShadow: '0 2px 8px rgba(0,0,0,0.45)',
             }}
           >
             {lesson.title}
-          </p>
-          <p className="font-bold text-[12px] text-white/85 tracking-wide uppercase">
-            {typeLabel}
-          </p>
+          </h3>
         </div>
-      )}
 
-      {groupLabel && (
-        <div className="absolute top-3 left-3 rounded-full px-2.5 py-1 bg-black/40 backdrop-blur-sm max-w-[75%]">
-          <span className="font-black text-white text-[10px] tracking-widest truncate block">
-            {groupLabel}
-          </span>
+        {/* BOTTOM — ordinal · duration. Quiet white-on-card meta line. */}
+        <div className="flex items-baseline justify-between gap-2 font-bold text-[11px] text-white/70 tracking-wider uppercase tabular-nums">
+          <span>{String(index).padStart(2, '0')}</span>
+          {lesson.durationMin && !isLocked ? <span>{lesson.durationMin} хв</span> : null}
         </div>
-      )}
-
-      {isDone && (
-        <div
-          aria-hidden
-          className="absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center bg-white/95 text-success-dark"
-        >
-          <span className="font-black text-base">✓</span>
-        </div>
-      )}
+      </div>
     </div>
   );
 }
@@ -455,10 +431,13 @@ function UnifiedCarousel({
       )}
       </div>
 
-      {/* Unified horizontal scroll-snap carousel — flex-1 so it vertically centers */}
+      {/* Unified horizontal scroll-snap carousel — flex-1 so it vertically centers.
+          `overscroll-behavior: contain` stops the swipe from bubbling to the
+          page (which would otherwise trigger browser back-navigation on iOS
+          Safari and Chrome's two-finger horizontal gesture). */}
       <div
         ref={scrollRef}
-        className="flex-1 min-h-0 flex items-center overflow-x-auto overflow-y-hidden"
+        className="flex-1 min-h-0 flex items-center overflow-x-auto overflow-y-hidden overscroll-x-contain"
         style={{
           scrollbarWidth: 'none',
           msOverflowStyle: 'none',
@@ -469,7 +448,7 @@ function UnifiedCarousel({
         }}
       >
         <div className="flex items-center gap-4">
-          {nodes.map(node => {
+          {nodes.map((node, idx) => {
             const { lesson, course, status, groupLabel } = node;
             const isCurr = status === 'current';
             const accent = accentOf(course);
@@ -505,6 +484,7 @@ function UnifiedCarousel({
                     status={status}
                     accent={accent}
                     groupLabel={groupLabel}
+                    index={idx + 1}
                   />
                 </Link>
               </div>

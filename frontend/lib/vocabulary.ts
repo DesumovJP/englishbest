@@ -78,18 +78,22 @@ function normalize(raw: any): VocabularySet | null {
     raw.lesson && typeof raw.lesson === 'object' && typeof raw.lesson.title === 'string'
       ? raw.lesson.title
       : null;
-  // Prefer set-specific cover, then derive from linked course's cover.
+  // Prefer set-specific cover, then derive from linked course's cover. The
+  // backend exposes covers as media relations (`coverImage`, `thumbnail`),
+  // not scalar URL strings — we read `.url` off the populated objects.
   const ownCover =
     typeof raw.coverImageUrl === 'string' && raw.coverImageUrl
       ? raw.coverImageUrl
       : null;
+  const pickMediaUrl = (m: unknown): string | null => {
+    if (!m || typeof m !== 'object') return null;
+    const url = (m as { url?: unknown }).url;
+    return typeof url === 'string' && url ? url : null;
+  };
   const courseCover =
     raw.course && typeof raw.course === 'object'
-      ? typeof raw.course.coverImageUrl === 'string' && raw.course.coverImageUrl
-        ? raw.course.coverImageUrl
-        : typeof raw.course.thumbnailUrl === 'string' && raw.course.thumbnailUrl
-          ? raw.course.thumbnailUrl
-          : null
+      ? pickMediaUrl((raw.course as { coverImage?: unknown }).coverImage) ??
+        pickMediaUrl((raw.course as { thumbnail?: unknown }).thumbnail)
       : null;
   return {
     slug: String(raw.slug),
@@ -113,8 +117,8 @@ const LIST_URL =
   '?populate[course][fields][0]=slug' +
   '&populate[course][fields][1]=title' +
   '&populate[course][fields][2]=titleUa' +
-  '&populate[course][fields][3]=coverImageUrl' +
-  '&populate[course][fields][4]=thumbnailUrl' +
+  '&populate[course][populate][thumbnail][fields][0]=url' +
+  '&populate[course][populate][coverImage][fields][0]=url' +
   '&populate[lesson][fields][0]=slug' +
   '&populate[lesson][fields][1]=title' +
   '&pagination[pageSize]=200' +
