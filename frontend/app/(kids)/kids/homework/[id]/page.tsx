@@ -4,6 +4,7 @@ import { use, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { KidsPageShell } from "@/components/ui/shells";
 import { KidsPageHeader, KidsButton, KidsCard } from "@/components/kids/ui";
+import { pointsForScore, starsForPoints } from "@/lib/grade";
 import {
   fetchSubmission,
   updateMySubmission,
@@ -132,25 +133,25 @@ export default function KidsHomeworkDetailPage({
                 celebration. */}
             {(sub.teacherFeedback || sub.score !== null) && (
               <KidsCard variant="flat" className="p-4">
-                {sub.score !== null && (
-                  <div className="flex items-center justify-between gap-3 mb-2">
-                    <span className="text-[11px] font-black uppercase text-ink-faint tracking-wider">
-                      Оцінка
-                    </span>
-                    <span className="flex items-center gap-1.5">
-                      <span className="text-[15px]" aria-hidden>
-                        {(() => {
-                          const s = sub.score ?? 0;
-                          const stars = s >= 80 ? 5 : s >= 60 ? 4 : s >= 40 ? 3 : s >= 20 ? 2 : 1;
-                          return '⭐'.repeat(stars);
-                        })()}
+                {sub.score !== null && (() => {
+                  const points = pointsForScore(sub.score);
+                  const stars = starsForPoints(points);
+                  return (
+                    <div className="flex items-center justify-between gap-3 mb-2">
+                      <span className="text-[11px] font-black uppercase text-ink-faint tracking-wider">
+                        Оцінка
                       </span>
-                      <span className="font-black text-primary-dark text-[14px] tabular-nums">
-                        {Math.round(sub.score)}%
+                      <span className="flex items-center gap-1.5">
+                        <span className="text-[15px]" aria-hidden>
+                          {'⭐'.repeat(stars)}
+                        </span>
+                        <span className="font-black text-primary-dark text-[14px] tabular-nums">
+                          {points}/12
+                        </span>
                       </span>
-                    </span>
-                  </div>
-                )}
+                    </div>
+                  );
+                })()}
                 {sub.teacherFeedback && (
                   <>
                     <p className="text-[11px] font-black uppercase text-ink-faint tracking-wider">

@@ -21,6 +21,7 @@ import { KidsButton, KidsCoinBadge } from '@/components/kids/ui';
 import type { MiniTask } from '@/lib/mini-tasks';
 import { submitAttempt, type SubmitAttemptResult } from '@/lib/mini-task-attempts';
 import { emitKidsEvent } from '@/lib/kids-store';
+import { pointsForScore } from '@/lib/grade';
 
 interface MiniTaskPlayerProps {
   task: MiniTask;
@@ -440,7 +441,7 @@ function ResultScreen({
 
       {!pendingReview && result.score !== null && (
         <p className="text-[13px] font-semibold text-ink-muted tabular-nums">
-          Результат: {result.score}%
+          Оцінка: {pointsForScore(result.score)}/12
         </p>
       )}
 

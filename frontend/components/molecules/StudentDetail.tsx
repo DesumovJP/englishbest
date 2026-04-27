@@ -18,6 +18,7 @@ import {
   type MotivationSummary,
 } from '@/lib/rewards';
 import { levelFromXp } from '@/lib/level';
+import { pointsForScore } from '@/lib/grade';
 
 type AdminTab   = 'video' | 'motivation';
 type TeacherTab = 'video' | 'history' | 'homework' | 'progress' | 'motivation';
@@ -136,7 +137,7 @@ function SubmissionRow({ s }: { s: Submission }) {
         </p>
       </div>
       <span className="text-[11px] font-semibold whitespace-nowrap">
-        {s.score !== null ? <span className="text-primary-dark">{s.score} б.</span> : <span className="text-ink-faint">{s.status}</span>}
+        {s.score !== null ? <span className="text-primary-dark">{pointsForScore(s.score)}/12</span> : <span className="text-ink-faint">{s.status}</span>}
       </span>
       <Link
         href={`/dashboard/homework/${s.documentId}/review`}
@@ -250,7 +251,7 @@ function ProgressByCourse({ rows }: { rows: UserProgressRow[] }) {
                   </div>
                   {r.score !== null && (
                     <span className="text-[12px] font-semibold text-primary-dark tabular-nums">
-                      {r.score} б.
+                      {pointsForScore(r.score)}/12
                     </span>
                   )}
                 </li>

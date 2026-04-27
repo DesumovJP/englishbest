@@ -83,16 +83,26 @@ function gradeExercise(exercise: any, answer: unknown): GradeOutput {
   const correctAnswer = exercise.answer;
 
   if (t === 'mcq') {
-    // Accept either the option index or the option text.
+    // MiniTaskBuilder stores `correctAnswer` as either:
+    //   - { correct: <text>, correctIndex: <int> }  ← canonical
+    //   - <text>                                     ← shorthand
+    //   - <int>                                      ← legacy
+    //   - <string[]>                                 ← rare multi-correct
+    // The FE submits the option's TEXT (see MiniTaskPlayer.buildAnswer).
+    // Normalize both sides to a string and compare.
     if (Array.isArray(correctAnswer)) {
-      // Multi-correct (rare): user must pick all and only correct.
       const a = Array.isArray(answer) ? answer : [answer];
-      const ca = correctAnswer;
       const ok =
-        a.length === ca.length && ca.every((x: unknown) => a.includes(x));
+        a.length === correctAnswer.length &&
+        correctAnswer.every((x: unknown) => a.includes(x));
       return { score: ok ? 100 : 0, correct: ok };
     }
-    const ok = answer === correctAnswer;
+    let canonical: unknown = correctAnswer;
+    if (correctAnswer && typeof correctAnswer === 'object') {
+      const o = correctAnswer as { correct?: unknown };
+      canonical = o.correct;
+    }
+    const ok = answer === canonical;
     return { score: ok ? 100 : 0, correct: ok };
   }
 
@@ -303,29 +313,43 @@ export default factories.createCoreController(ATTEMPT_UID, ({ strapi }) => ({
       } as any,
     });
 
-    // First passing attempt → fire the rewards pipeline. Service handles
-    // coin + XP credit, achievement evaluation, and ledger persistence.
+    // First passing attempt → fire the rewards pipeline. The attempt is
+    // already persisted, so a failure inside the rewards service must NOT
+    // 500 the submission (the kid would think their answer was lost). Log
+    // and degrade gracefully — the ledger / achievement evaluation will
+    // recover on the next earn event.
     let award = null as Awaited<ReturnType<typeof awardOnAction>> | null;
     if (isFirst && score !== null) {
-      award = await awardOnAction(strapi, {
-        userProfileId: profileId,
-        action: 'minitask',
-        sourceKey: `minitask:${profileId}:${taskId}`,
-        meta: {
-          score,
-          coinReward: typeof task.coinReward === 'number' ? task.coinReward : 0,
-          taskKind: task.kind,
-        },
-      });
-
-      if (award.applied && award.coinsDelta > 0) {
-        // Mirror the awarded coins onto the attempt for FE display — the
-        // ledger is canonical, this is just an inline convenience field.
-        await strapi.documents(ATTEMPT_UID).update({
-          documentId: (created as any).documentId,
-          data: { awardedCoins: award.coinsDelta } as any,
+      try {
+        award = await awardOnAction(strapi, {
+          userProfileId: profileId,
+          action: 'minitask',
+          sourceKey: `minitask:${profileId}:${taskId}`,
+          meta: {
+            score,
+            coinReward: typeof task.coinReward === 'number' ? task.coinReward : 0,
+            taskKind: task.kind,
+          },
         });
-        (created as any).awardedCoins = award.coinsDelta;
+      } catch (err) {
+        strapi.log.error(
+          `[mini-task-attempt] reward pipeline failed (user=${profileId}, task=${taskId}): ${(err as Error).message}`,
+        );
+        award = null;
+      }
+
+      if (award?.applied && award.coinsDelta > 0) {
+        try {
+          await strapi.documents(ATTEMPT_UID).update({
+            documentId: (created as any).documentId,
+            data: { awardedCoins: award.coinsDelta } as any,
+          });
+          (created as any).awardedCoins = award.coinsDelta;
+        } catch (err) {
+          strapi.log.warn(
+            `[mini-task-attempt] failed to mirror awardedCoins onto attempt: ${(err as Error).message}`,
+          );
+        }
       }
     }
 

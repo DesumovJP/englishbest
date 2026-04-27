@@ -34,6 +34,9 @@ export default function HomeworkReviewPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // `score` here is the 12-point teacher input; persisted as 0..100 so the
+  // BE rewards service + analytics + parent dashboard all see the same
+  // unit. Conversion is `points → percent = round(p * 100 / 12)`.
   const [score, setScore] = useState<number>(10);
   const [feedback, setFeedback] = useState<string>('');
   const [saving, setSaving] = useState(false);
@@ -49,7 +52,10 @@ export default function HomeworkReviewPage() {
         if (!alive) return;
         setSubmission(s);
         if (s) {
-          if (s.score !== null) setScore(s.score);
+          // BE stores 0..100; convert to 1..12 for the slider.
+          if (s.score !== null) {
+            setScore(Math.max(1, Math.min(12, Math.round((s.score / 100) * 12))));
+          }
           if (s.teacherFeedback) setFeedback(s.teacherFeedback);
         }
         setError(null);
@@ -75,7 +81,8 @@ export default function HomeworkReviewPage() {
     setSaveError(null);
     try {
       await gradeSubmission(submission.documentId, {
-        score: nextStatus === 'reviewed' ? score : null,
+        // Persist 0..100 — single unit across mini-task, lesson, homework.
+        score: nextStatus === 'reviewed' ? Math.round((score / 12) * 100) : null,
         teacherFeedback: feedback,
         status: nextStatus,
       });
@@ -256,7 +263,7 @@ export default function HomeworkReviewPage() {
                   <Row label="Перевірено" value={submission.gradedAt.slice(0, 10)} />
                 )}
                 {submission.score !== null && (
-                  <Row label="Оцінка" value={String(submission.score)} />
+                  <Row label="Оцінка" value={`${Math.max(1, Math.min(12, Math.round((submission.score / 100) * 12)))}/12`} />
                 )}
               </dl>
             </Section>

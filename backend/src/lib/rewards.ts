@@ -376,48 +376,67 @@ async function buildSnapshot(
   totalXp: number,
   streakDays: number,
 ): Promise<MotivationSnapshot> {
-  const userIdNum = ctx.userId;
-  const lessonsCompleted: number = userIdNum != null
-    ? await strapi.db.query(PROGRESS_UID).count({
-        where: { user: { id: userIdNum }, status: 'completed' },
-      })
-    : 0;
+  // Strapi v5 `db.query` filters use the entity's internal numeric `id` for
+  // relation joins; the v4-style `{ user: { id } }` works because we have
+  // `userId` cached. For criteria keyed off `documentId` (homework /
+  // mini-task / attendance) we use `strapi.documents().count(...)` which
+  // accepts documentId filters natively. Falling back to per-criterion
+  // try/catch + 0 keeps the achievement engine soft-failing on snapshot
+  // errors instead of 500-ing the whole submit.
+  const safeCount = async (uid: string, filters: Record<string, unknown>): Promise<number> => {
+    try {
+      return await strapi.documents(uid).count({ filters });
+    } catch (err) {
+      strapi.log?.warn?.(`[rewards] snapshot count failed (${uid}): ${(err as Error).message}`);
+      return 0;
+    }
+  };
 
-  const homeworksGoodCount: number = await strapi.db.query(HW_SUBMISSION_UID).count({
-    where: {
-      student: { documentId: ctx.profileId },
-      score: { $gte: HW_GOOD_THRESHOLD },
-    },
+  let lessonsCompleted = 0;
+  if (ctx.userId != null) {
+    try {
+      lessonsCompleted = await strapi.db.query(PROGRESS_UID).count({
+        where: { user: { id: ctx.userId }, status: 'completed' },
+      });
+    } catch {
+      lessonsCompleted = 0;
+    }
+  }
+
+  const homeworksGoodCount = await safeCount(HW_SUBMISSION_UID, {
+    student: { documentId: { $eq: ctx.profileId } },
+    score: { $gte: HW_GOOD_THRESHOLD },
   });
 
-  const miniTasksCompletedCount: number = await strapi.db.query(ATTEMPT_UID).count({
-    where: {
-      user: { documentId: ctx.profileId },
-      score: { $gte: MINITASK_PASS_THRESHOLD },
-    },
+  const miniTasksCompletedCount = await safeCount(ATTEMPT_UID, {
+    user: { documentId: { $eq: ctx.profileId } },
+    score: { $gte: MINITASK_PASS_THRESHOLD },
   });
 
-  const miniTasksPerfectCount: number = await strapi.db.query(ATTEMPT_UID).count({
-    where: {
-      user: { documentId: ctx.profileId },
-      score: 100,
-    },
+  const miniTasksPerfectCount = await safeCount(ATTEMPT_UID, {
+    user: { documentId: { $eq: ctx.profileId } },
+    score: { $eq: 100 },
   });
 
   // Perfect-week-attendance: every recorded attendance in the last 7 days
-  // is `present` AND there are at least 2 records (so a kid who skipped
-  // every session this week doesn't pass on zero records).
+  // is `present` AND there are at least 2 records.
   const sevenDaysAgo = new Date(Date.now() - 7 * 86_400_000).toISOString();
-  const recentAttendance: any[] = await strapi.db.query(ATTENDANCE_UID).findMany({
-    where: {
-      student: { documentId: ctx.profileId },
-      recordedAt: { $gte: sevenDaysAgo },
-    },
-    select: ['status'],
-  });
-  const perfectAttendanceWeek =
-    recentAttendance.length >= 2 &&
-    recentAttendance.every((r: any) => r.status === 'present');
+  let perfectAttendanceWeek = false;
+  try {
+    const recentAttendance: any[] = await strapi.documents(ATTENDANCE_UID).findMany({
+      filters: {
+        student: { documentId: { $eq: ctx.profileId } },
+        recordedAt: { $gte: sevenDaysAgo },
+      },
+      fields: ['status'],
+      pagination: { pageSize: 50, page: 1 } as any,
+    });
+    perfectAttendanceWeek =
+      recentAttendance.length >= 2 &&
+      recentAttendance.every((r: any) => r.status === 'present');
+  } catch {
+    perfectAttendanceWeek = false;
+  }
 
   const { level } = computeLevel(totalXp);
 

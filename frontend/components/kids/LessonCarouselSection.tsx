@@ -257,6 +257,21 @@ function UnifiedCarousel({
   }, []);
 
   useEffect(() => {
+    // Cooldown: smooth-scroll animation runs ONCE per (course, current
+    // lesson) per session. Switching tabs and coming back was firing the
+    // 700 ms intro every time — too noisy. After first run we mark the
+    // pair in sessionStorage and use `behavior: 'instant'` (zero-time
+    // jump) on subsequent mounts. Cleared automatically when the kid
+    // closes the tab; that's the right cadence — they get a re-intro
+    // when they come back fresh, not on every internal nav.
+    const sessionKey = `kids:carousel-intro:${(activeCourse as { slug?: string } | null)?.slug ?? '_'}:${currentSlug}`;
+    const alreadyAnimated =
+      typeof window !== 'undefined' &&
+      window.sessionStorage?.getItem(sessionKey) === '1';
+
+    const delay = alreadyAnimated ? 0 : 350;
+    const settle = alreadyAnimated ? 50 : 700;
+
     const t = setTimeout(() => {
       const cur = currentRef.current;
       const ctr = scrollRef.current;
@@ -265,12 +280,15 @@ function UnifiedCarousel({
       const ctrRect = ctr.getBoundingClientRect();
       const target =
         ctr.scrollLeft + (curRect.left + curRect.width / 2) - (ctrRect.left + ctrRect.width / 2);
-      ctr.scrollTo({ left: target, behavior: 'smooth' });
-      setTimeout(calcScales, 700);
-    }, 350);
+      ctr.scrollTo({ left: target, behavior: alreadyAnimated ? 'auto' : 'smooth' });
+      setTimeout(calcScales, settle);
+      if (!alreadyAnimated && typeof window !== 'undefined') {
+        try { window.sessionStorage.setItem(sessionKey, '1'); } catch { /* private mode */ }
+      }
+    }, delay);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentSlug]);
+  }, [currentSlug, (activeCourse as { slug?: string } | null)?.slug]);
 
   function scaleFor(slug: string): number {
     const t = scales.get(slug) ?? 0;
@@ -297,19 +315,32 @@ function UnifiedCarousel({
           <p className="font-black text-[13px] text-ink truncate leading-tight">
             {activeCourse?.title ?? 'Уроки'}
           </p>
-          <div className="flex items-center gap-2 mt-1">
+          {/*
+            Progress meter — tokenised track with course-accent fill.
+            Track:  bg-surface-sunk (design token, neutral grey).
+            Fill:   per-course accent (kept inline, since brand colour
+                    varies per course and isn't a design token).
+            Soft inner ring on the track adds depth on white surfaces.
+            Width transition: 500ms ease-out so the bar feels responsive
+            after a lesson completes (formerly 700ms — felt sluggish).
+          */}
+          <div className="flex items-center gap-2.5 mt-1.5">
             <div
-              className="flex-1 h-[4px] rounded-full overflow-hidden"
-              style={{ background: `${activeAccent}20` }}
+              className="relative flex-1 h-2 rounded-full bg-surface-sunk overflow-hidden ring-1 ring-inset ring-black/[0.04]"
+              role="progressbar"
+              aria-valuenow={pct}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-label="Прогрес курсу"
             >
               <div
-                className="h-full rounded-full transition-all duration-700"
+                className="absolute inset-y-0 left-0 rounded-full transition-[width] duration-500 ease-out"
                 style={{ width: `${pct}%`, background: activeAccent }}
               />
             </div>
-            <span className="font-black text-[11px] flex-shrink-0" style={{ color: activeAccent }}>
-              {completedTotal}
-              <span className="font-medium text-ink-faint">/{lessonsTotal}</span>
+            <span className="font-black text-[11px] tabular-nums leading-none flex-shrink-0">
+              <span style={{ color: activeAccent }}>{completedTotal}</span>
+              <span className="font-bold text-ink-faint">/{lessonsTotal}</span>
             </span>
           </div>
         </div>

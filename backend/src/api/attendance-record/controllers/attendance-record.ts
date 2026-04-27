@@ -211,13 +211,21 @@ export default factories.createCoreController(RECORD_UID, ({ strapi }) => ({
     // Fire attendance reward on the first record. Status drives the size
     // (present > late/excused > absent=0). Routes through the central
     // service so XP, achievements, and ledger row are kept consistent.
+    // Reward failures are non-blocking — the attendance record is the
+    // source of truth.
     if (typeof data.status === 'string' && data.status !== 'absent') {
-      await awardOnAction(strapi, {
-        userProfileId: studentId,
-        action: 'attendance',
-        sourceKey: `attendance:${(created as any).documentId}`,
-        meta: { status: data.status },
-      });
+      try {
+        await awardOnAction(strapi, {
+          userProfileId: studentId,
+          action: 'attendance',
+          sourceKey: `attendance:${(created as any).documentId}`,
+          meta: { status: data.status },
+        });
+      } catch (err) {
+        strapi.log.error(
+          `[attendance-record] reward pipeline failed (record=${(created as any).documentId}): ${(err as Error).message}`,
+        );
+      }
     }
 
     const sanitized = await sanitizeOutputTrusted(RECORD_UID, created);

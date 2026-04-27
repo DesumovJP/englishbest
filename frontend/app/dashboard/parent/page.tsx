@@ -27,6 +27,7 @@ import {
 } from '@/lib/session-display';
 import { fetchMotivationSummary, type MotivationSummary } from '@/lib/rewards';
 import { levelFromXp } from '@/lib/level';
+import { pointsForScore } from '@/lib/grade';
 
 const MONTHS_UA = ['Січ', 'Лют', 'Бер', 'Кві', 'Тра', 'Чер', 'Лип', 'Сер', 'Вер', 'Жов', 'Лис', 'Гру'];
 const WEEKDAYS_UA = ['Нд', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
@@ -151,7 +152,7 @@ function ProgressRow({ row }: { row: ProgressEntry }) {
     : row.status === 'notStarted' ? 'Не розпочато'
     : 'Пропущено';
   const scoreText = row.score !== null && row.score !== undefined
-    ? `${row.score}%`
+    ? `${pointsForScore(row.score)}/12`
     : row.status === 'completed' ? '✓' : '—';
   return (
     <li className="flex items-center gap-3 px-5 py-3 border-t border-border first:border-t-0">
@@ -191,7 +192,7 @@ function ChildBlock({ summary }: { summary: ChildSummary }) {
   const kpis: ReadonlyArray<{ label: string; value: string }> = [
     { label: 'Рівень', value: `Lv.${lvl.level}` },
     { label: 'Завершено уроків', value: String(summary.completedLessons) },
-    { label: 'Середній бал', value: summary.avgScore !== null ? `${summary.avgScore}%` : '—' },
+    { label: 'Середній бал', value: summary.avgScore !== null ? `${pointsForScore(summary.avgScore)}/12` : '—' },
     { label: 'Стрік', value: `${kp?.streakDays ?? 0} 🔥` },
   ];
 

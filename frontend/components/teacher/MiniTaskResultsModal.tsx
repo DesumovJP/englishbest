@@ -18,6 +18,7 @@ import {
   type MiniTaskAttempt,
 } from '@/lib/mini-task-attempts';
 import type { MiniTask } from '@/lib/mini-tasks';
+import { pointsForScore } from '@/lib/grade';
 
 interface Props {
   task: MiniTask;
@@ -122,7 +123,7 @@ export function MiniTaskResultsModal({ task, onClose }: Props) {
           <Stat label="Учнів" value={stats.uniqueKids} />
           <Stat
             label="Сер. бал"
-            value={stats.avgScore !== null ? `${stats.avgScore}%` : '—'}
+            value={stats.avgScore !== null ? `${pointsForScore(stats.avgScore)}/12` : '—'}
           />
           <Stat
             label="На перевірці"
@@ -180,7 +181,7 @@ export function MiniTaskResultsModal({ task, onClose }: Props) {
                         r.correct ? 'text-primary-dark' : r.score >= 50 ? 'text-accent-dark' : 'text-danger-dark'
                       }`}
                     >
-                      {Math.round(r.score)}%
+                      {pointsForScore(r.score)}/12
                     </span>
                     <button
                       type="button"

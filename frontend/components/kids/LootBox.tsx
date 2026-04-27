@@ -226,24 +226,31 @@ function RevealCard({ item, onClose, onOpenAnother, canAfford }: {
         )}
       </div>
 
-      {/* Buttons */}
-      <div className="flex gap-3 w-full max-w-[280px] animate-fade-in-up [animation-delay:0.65s]">
+      {/* Buttons — equal-width pills with consistent typography. The
+          previous gradient + 0 4px 0 shadow on the "Ще раз" button looked
+          tilted next to the flat "До кімнати" button; now both share the
+          same height + radius and only differ in fill (glass for the
+          neutral exit, solid rarity-color for the optimistic action). */}
+      <div className="flex gap-2.5 w-full max-w-[320px] animate-fade-in-up [animation-delay:0.65s]">
         <button
+          type="button"
           onClick={onClose}
-          className="flex-1 h-12 rounded-2xl border-2 border-white/30 bg-white/10 backdrop-blur-sm font-black text-sm text-white hover:bg-white/20 hover:border-white/50 transition-colors"
+          className="flex-1 h-14 rounded-2xl border-2 border-white/25 bg-white/10 backdrop-blur-md font-black text-[15px] text-white hover:bg-white/15 hover:border-white/40 transition-colors inline-flex items-center justify-center gap-1.5 whitespace-nowrap"
         >
-          До кімнати →
+          <span>До кімнати</span>
+          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" aria-hidden>
+            <path d="M5 12h14M13 6l6 6-6 6" />
+          </svg>
         </button>
         {canAfford && (
           <button
+            type="button"
             onClick={onOpenAnother}
-            className="flex-1 h-12 rounded-2xl font-black text-sm text-white transition-all active:scale-95"
-            style={{
-              background: `linear-gradient(135deg, ${r.color}, ${r.color}cc)`,
-              boxShadow: `0 4px 0 ${r.color}88`,
-            }}
+            className="flex-1 h-14 rounded-2xl font-black text-[15px] text-white inline-flex items-center justify-center gap-1.5 whitespace-nowrap transition-transform active:translate-y-0.5"
+            style={{ background: r.color }}
           >
-            Ще раз! 🎁
+            <span>Ще раз</span>
+            <span aria-hidden>🎁</span>
           </button>
         )}
       </div>

@@ -45,28 +45,18 @@ export function LessonBlockEditor({
     if (window.confirm('Видалити цей блок? Дію неможливо скасувати.')) onDelete();
   }
 
-  // Arm/disarm `draggable` on the article only while user holds the grip
-  // handle. Otherwise inputs/buttons inside the block can't receive normal
-  // mouse events (the browser would treat any drag from them as an article drag).
-  function armDrag() {
-    if (articleRef.current) articleRef.current.draggable = true;
-  }
-  function disarmDrag() {
-    if (articleRef.current) articleRef.current.draggable = false;
-  }
-
+  // Drag-handle pattern: ONLY the grip button is draggable. The article
+  // itself stays non-draggable so inputs/buttons inside remain fully
+  // interactive (the previous "arm draggable on mousedown" trick had
+  // race conditions where the browser had already committed to text /
+  // button selection by the time we flipped the flag).
+  //
+  // `setDragImage(articleRef.current)` makes the visible drag preview be
+  // the whole block, not just the tiny handle, so the UX matches the
+  // mental model of "I'm dragging this block".
   return (
     <article
       ref={articleRef}
-      onDragStart={(e) => {
-        e.dataTransfer.effectAllowed = 'move';
-        e.dataTransfer.setData('text/plain', String(index));
-        onDragStart?.(index);
-      }}
-      onDragEnd={() => {
-        disarmDrag();
-        onDragEnd?.();
-      }}
       className={`group bg-white rounded-2xl border border-border overflow-hidden transition-opacity ${
         isDragging ? 'opacity-40' : ''
       }`}
@@ -74,12 +64,19 @@ export function LessonBlockEditor({
       <header className="flex items-center gap-2 px-4 py-2.5 bg-surface-muted border-b border-border">
         <button
           type="button"
-          onMouseDown={armDrag}
-          onMouseUp={disarmDrag}
-          onMouseLeave={disarmDrag}
+          draggable
+          onDragStart={(e) => {
+            if (articleRef.current) {
+              e.dataTransfer.setDragImage(articleRef.current, 0, 0);
+            }
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', String(index));
+            onDragStart?.(index);
+          }}
+          onDragEnd={() => onDragEnd?.()}
           aria-label="Перетягнути блок"
           title="Перетягнути блок"
-          className="w-6 h-7 -ml-1 rounded-md flex items-center justify-center text-ink-faint hover:text-ink-muted hover:bg-white cursor-grab active:cursor-grabbing touch-none select-none"
+          className="w-6 h-7 -ml-1 rounded-md flex items-center justify-center text-ink-faint hover:text-ink-muted hover:bg-white cursor-grab active:cursor-grabbing select-none"
         >
           <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="currentColor" aria-hidden>
             <circle cx="6" cy="3" r="1.4" /><circle cx="10" cy="3" r="1.4" />

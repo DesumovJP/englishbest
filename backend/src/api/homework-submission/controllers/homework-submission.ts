@@ -192,17 +192,25 @@ export default factories.createCoreController(SUB_UID, ({ strapi }) => ({
       // Fire the homework reward on the FIRST grading. SourceKey is the
       // submission docId (no gradedAt) so re-grades don't re-credit. If a
       // teacher needs to correct a wrong grade after the fact, use a manual
-      // `grant` action — see REWARDS.md.
+      // `grant` action — see REWARDS.md. Reward failures must not roll
+      // back the grade — the academic record is the source of truth, the
+      // gamification is decoration.
       if (typeof data.score === 'number' && Number.isFinite(data.score)) {
         const studentProfileId = (entity as any).student?.documentId;
         if (studentProfileId) {
-          await awardOnAction(strapi, {
-            userProfileId: studentProfileId,
-            action: 'homework',
-            sourceKey: `homework:${ctx.params.id}`,
-            meta: { score: data.score },
-            setMood: 'proud',
-          });
+          try {
+            await awardOnAction(strapi, {
+              userProfileId: studentProfileId,
+              action: 'homework',
+              sourceKey: `homework:${ctx.params.id}`,
+              meta: { score: data.score },
+              setMood: 'proud',
+            });
+          } catch (err) {
+            strapi.log.error(
+              `[homework-submission] reward pipeline failed (submission=${ctx.params.id}): ${(err as Error).message}`,
+            );
+          }
         }
       }
       return result;
