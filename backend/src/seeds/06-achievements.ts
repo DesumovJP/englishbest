@@ -261,7 +261,7 @@ const ACHIEVEMENTS: AchievementSeed[] = [
     tier: 'gold',
     coinReward: 200,
     xpReward: 200,
-    criteria: { type: 'level-lessons', level: 'A2', count: 4 },
+    criteria: { type: 'level-lessons', level: 'A2', count: 10 },
   },
   {
     slug: 'finish-b1',

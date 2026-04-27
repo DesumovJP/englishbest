@@ -250,3 +250,10 @@ plan is:
   with the new totals. This unlocks the entire CEFR catalog as a real
   reward source — finishing 15 A0 lessons now actually fires the
   `finish-a0` achievement instead of being purely cosmetic.
+- **2026-04-27** — A2 fully fleshed out. Both A2 courses now have 5
+  full lessons (10 total: meals, cooking, food-around-world,
+  after-school + frequency adverbs, hobbies + gerunds, weekend plans
+  + going-to). `finish-a2` threshold bumped 4 → 10 to match. Both A2
+  course subtitles dropped the "долучаємось 2 з 5" phrasing — they're
+  no longer shells. Catalog is now: A0 / A1 / A2 fully written
+  (40 lessons), B1 / B2 / C1 / C2 still shells (10 sample lessons).
