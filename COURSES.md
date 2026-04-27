@@ -257,3 +257,12 @@ plan is:
   course subtitles dropped the "долучаємось 2 з 5" phrasing — they're
   no longer shells. Catalog is now: A0 / A1 / A2 fully written
   (40 lessons), B1 / B2 / C1 / C2 still shells (10 sample lessons).
+- **2026-04-27** — B1 / B2 / C1 closed out. +7 lessons:
+  B1-best-trip (comparatives), B1-different-cultures (would for
+  hypotheticals), B1-pros-cons (discourse markers however/although),
+  B1-future-job (will vs going-to), B2-volunteering (1st conditional),
+  B2-review-movie (-ing/-ed adjectives), C1-convincing-writing
+  (firstly/furthermore/therefore). All level-shell subtitles dropped
+  the "долучаємось N з M" prefix. `finish-b1=8`, `finish-b2=6`,
+  `finish-c1=3` thresholds bumped to match. Catalog is now FULL —
+  every CEFR level has its complete lesson count seeded.

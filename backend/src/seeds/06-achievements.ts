@@ -271,7 +271,7 @@ const ACHIEVEMENTS: AchievementSeed[] = [
     tier: 'gold',
     coinReward: 250,
     xpReward: 250,
-    criteria: { type: 'level-lessons', level: 'B1', count: 4 },
+    criteria: { type: 'level-lessons', level: 'B1', count: 8 },
   },
   {
     slug: 'finish-b2',
@@ -281,7 +281,7 @@ const ACHIEVEMENTS: AchievementSeed[] = [
     tier: 'gold',
     coinReward: 300,
     xpReward: 300,
-    criteria: { type: 'level-lessons', level: 'B2', count: 4 },
+    criteria: { type: 'level-lessons', level: 'B2', count: 6 },
   },
   {
     slug: 'finish-c1',
@@ -291,7 +291,7 @@ const ACHIEVEMENTS: AchievementSeed[] = [
     tier: 'platinum',
     coinReward: 500,
     xpReward: 500,
-    criteria: { type: 'level-lessons', level: 'C1', count: 2 },
+    criteria: { type: 'level-lessons', level: 'C1', count: 3 },
   },
   {
     slug: 'finish-c2',
