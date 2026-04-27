@@ -279,9 +279,7 @@ export default function SchoolPage() {
             </div>
           )
         ) : tab === 'vocab' ? (
-          <div className="flex-1 overflow-y-auto max-w-screen-md mx-auto w-full pb-[calc(env(safe-area-inset-bottom,0px)+72px)]">
-            <VocabularySection level={kidsLevel} />
-          </div>
+          <VocabularySection level={kidsLevel} />
         ) : <LibraryCatalog />}
       </div>
     </div>
