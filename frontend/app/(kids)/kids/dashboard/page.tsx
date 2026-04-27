@@ -34,26 +34,35 @@ const EMOTION_BUBBLES: Record<CharacterEmotion, Bubble> = {
  * Compact "Прогрес" pill — current level + thin XP bar + streak chip in
  * one HUD card. Shown to every kid on every dashboard load (no streak ≥ 3
  * gate so a 0-streak kid still sees what they're working toward).
+ *
+ * Streak copy is positive only — celebrate progress, never punish a slip.
+ * Anti-blanket rule (REWARDS.md): no "не зривай / або згориш" loss-aversion
+ * copy on the kid surface.
  */
 function ProgressWidget({ xp, streak }: { xp: number; streak: number }) {
+  const cheer =
+    streak === 0
+      ? 'почни сьогодні'
+      : streak < 7
+        ? 'тримай ритм 💪'
+        : streak < 30
+          ? 'тиждень+ молодець!'
+          : 'рекордний місяць ✨';
+  const dayLabel = streak === 1 ? 'день' : streak >= 2 && streak <= 4 ? 'дні' : 'днів';
   return (
-    <HudCard className="px-2.5 pt-2.5 pb-2.5 sm:px-3.5 sm:pt-3 sm:pb-3 flex flex-col gap-2">
+    <HudCard className="px-2.5 pt-2.5 pb-2.5 sm:px-3.5 sm:pt-3 sm:pb-3 flex flex-col gap-2.5">
       <KidsLevelBar xp={xp} layout="stacked" />
-      <div className="flex items-center justify-between gap-2 pt-1.5 border-t border-ink-faint/10">
-        <div className="flex items-center gap-1.5">
-          <span className="text-[14px] sm:text-[16px] leading-none" aria-hidden>🔥</span>
-          <span className="font-black text-[13px] sm:text-[15px] text-accent-dark leading-none tabular-nums">
-            {streak}
-          </span>
-          <span className="font-bold text-[9.5px] sm:text-[11px] text-ink-muted">
-            {streak === 1 ? 'день' : streak >= 2 && streak <= 4 ? 'дні' : 'днів'}
-          </span>
-        </div>
-        {streak >= 3 && (
-          <span className="text-[9px] font-black uppercase tracking-wider text-accent-dark/70">
-            не зривай!
-          </span>
-        )}
+      <div className="flex items-center gap-2 rounded-xl bg-accent/12 px-2.5 py-1.5">
+        <span className="text-[14px] sm:text-[16px] leading-none" aria-hidden>🔥</span>
+        <span className="font-black text-[13px] sm:text-[15px] text-accent-dark leading-none tabular-nums">
+          {streak}
+        </span>
+        <span className="font-bold text-[9.5px] sm:text-[11px] text-accent-dark/85 leading-none">
+          {dayLabel}
+        </span>
+        <span className="ml-auto font-black text-[9.5px] sm:text-[10.5px] text-accent-dark/75 leading-none truncate">
+          {cheer}
+        </span>
       </div>
     </HudCard>
   );

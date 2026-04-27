@@ -117,29 +117,31 @@ export function MiniTaskWidget() {
         onClick={() => setActive(featured)}
         className="block w-full text-left active:scale-[0.97] transition-transform"
       >
-        <HudCard className="p-2.5 sm:p-3.5 overflow-hidden">
-          <div className="flex items-center gap-2 sm:gap-2.5 mb-1.5 sm:mb-2">
-            <div className="w-8 h-8 sm:w-11 sm:h-11 rounded-xl bg-accent/15 flex items-center justify-center text-lg sm:text-2xl flex-shrink-0">
+        <HudCard className="p-2.5 sm:p-3 overflow-hidden">
+          <div className="flex items-start gap-2 sm:gap-2.5">
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-accent/15 flex items-center justify-center text-lg sm:text-xl flex-shrink-0">
               🎯
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-black leading-none text-[12px] sm:text-[15px] text-ink">Завдання</p>
-              <p className="font-medium text-[9.5px] sm:text-[11px] text-ink-muted mt-0.5 truncate">
-                {remaining > 1 ? `${remaining} нових` : 'Виклик дня'}
+              <p className="font-black text-[12.5px] sm:text-[13.5px] text-ink leading-tight line-clamp-2">
+                {featured.title}
               </p>
+              <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                {featured.coinReward > 0 && (
+                  <span className="inline-flex items-center gap-0.5">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src="/coin.png" alt="" aria-hidden width={11} height={11} className="object-contain" />
+                    <span className="font-black text-[10.5px] sm:text-[11px] text-coin leading-none">+{featured.coinReward}</span>
+                  </span>
+                )}
+                <span aria-hidden className="text-ink-faint/60 text-[9px] leading-none">·</span>
+                <span className="font-medium text-[10px] sm:text-[10.5px] text-ink-muted truncate leading-none">
+                  {remaining > 1 ? `${remaining} нових` : 'Виклик дня'}
+                </span>
+              </div>
             </div>
-            <span className="text-ink-muted text-sm">›</span>
+            <span aria-hidden className="text-ink-muted text-sm mt-0.5 flex-shrink-0">›</span>
           </div>
-          <p className="font-bold text-[11px] sm:text-[12.5px] text-ink line-clamp-2 [@media(max-height:500px)]:hidden">
-            {featured.title}
-          </p>
-          {featured.coinReward > 0 && (
-            <div className="flex items-center gap-1 mt-1 sm:mt-1.5 [@media(max-height:500px)]:hidden">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/coin.png" alt="" aria-hidden width={12} height={12} className="object-contain" />
-              <span className="font-black text-[11px] text-coin">+{featured.coinReward}</span>
-            </div>
-          )}
         </HudCard>
       </button>
 

@@ -170,6 +170,22 @@ function emojiOf(course: Course): string {
   return (course as Course & { iconEmoji?: string }).iconEmoji ?? '🎓';
 }
 
+/**
+ * Read the last course the kid visited (set by LessonEngine + onSelectCourse).
+ * Lets `/kids/school` re-open on the same course they just left a lesson in,
+ * rather than defaulting to "first in-progress" (which can shuffle when many
+ * courses are active).
+ */
+function readPinnedCourseSlug(): string | null {
+  if (typeof window === 'undefined') return null;
+  try { return window.sessionStorage.getItem('kids:lastCourseSlug'); } catch { return null; }
+}
+
+function writePinnedCourseSlug(slug: string): void {
+  if (typeof window === 'undefined') return;
+  try { window.sessionStorage.setItem('kids:lastCourseSlug', slug); } catch { /* private mode */ }
+}
+
 export function LessonListSection({ level }: Props) {
   const cached = hydrateFromCaches(level);
   const [data, setData] = useState<CourseData[] | null>(cached);
@@ -180,6 +196,8 @@ export function LessonListSection({ level }: Props) {
 
   function defaultCourseSlug(courses: CourseData[]): string | null {
     if (courses.length === 0) return null;
+    const pinned = readPinnedCourseSlug();
+    if (pinned && courses.some((c) => c.course.slug === pinned)) return pinned;
     const inProgress = courses.find(
       (c) => c.currentSlug !== null && c.completedSlugs.size < c.lessons.length,
     );
@@ -253,6 +271,12 @@ export function LessonListSection({ level }: Props) {
       return defaultCourseSlug(data);
     });
   }, [data]);
+
+  // Pin selected course so other surfaces (X-close from a lesson) can come
+  // back to the same context.
+  useEffect(() => {
+    if (selectedSlug) writePinnedCourseSlug(selectedSlug);
+  }, [selectedSlug]);
 
   const courses = data ?? [];
   const selected =
@@ -393,37 +417,73 @@ export function LessonListSection({ level }: Props) {
           <div
             role="menu"
             aria-label="Виберіть курс"
-            className="border-t border-border overflow-hidden"
+            className="border-t border-border overflow-hidden bg-surface-muted/40"
           >
-            {otherCourses.map((c, i) => (
-              <button
-                key={c.slug}
-                role="menuitemradio"
-                aria-checked={false}
-                onClick={() => {
-                  setSelectedSlug(c.slug);
-                  setPickerOpen(false);
-                }}
-                className={[
-                  'w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-surface-muted',
-                  i > 0 && 'border-t border-border',
-                ].filter(Boolean).join(' ')}
-              >
+            {otherCourses.map((c, i) => {
+              const cAccent = accentOf(c);
+              const cTitle = (c as Course & { titleUa?: string }).titleUa ?? c.title;
+              const cDesc =
+                (c as Course & { descriptionShort?: string }).descriptionShort ??
+                c.description ??
+                '';
+              return (
                 <div
-                  aria-hidden
-                  className="w-7 h-7 rounded-md flex items-center justify-center text-[14px] flex-shrink-0"
-                  style={{ background: `${accentOf(c)}1a` }}
+                  key={c.slug}
+                  className={i > 0 ? 'border-t border-border' : ''}
                 >
-                  {emojiOf(c)}
+                  <button
+                    role="menuitemradio"
+                    aria-checked={false}
+                    onClick={() => {
+                      setSelectedSlug(c.slug);
+                      setPickerOpen(false);
+                    }}
+                    className="w-full flex items-start gap-3 px-4 pt-3 pb-2 text-left transition-colors hover:bg-surface-muted"
+                  >
+                    <div
+                      aria-hidden
+                      className="w-9 h-9 rounded-lg flex items-center justify-center text-[18px] flex-shrink-0"
+                      style={{ background: `${cAccent}1a` }}
+                    >
+                      {emojiOf(c)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-black text-[13.5px] text-ink leading-snug truncate">
+                        {cTitle}
+                      </p>
+                      {cDesc && (
+                        <p className="font-medium text-[12px] text-ink-muted leading-snug mt-0.5 line-clamp-2">
+                          {cDesc}
+                        </p>
+                      )}
+                    </div>
+                    <span
+                      aria-hidden
+                      className="mt-0.5 text-ink-faint text-[15px] font-black flex-shrink-0"
+                    >
+                      ›
+                    </span>
+                  </button>
+                  <div className="pl-[60px] pr-4 pb-3 flex items-center gap-2">
+                    <Link
+                      href={`/kids/library/${c.slug}`}
+                      onClick={() => setPickerOpen(false)}
+                      className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11.5px] font-black bg-surface-raised border border-border text-ink hover:bg-surface-hover transition-colors"
+                    >
+                      <span aria-hidden>📖</span>
+                      <span>Словник курсу</span>
+                    </Link>
+                    <Link
+                      href={`/kids/library/${c.slug}`}
+                      onClick={() => setPickerOpen(false)}
+                      className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11.5px] font-bold text-ink-muted hover:text-ink transition-colors"
+                    >
+                      Деталі курсу →
+                    </Link>
+                  </div>
                 </div>
-                <span className="flex-1 min-w-0 font-black text-[12.5px] text-ink truncate">
-                  {(c as Course & { titleUa?: string }).titleUa ?? c.title}
-                </span>
-                <span aria-hidden className="text-ink-faint text-[15px] font-black flex-shrink-0">
-                  ›
-                </span>
-              </button>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

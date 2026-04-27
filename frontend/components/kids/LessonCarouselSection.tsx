@@ -123,10 +123,10 @@ function LessonCard({
           )}
         </div>
 
-        {/* CENTRE — title only. Left-aligned for a strong column rhythm. */}
-        <div className="flex-1 flex items-center">
+        {/* CENTRE — title only. Centred horizontally + vertically. */}
+        <div className="flex-1 flex items-center justify-center">
           <h3
-            className="font-black text-white leading-[1.1]"
+            className="font-black text-white leading-[1.1] text-center"
             style={{
               fontSize: 'clamp(22px, 3vw, 30px)',
               letterSpacing: '-0.02em',
@@ -391,42 +391,80 @@ function UnifiedCarousel({
       )}
 
       {/* Inline accordion — courses unfurl below the ribbon as part of the
-          document flow. No popover, no shadow, no z-stacking. Compact rows. */}
+          document flow. Each row carries title + short description + a
+          shortcut to that course's vocabulary so the kid can decide
+          before switching. */}
       {hasMore && pickerOpen && (
         <div
           role="menu"
           aria-label="Виберіть курс"
-          className="border-t border-border overflow-hidden"
+          className="border-t border-border overflow-hidden bg-surface-muted/40"
         >
-          {otherCourses.map((c, i) => (
-            <button
-              key={c.slug}
-              role="menuitemradio"
-              aria-checked={false}
-              onClick={() => {
-                if (onSelectCourse) onSelectCourse(c.slug);
-                setPickerOpen(false);
-              }}
-              className={[
-                'w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-surface-muted',
-                i > 0 && 'border-t border-border',
-              ].filter(Boolean).join(' ')}
-            >
+          {otherCourses.map((c, i) => {
+            const cAccent = accentOf(c);
+            const cTitle = (c as Course & { titleUa?: string }).titleUa ?? c.title;
+            const cDesc =
+              (c as Course & { descriptionShort?: string }).descriptionShort ??
+              c.description ??
+              '';
+            return (
               <div
-                aria-hidden
-                className="w-7 h-7 rounded-md flex items-center justify-center text-[14px] flex-shrink-0"
-                style={{ background: `${accentOf(c)}1a` }}
+                key={c.slug}
+                className={i > 0 ? 'border-t border-border' : ''}
               >
-                {emojiOf(c)}
+                <button
+                  role="menuitemradio"
+                  aria-checked={false}
+                  onClick={() => {
+                    if (onSelectCourse) onSelectCourse(c.slug);
+                    setPickerOpen(false);
+                  }}
+                  className="w-full flex items-start gap-3 px-4 pt-3 pb-2 text-left transition-colors hover:bg-surface-muted"
+                >
+                  <div
+                    aria-hidden
+                    className="w-9 h-9 rounded-lg flex items-center justify-center text-[18px] flex-shrink-0"
+                    style={{ background: `${cAccent}1a` }}
+                  >
+                    {emojiOf(c)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-black text-[13.5px] text-ink leading-snug truncate">
+                      {cTitle}
+                    </p>
+                    {cDesc && (
+                      <p className="font-medium text-[12px] text-ink-muted leading-snug mt-0.5 line-clamp-2">
+                        {cDesc}
+                      </p>
+                    )}
+                  </div>
+                  <span
+                    aria-hidden
+                    className="mt-0.5 text-ink-faint text-[15px] font-black flex-shrink-0"
+                  >
+                    ›
+                  </span>
+                </button>
+                <div className="pl-[60px] pr-4 pb-3 flex items-center gap-2">
+                  <Link
+                    href={`/kids/library/${c.slug}`}
+                    onClick={() => setPickerOpen(false)}
+                    className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11.5px] font-black bg-surface-raised border border-border text-ink hover:bg-surface-hover transition-colors"
+                  >
+                    <span aria-hidden>📖</span>
+                    <span>Словник курсу</span>
+                  </Link>
+                  <Link
+                    href={`/kids/library/${c.slug}`}
+                    onClick={() => setPickerOpen(false)}
+                    className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11.5px] font-bold text-ink-muted hover:text-ink transition-colors"
+                  >
+                    Деталі курсу →
+                  </Link>
+                </div>
               </div>
-              <span className="flex-1 min-w-0 font-black text-[12.5px] text-ink truncate">
-                {(c as Course & { titleUa?: string }).titleUa ?? c.title}
-              </span>
-              <span aria-hidden className="text-ink-faint text-[15px] font-black flex-shrink-0">
-                ›
-              </span>
-            </button>
-          ))}
+            );
+          })}
         </div>
       )}
       </div>
@@ -772,6 +810,16 @@ export function LessonCarouselSection({ level }: Props) {
  * currently progressing (first non-finished course); falls back to the
  * first course when everything is fresh or everything is done.
  */
+function readPinnedCourseSlug(): string | null {
+  if (typeof window === 'undefined') return null;
+  try { return window.sessionStorage.getItem('kids:lastCourseSlug'); } catch { return null; }
+}
+
+function writePinnedCourseSlug(slug: string): void {
+  if (typeof window === 'undefined') return;
+  try { window.sessionStorage.setItem('kids:lastCourseSlug', slug); } catch { /* private mode */ }
+}
+
 function CourseScopedCarousel({
   data,
   status,
@@ -787,6 +835,10 @@ function CourseScopedCarousel({
 
   function defaultCourseSlug(): string | null {
     if (courses.length === 0) return null;
+    // Honour the pin first — set by LessonEngine when the kid opens a lesson,
+    // and by this picker when they switch courses.
+    const pinned = readPinnedCourseSlug();
+    if (pinned && courses.some((c) => c.course.slug === pinned)) return pinned;
     // Prefer the first course that has an unfinished lesson — the kid's
     // active learning track. Skip courses that are 100% done so we don't
     // park the kid on a finished course when another one is in flight.
@@ -800,6 +852,10 @@ function CourseScopedCarousel({
   const [selectedSlug, setSelectedSlug] = useState<string | null>(() =>
     defaultCourseSlug(),
   );
+
+  useEffect(() => {
+    if (selectedSlug) writePinnedCourseSlug(selectedSlug);
+  }, [selectedSlug]);
 
   // When data first arrives (or level changes) initialise the selection.
   // Keep the kid's choice if it still maps to a visible course.

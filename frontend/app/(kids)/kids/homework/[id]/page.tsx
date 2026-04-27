@@ -2,8 +2,7 @@
 
 import { use, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { KidsPageShell } from "@/components/ui/shells";
-import { KidsPageHeader, KidsButton, KidsCard } from "@/components/kids/ui";
+import { KidsButton } from "@/components/kids/ui";
 import { pointsForScore, starsForPoints } from "@/lib/grade";
 import {
   fetchSubmission,
@@ -12,17 +11,19 @@ import {
   type SubmissionStatus,
 } from "@/lib/homework";
 
+const PAGE_BOTTOM_PAD = "pb-[calc(env(safe-area-inset-bottom,0px)+96px)]";
+
 function isReadonly(s: SubmissionStatus): boolean {
   return s === "submitted" || s === "reviewed";
 }
 
 function statusLabel(s: SubmissionStatus): string {
   switch (s) {
-    case "notStarted": return "Новe завдання";
-    case "inProgress": return "Ти над цим працюєш";
-    case "submitted":  return "Відправлено вчителю ✅";
-    case "reviewed":   return "Перевірено ✨";
-    case "returned":   return "Повернено на доробку";
+    case "notStarted": return "Нове завдання";
+    case "inProgress": return "В роботі";
+    case "submitted":  return "Відправлено";
+    case "reviewed":   return "Перевірено";
+    case "returned":   return "На доробку";
     case "overdue":    return "Прострочено";
   }
 }
@@ -32,6 +33,29 @@ function dueLabel(iso: string | null): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "—";
   return `до ${d.toLocaleDateString("uk-UA", { day: "numeric", month: "long" })}`;
+}
+
+function Header({ onBack, title }: { onBack: () => void; title?: string }) {
+  return (
+    <div className="sticky top-0 z-10 border-b border-border bg-surface-raised/95 backdrop-blur-md pt-[max(8px,env(safe-area-inset-top))]">
+      <div className="w-full flex items-center gap-3 px-4 md:px-6 py-3">
+        <button
+          onClick={onBack}
+          aria-label="Назад"
+          className="w-9 h-9 rounded-lg flex items-center justify-center font-black text-lg flex-shrink-0 bg-surface-muted text-ink active:scale-90 transition-transform hover:bg-surface-hover"
+        >
+          ←
+        </button>
+        <p className="font-black text-[14.5px] text-ink shrink-0">Домашка</p>
+        {title && (
+          <>
+            <span className="text-sm text-ink-faint" aria-hidden>›</span>
+            <p className="font-medium truncate text-sm text-ink-muted">{title}</p>
+          </>
+        )}
+      </div>
+    </div>
+  );
 }
 
 export default function KidsHomeworkDetailPage({
@@ -86,88 +110,95 @@ export default function KidsHomeworkDetailPage({
   }
 
   return (
-    <KidsPageShell
-      header={<KidsPageHeader title="Завдання" backHref="/kids/homework" />}
-    >
-      <div className="max-w-screen-sm mx-auto flex flex-col gap-4 py-4">
-        {load === "loading" && (
-          <div className="flex justify-center py-16 text-ink-muted text-sm">Завантаження…</div>
-        )}
+    <div className={`flex flex-col min-h-[100dvh] bg-surface-raised ${PAGE_BOTTOM_PAD}`}>
+      <Header
+        onBack={() => router.push("/kids/homework")}
+        title={sub?.homework?.title}
+      />
 
-        {load === "error" && (
-          <KidsCard variant="default" className="p-6 text-center">
+      {load === "loading" && (
+        <div className="flex justify-center py-16 text-ink-muted text-sm">Завантаження…</div>
+      )}
+
+      {load === "error" && (
+        <div className="px-4 md:px-6 py-10">
+          <div className="max-w-screen-sm mx-auto w-full text-center">
             <p className="font-black text-ink text-base">Завдання не знайдено</p>
             <KidsButton variant="ghost" size="sm" href="/kids/homework" className="mt-4">
               На список
             </KidsButton>
-          </KidsCard>
-        )}
+          </div>
+        </div>
+      )}
 
-        {load === "ready" && sub && (
-          <>
-            {/* Brief */}
-            <KidsCard variant="hero" className="p-5">
-              <p className="text-primary-dark text-[11px] font-black uppercase tracking-wider">
-                {statusLabel(sub.status)}
-              </p>
-              <h2 className="font-black text-ink text-xl leading-tight mt-1">
+      {load === "ready" && sub && (
+        <>
+          {/* HERO — chips · title · description (mirrors vocab/library) */}
+          <section className="px-4 md:px-6 py-5">
+            <div className="max-w-screen-sm mx-auto w-full flex flex-col gap-3">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="ios-chip">{statusLabel(sub.status)}</span>
+                <span className="ios-chip">{dueLabel(sub.homework?.dueAt ?? null)}</span>
+                {sub.score !== null && (
+                  <span className="ios-chip text-success-dark">{sub.score} балів</span>
+                )}
+              </div>
+              <h1 className="font-black text-[20px] md:text-[24px] leading-tight tracking-tight text-ink">
                 {sub.homework?.title ?? "Без назви"}
-              </h2>
-              <p className="text-ink-muted text-[12px] font-bold mt-1">
-                {dueLabel(sub.homework?.dueAt ?? null)}
-              </p>
+              </h1>
               {sub.homework?.description && (
-                <p className="text-ink text-[13px] mt-3 leading-snug whitespace-pre-wrap">
+                <p className="font-medium leading-relaxed text-[14px] md:text-[15px] text-ink-muted whitespace-pre-wrap">
                   {sub.homework.description}
                 </p>
               )}
-            </KidsCard>
+            </div>
+          </section>
 
-            {/* Teacher feedback / grade — kid-facing read of the academic
-                grade. Stars are deliberately delicate (no big "FAILED"
-                bar) so a 50 % grade still feels like progress, not
-                punishment. Star count maps 0..5 to score buckets:
-                  0–19 → 1★, 20–39 → 2★, 40–59 → 3★, 60–79 → 4★, 80+ → 5★.
-                Anti-blanket rule (REWARDS.md): grades stay quiet, the
-                gamified pieces (coins/XP/achievements) carry the
-                celebration. */}
-            {(sub.teacherFeedback || sub.score !== null) && (
-              <KidsCard variant="flat" className="p-4">
-                {sub.score !== null && (() => {
-                  const points = pointsForScore(sub.score);
-                  const stars = starsForPoints(points);
-                  return (
-                    <div className="flex items-center justify-between gap-3 mb-2">
-                      <span className="text-[11px] font-black uppercase text-ink-faint tracking-wider">
-                        Оцінка
-                      </span>
-                      <span className="flex items-center gap-1.5">
-                        <span className="text-[15px]" aria-hidden>
-                          {'⭐'.repeat(stars)}
-                        </span>
-                        <span className="font-black text-primary-dark text-[14px] tabular-nums">
-                          {points}/12
-                        </span>
-                      </span>
-                    </div>
-                  );
-                })()}
-                {sub.teacherFeedback && (
-                  <>
-                    <p className="text-[11px] font-black uppercase text-ink-faint tracking-wider">
-                      Коментар вчителя
-                    </p>
-                    <p className="text-ink text-[14px] mt-1 whitespace-pre-wrap">
-                      {sub.teacherFeedback}
-                    </p>
-                  </>
-                )}
-              </KidsCard>
-            )}
+          {(sub.teacherFeedback || sub.score !== null) && (
+            <>
+              <div className="ios-divider" />
+              <section className="px-4 md:px-6 py-5">
+                <div className="max-w-screen-sm mx-auto w-full">
+                  <p className="font-bold text-[11px] uppercase tracking-[0.04em] text-ink-muted mb-2">
+                    Від вчителя
+                  </p>
+                  <div className="rounded-2xl bg-surface-muted/60 border border-border p-4 flex flex-col gap-2">
+                    {sub.score !== null && (() => {
+                      const points = pointsForScore(sub.score);
+                      const stars = starsForPoints(points);
+                      return (
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-[11px] font-black uppercase text-ink-faint tracking-wider">
+                            Оцінка
+                          </span>
+                          <span className="flex items-center gap-1.5">
+                            <span className="text-[15px]" aria-hidden>
+                              {'⭐'.repeat(stars)}
+                            </span>
+                            <span className="font-black text-primary-dark text-[14px] tabular-nums">
+                              {points}/12
+                            </span>
+                          </span>
+                        </div>
+                      );
+                    })()}
+                    {sub.teacherFeedback && (
+                      <p className="text-ink text-[14px] leading-relaxed whitespace-pre-wrap">
+                        {sub.teacherFeedback}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </section>
+            </>
+          )}
 
-            {/* Answer editor */}
-            <KidsCard variant="default" className="p-4">
-              <label className="text-[11px] font-black uppercase text-ink-faint tracking-wider">
+          <div className="ios-divider" />
+
+          {/* Answer editor — centred card stack */}
+          <section className="px-4 md:px-6 py-5">
+            <div className="max-w-screen-sm mx-auto w-full">
+              <label className="font-bold text-[11px] uppercase tracking-[0.04em] text-ink-muted block mb-2">
                 Твоя відповідь
               </label>
               <textarea
@@ -177,10 +208,10 @@ export default function KidsHomeworkDetailPage({
                 rows={8}
                 placeholder="Напиши відповідь тут…"
                 className={[
-                  "mt-2 w-full rounded-2xl p-3 text-[14px] leading-relaxed outline-none",
-                  "bg-surface-muted border-2 border-border",
-                  "focus:border-primary focus:bg-surface",
-                  readonly && "opacity-80 cursor-not-allowed",
+                  "w-full rounded-2xl p-3.5 text-[14px] leading-relaxed outline-none transition-colors",
+                  "bg-surface border-2 border-border",
+                  "focus:border-primary focus:bg-surface-raised",
+                  readonly && "opacity-80 cursor-not-allowed bg-surface-muted",
                 ].filter(Boolean).join(" ")}
               />
 
@@ -189,7 +220,7 @@ export default function KidsHomeworkDetailPage({
               )}
 
               {!readonly && (
-                <div className="flex gap-2 mt-3">
+                <div className="flex flex-col sm:flex-row gap-2 mt-4">
                   <KidsButton
                     variant="ghost"
                     size="md"
@@ -218,10 +249,10 @@ export default function KidsHomeworkDetailPage({
                     : "Роботу надіслано вчителю"}
                 </p>
               )}
-            </KidsCard>
-          </>
-        )}
-      </div>
-    </KidsPageShell>
+            </div>
+          </section>
+        </>
+      )}
+    </div>
   );
 }

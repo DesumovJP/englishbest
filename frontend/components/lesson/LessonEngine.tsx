@@ -54,6 +54,14 @@ export function LessonEngine({
   const [charEmotion, setCharEmotion] = useState<CharEmotion>('idle');
   const [stepMistakes, setStepMistakes] = useState(0);
 
+  // Pin the course of the current lesson so closing the X (or Success →
+  // /kids/school) re-opens the same course on the lessons page instead of
+  // defaulting to "first in-progress".
+  useEffect(() => {
+    if (!lesson.courseSlug) return;
+    try { window.sessionStorage.setItem('kids:lastCourseSlug', lesson.courseSlug); } catch { /* private mode */ }
+  }, [lesson.courseSlug]);
+
   const step = lesson.steps[stepIdx];
   // Лише вправи (не теорія/медіа) рахуються для прогрес-бару
   const NON_EXERCISE = new Set<string>(['theory', 'image', 'video']);
