@@ -116,6 +116,18 @@ function buildPatch(data: any): Record<string, unknown> {
       patch.level = data.level;
     }
   }
+  // Avatar relation: media-file id (number) to attach a freshly-uploaded
+  // image, or null/0/'' to detach. Caller is responsible for /api/upload
+  // first; this just stores the resulting media reference on the profile.
+  if ('avatar' in data) {
+    if (data.avatar === null || data.avatar === '' || data.avatar === 0) {
+      patch.avatar = null;
+    } else if (typeof data.avatar === 'number' && Number.isFinite(data.avatar)) {
+      patch.avatar = data.avatar;
+    } else if (typeof data.avatar === 'string' && /^\d+$/.test(data.avatar)) {
+      patch.avatar = Number(data.avatar);
+    }
+  }
 
   return patch;
 }

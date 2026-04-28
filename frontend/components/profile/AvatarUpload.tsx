@@ -3,24 +3,26 @@
 /**
  * Profile avatar with click-to-upload UI.
  *
- * Frontend-only for now: the picked file is read as a data-URL and stays
- * in component state until the page reloads. A "Backend в розробці"
- * notice is shown so users know the upload doesn't persist yet. When the
- * backend `user-profile.avatar` upload endpoint ships, swap the local
- * data-URL flow for a real `multipart/form-data` POST and persist the
- * resulting URL on the profile.
+ * Flow: click avatar → file picker → local preview (data-URL) →
+ * `Зберегти` posts the file to `/api/upload` (Strapi → DigitalOcean
+ * Spaces in prod via `@strapi/provider-upload-aws-s3`) → parent persists
+ * the resulting media id on the profile via `onSaved(media)`.
+ *
+ * Validation: image MIME, 4 MB cap. The picker is hidden behind a
+ * keyboard-focusable button overlay on the avatar.
  */
 import { useRef, useState } from 'react';
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
+import { uploadFile, type UploadedMedia } from '@/lib/upload';
 
 interface AvatarUploadProps {
   name: string;
   initialUrl?: string | null;
   size?: 'sm' | 'md' | 'lg';
   className?: string;
-  /** Called with the new data-URL after the user accepts a pick. */
-  onChange?: (dataUrl: string) => void;
+  /** Called after a successful upload + parent-side persistence handler. */
+  onSaved?: (media: UploadedMedia) => Promise<void> | void;
 }
 
 const MAX_BYTES = 4 * 1024 * 1024; // 4 MB
@@ -31,11 +33,13 @@ export function AvatarUpload({
   initialUrl = null,
   size = 'lg',
   className,
-  onChange,
+  onSaved,
 }: AvatarUploadProps) {
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [savedUrl, setSavedUrl] = useState<string | null>(initialUrl ?? null);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const displayUrl = previewUrl ?? savedUrl ?? undefined;
@@ -54,21 +58,33 @@ export function AvatarUpload({
     reader.onload = () => {
       if (typeof reader.result === 'string') {
         setPreviewUrl(reader.result);
+        setPendingFile(file);
       }
     };
     reader.onerror = () => setError('Не вдалося прочитати файл');
     reader.readAsDataURL(file);
   }
 
-  function handleSaveLocal() {
-    if (!previewUrl) return;
-    setSavedUrl(previewUrl);
-    onChange?.(previewUrl);
-    setPreviewUrl(null);
+  async function handleSave() {
+    if (!pendingFile) return;
+    setError(null);
+    setUploading(true);
+    try {
+      const media = await uploadFile(pendingFile);
+      if (onSaved) await onSaved(media);
+      setSavedUrl(media.url);
+      setPreviewUrl(null);
+      setPendingFile(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Не вдалося завантажити');
+    } finally {
+      setUploading(false);
+    }
   }
 
   function handleCancel() {
     setPreviewUrl(null);
+    setPendingFile(null);
     setError(null);
   }
 
@@ -82,7 +98,8 @@ export function AvatarUpload({
         <button
           type="button"
           onClick={openPicker}
-          className="relative group rounded-full overflow-hidden flex-shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          disabled={uploading}
+          className="relative group rounded-full overflow-hidden flex-shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-60"
           aria-label="Змінити аватар"
         >
           <Avatar
@@ -109,16 +126,16 @@ export function AvatarUpload({
         />
 
         <div className="flex flex-col gap-1.5 min-w-0">
-          {previewUrl ? (
+          {pendingFile ? (
             <>
               <p className="text-[12px] text-ink">
-                Нове фото обрано. Збережи локально щоб побачити прев’ю на цій сторінці.
+                {pendingFile.name} · {(pendingFile.size / 1024).toFixed(0)} KB
               </p>
               <div className="flex items-center gap-2">
-                <Button size="sm" onClick={handleSaveLocal}>
-                  Зберегти локально
+                <Button size="sm" onClick={handleSave} disabled={uploading}>
+                  {uploading ? 'Завантажую…' : 'Зберегти'}
                 </Button>
-                <Button size="sm" variant="secondary" onClick={handleCancel}>
+                <Button size="sm" variant="secondary" onClick={handleCancel} disabled={uploading}>
                   Скасувати
                 </Button>
               </div>
@@ -126,12 +143,10 @@ export function AvatarUpload({
           ) : (
             <>
               <p className="text-[12px] text-ink-muted">
-                {savedUrl
-                  ? 'Аватар оновлено локально (на цій вкладці).'
-                  : 'Натисни на аватар, щоб обрати фото.'}
+                Натисни на аватар, щоб обрати фото.
               </p>
               <p className="text-[11px] text-ink-faint">
-                Завантаження на сервер — у розробці. Поки фото зберігається тільки в браузері.
+                PNG / JPEG / WEBP / GIF, до 4 MB. Зберігається на DigitalOcean Spaces (CDN).
               </p>
               <div>
                 <Button size="sm" variant="secondary" onClick={openPicker}>

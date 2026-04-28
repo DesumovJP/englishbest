@@ -80,6 +80,8 @@ export interface UserProfilePatch {
   locale?: Locale;
   timezone?: string;
   marketingOptIn?: boolean;
+  /** Avatar media id (number) — pass `null` to detach. */
+  avatar?: number | null;
 }
 
 export async function updateMyProfile(patch: UserProfilePatch): Promise<UserProfile> {

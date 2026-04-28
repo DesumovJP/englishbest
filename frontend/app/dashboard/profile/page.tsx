@@ -408,6 +408,12 @@ export default function ProfilePage() {
     await refresh();
   }
 
+  async function handleAvatarSaved(media: { id: number }) {
+    const fresh = await updateMyProfile({ avatar: media.id });
+    setProfile(fresh);
+    await refresh();
+  }
+
   if (sessionStatus === 'loading') {
     return <DashboardPageShell title="Профіль" subtitle="Завантаження…" status="loading" loadingShape="card" />;
   }
@@ -451,6 +457,7 @@ export default function ProfilePage() {
             name={displayName}
             initialUrl={profile.avatarUrl}
             size="lg"
+            onSaved={handleAvatarSaved}
           />
           <div className="border-t border-border pt-3">
             <div className="flex items-center gap-2 flex-wrap">

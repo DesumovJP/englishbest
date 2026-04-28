@@ -34,6 +34,10 @@ const GRANTS: Grant[] = [
   { action: 'api::auth.auth.me', roles: AUTH_ALL },
   { action: 'api::auth.auth.logoutAll', roles: AUTH_ALL },
 
+  // File uploads (avatars, course covers, vocab covers, lesson media).
+  // Strapi's upload plugin gates POST /api/upload on this action.
+  { action: 'plugin::upload.content-api.upload', roles: AUTH_ALL },
+
   // Course (public catalog, staff write — incl. publish/unpublish/delete)
   { action: 'api::course.course.find', roles: PUBLIC_ALL },
   { action: 'api::course.course.findOne', roles: PUBLIC_ALL },
