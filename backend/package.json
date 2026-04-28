@@ -15,7 +15,8 @@
     "upgrade:dry": "npx @strapi/upgrade latest --dry",
     "import-mocks": "tsx scripts/import-mocks.ts",
     "extract-lesson-steps": "tsx scripts/extract-lesson-steps.ts",
-    "backfill-lesson-courses": "tsx scripts/backfill-lesson-course-relations.ts"
+    "backfill-lesson-courses": "tsx scripts/backfill-lesson-course-relations.ts",
+    "backfill-content-lifecycle": "tsx scripts/backfill-content-lifecycle.ts"
   },
   "dependencies": {
     "@strapi/plugin-cloud": "5.42.1",

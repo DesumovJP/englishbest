@@ -109,6 +109,23 @@
       "relation": "oneToMany",
       "target": "api::vocabulary-set.vocabulary-set",
       "mappedBy": "lesson"
+    },
+    "reviewStatus": {
+      "type": "enumeration",
+      "enum": ["draft", "submitted", "approved", "rejected"],
+      "default": "draft",
+      "required": true
+    },
+    "rejectionReason": {
+      "type": "text"
+    },
+    "reviewedBy": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::user-profile.user-profile"
+    },
+    "reviewedAt": {
+      "type": "datetime"
     }
   }
 }

@@ -17,6 +17,7 @@
  */
 import { factories } from '@strapi/strapi';
 import { scopedFind } from '../../../lib/scoped-find';
+import { writeAudit } from '../../../lib/audit';
 
 const LESSON_UID = 'api::lesson.lesson';
 const TEACHER_UID = 'api::teacher-profile.teacher-profile';
@@ -145,12 +146,15 @@ export default factories.createCoreController(LESSON_UID, ({ strapi }) => ({
     const role = roleType(user);
     if (role !== 'teacher' && role !== 'admin') return ctx.forbidden();
 
+    // Always fetch the row before delete — both for owner-check (teacher
+    // path) and for the audit-log `before` snapshot (any role).
+    const existing = await strapi.documents(LESSON_UID).findOne({
+      documentId: ctx.params.id,
+      populate: { owner: true },
+    });
+    if (!existing) return ctx.notFound();
+
     if (role === 'teacher') {
-      const existing = await strapi.documents(LESSON_UID).findOne({
-        documentId: ctx.params.id,
-        populate: { owner: true },
-      });
-      if (!existing) return ctx.notFound();
       const teacherId = await callerTeacherProfileId(strapi, user.id);
       const ownerId = (existing as any).owner?.documentId ?? null;
       if (!teacherId || ownerId !== teacherId) return ctx.forbidden();
@@ -158,7 +162,14 @@ export default factories.createCoreController(LESSON_UID, ({ strapi }) => ({
         return ctx.forbidden('cannot delete platform lesson');
       }
     }
-    return (super.delete as any)(ctx);
+    const result = await (super.delete as any)(ctx);
+    await writeAudit(strapi, ctx, {
+      action: 'delete',
+      entityType: LESSON_UID,
+      entityId: ctx.params.id,
+      before: existing,
+    });
+    return result;
   },
 
   async publish(ctx) {
@@ -186,6 +197,13 @@ export default factories.createCoreController(LESSON_UID, ({ strapi }) => ({
     const fresh = await strapi.documents(LESSON_UID).findOne({
       documentId: ctx.params.id,
       populate: { owner: true },
+    });
+    await writeAudit(strapi, ctx, {
+      action: 'publish',
+      entityType: LESSON_UID,
+      entityId: ctx.params.id,
+      before: existing,
+      after: fresh,
     });
     return { data: fresh };
   },
@@ -216,6 +234,13 @@ export default factories.createCoreController(LESSON_UID, ({ strapi }) => ({
       documentId: ctx.params.id,
       populate: { owner: true },
       status: 'draft',
+    });
+    await writeAudit(strapi, ctx, {
+      action: 'unpublish',
+      entityType: LESSON_UID,
+      entityId: ctx.params.id,
+      before: existing,
+      after: fresh,
     });
     return { data: fresh };
   },

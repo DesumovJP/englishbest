@@ -147,6 +147,34 @@
     "gradientTo": {
       "type": "string",
       "regex": "^#[0-9a-fA-F]{6}$"
+    },
+    "owner": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::teacher-profile.teacher-profile"
+    },
+    "source": {
+      "type": "enumeration",
+      "enum": ["platform", "own", "copy", "template"],
+      "default": "own",
+      "required": true
+    },
+    "reviewStatus": {
+      "type": "enumeration",
+      "enum": ["draft", "submitted", "approved", "rejected"],
+      "default": "draft",
+      "required": true
+    },
+    "rejectionReason": {
+      "type": "text"
+    },
+    "reviewedBy": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::user-profile.user-profile"
+    },
+    "reviewedAt": {
+      "type": "datetime"
     }
   }
 }

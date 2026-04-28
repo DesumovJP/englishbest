@@ -11,6 +11,7 @@
  * surface by default).
  */
 import { factories } from '@strapi/strapi';
+import { writeAudit } from '../../../lib/audit';
 
 const COURSE_UID = 'api::course.course';
 const STAFF_ROLES = new Set(['teacher', 'admin']);
@@ -49,6 +50,12 @@ export default factories.createCoreController(COURSE_UID, ({ strapi }) => ({
     if (!existing) return ctx.notFound();
 
     await strapi.documents(COURSE_UID).delete({ documentId: ctx.params.id });
+    await writeAudit(strapi, ctx, {
+      action: 'delete',
+      entityType: COURSE_UID,
+      entityId: ctx.params.id,
+      before: existing,
+    });
     return { data: { documentId: ctx.params.id } };
   },
 
@@ -66,6 +73,13 @@ export default factories.createCoreController(COURSE_UID, ({ strapi }) => ({
     const fresh = await strapi.documents(COURSE_UID).findOne({
       documentId: ctx.params.id,
     });
+    await writeAudit(strapi, ctx, {
+      action: 'publish',
+      entityType: COURSE_UID,
+      entityId: ctx.params.id,
+      before: existing,
+      after: fresh,
+    });
     return { data: fresh };
   },
 
@@ -82,6 +96,13 @@ export default factories.createCoreController(COURSE_UID, ({ strapi }) => ({
     await strapi.documents(COURSE_UID).unpublish({ documentId: ctx.params.id });
     const fresh = await strapi.documents(COURSE_UID).findOne({
       documentId: ctx.params.id,
+    });
+    await writeAudit(strapi, ctx, {
+      action: 'unpublish',
+      entityType: COURSE_UID,
+      entityId: ctx.params.id,
+      before: existing,
+      after: fresh,
     });
     return { data: fresh };
   },
