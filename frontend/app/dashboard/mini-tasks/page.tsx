@@ -215,16 +215,6 @@ export default function MiniTasksPage() {
             const isMine = role === 'admin' || (myAuthorId ? task.authorId === myAuthorId : false);
             const deleting = deletingId === task.documentId;
             const stats = statsByTask.get(task.documentId);
-            // Default click target — admins / owners go straight into the
-            // builder; non-owners with attempts open the results modal so
-            // the card always does something on click. Non-owners without
-            // attempts see a static card (no useful action available).
-            const handleCardClick = isMine
-              ? () => handleEdit(task)
-              : stats && stats.total > 0
-                ? () => setResultsTask(task)
-                : undefined;
-            const cardClickable = handleCardClick !== undefined;
             return (
               <Card
                 key={task.documentId}
@@ -234,13 +224,8 @@ export default function MiniTasksPage() {
               >
                 <button
                   type="button"
-                  onClick={handleCardClick}
-                  disabled={!cardClickable}
-                  className={`flex flex-col gap-3 p-3 text-left transition-colors ${
-                    cardClickable
-                      ? 'hover:bg-surface-hover cursor-pointer'
-                      : 'cursor-default'
-                  }`}
+                  onClick={() => handleEdit(task)}
+                  className="flex flex-col gap-3 p-3 text-left transition-colors hover:bg-surface-hover cursor-pointer"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex flex-col gap-1">

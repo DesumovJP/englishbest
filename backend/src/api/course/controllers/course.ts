@@ -77,12 +77,19 @@ export default factories.createCoreController(COURSE_UID, ({ strapi }) => ({
       if (!existing) return ctx.notFound();
       const teacherId = await callerTeacherProfileId(strapi, user.id);
       const ownerId = (existing as any).owner?.documentId ?? null;
-      if (!teacherId || !ownerId || ownerId !== teacherId) {
+      if (!teacherId) return ctx.forbidden('no teacher-profile');
+      if (ownerId && ownerId !== teacherId) {
         return ctx.forbidden('not the owner');
       }
-      if ((existing as any).source === 'platform') {
-        return ctx.forbidden('platform courses are managed by admin');
-      }
+      // Orphan course (`owner` null — pre-backfill, or admin-created)
+      // falls through: any STAFF can manage. Tighten later via a
+      // dedicated «adopt orphan» flow if needed.
+      // Owner check above is the gate. We intentionally do NOT block
+      // platform-source updates here — if a teacher is the assigned
+      // owner of a seeded platform course (set via backfill from
+      // course.teacher), they should be able to manage it. The
+      // platform-block stays only on delete, where destructive risk
+      // warrants admin-only access.
 
       const data = (ctx.request.body as any)?.data ?? {};
       delete data.owner;
@@ -111,9 +118,13 @@ export default factories.createCoreController(COURSE_UID, ({ strapi }) => ({
     if (role === 'teacher') {
       const teacherId = await callerTeacherProfileId(strapi, user.id);
       const ownerId = (existing as any).owner?.documentId ?? null;
-      if (!teacherId || !ownerId || ownerId !== teacherId) {
+      if (!teacherId) return ctx.forbidden('no teacher-profile');
+      if (ownerId && ownerId !== teacherId) {
         return ctx.forbidden('not the owner');
       }
+      // Orphan course (`owner` null — pre-backfill, or admin-created)
+      // falls through: any STAFF can manage. Tighten later via a
+      // dedicated «adopt orphan» flow if needed.
       if ((existing as any).source === 'platform') {
         return ctx.forbidden('cannot delete platform course');
       }
@@ -144,9 +155,13 @@ export default factories.createCoreController(COURSE_UID, ({ strapi }) => ({
     if (role === 'teacher') {
       const teacherId = await callerTeacherProfileId(strapi, user.id);
       const ownerId = (existing as any).owner?.documentId ?? null;
-      if (!teacherId || !ownerId || ownerId !== teacherId) {
+      if (!teacherId) return ctx.forbidden('no teacher-profile');
+      if (ownerId && ownerId !== teacherId) {
         return ctx.forbidden('not the owner');
       }
+      // Orphan course (`owner` null — pre-backfill, or admin-created)
+      // falls through: any STAFF can manage. Tighten later via a
+      // dedicated «adopt orphan» flow if needed.
     }
 
     await strapi.documents(COURSE_UID).publish({ documentId: ctx.params.id });
@@ -178,9 +193,13 @@ export default factories.createCoreController(COURSE_UID, ({ strapi }) => ({
     if (role === 'teacher') {
       const teacherId = await callerTeacherProfileId(strapi, user.id);
       const ownerId = (existing as any).owner?.documentId ?? null;
-      if (!teacherId || !ownerId || ownerId !== teacherId) {
+      if (!teacherId) return ctx.forbidden('no teacher-profile');
+      if (ownerId && ownerId !== teacherId) {
         return ctx.forbidden('not the owner');
       }
+      // Orphan course (`owner` null — pre-backfill, or admin-created)
+      // falls through: any STAFF can manage. Tighten later via a
+      // dedicated «adopt orphan» flow if needed.
     }
 
     await strapi.documents(COURSE_UID).unpublish({ documentId: ctx.params.id });
