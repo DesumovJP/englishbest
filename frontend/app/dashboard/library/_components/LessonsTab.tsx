@@ -4,13 +4,7 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { LESSON_SOURCE_LABELS } from '@/lib/ui/teacher-labels';
 import type { LibraryLesson, LessonSource, Level } from '@/lib/types/teacher';
-import {
-  cloneLesson,
-  deleteLesson,
-  fetchLesson,
-  fetchLessonsCached,
-  peekLessons,
-} from '@/lib/teacher-library';
+import { fetchLessonsCached, peekLessons } from '@/lib/teacher-library';
 import {
   FilterChips,
   LevelBadge,
@@ -103,29 +97,6 @@ export function LessonsTab({ query, onCount }: LessonsTabProps) {
     window.setTimeout(() => setToast(null), 1800);
   }
 
-  async function copyLesson(lesson: LibraryLesson) {
-    try {
-      const detail = await fetchLesson(lesson.id);
-      if (!detail) throw new Error('lesson not found');
-      const copy = await cloneLesson(detail);
-      setLessons((prev) => [copy, ...prev]);
-      flashToast(`Копія: ${copy.title}`);
-    } catch (e) {
-      flashToast(e instanceof Error ? e.message : 'Не вдалося скопіювати');
-    }
-  }
-
-  async function removeLesson(lesson: LibraryLesson) {
-    if (!window.confirm(`Видалити урок «${lesson.title}»?`)) return;
-    try {
-      await deleteLesson(lesson.id);
-      setLessons((prev) => prev.filter((l) => l.id !== lesson.id));
-      flashToast(`Урок видалено: ${lesson.title}`);
-    } catch (e) {
-      flashToast(e instanceof Error ? e.message : 'Не вдалося видалити');
-    }
-  }
-
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center gap-3 justify-between">
@@ -161,19 +132,9 @@ export function LessonsTab({ query, onCount }: LessonsTabProps) {
           }
         />
       ) : view === 'grid' ? (
-        <GridView
-          lessons={filtered}
-          onAssign={setAssignFor}
-          onCopy={copyLesson}
-          onDelete={removeLesson}
-        />
+        <GridView lessons={filtered} onAssign={setAssignFor} />
       ) : (
-        <ListView
-          lessons={filtered}
-          onAssign={setAssignFor}
-          onCopy={copyLesson}
-          onDelete={removeLesson}
-        />
+        <ListView lessons={filtered} onAssign={setAssignFor} />
       )}
 
       <CreateHomeworkModal
@@ -196,27 +157,19 @@ export function LessonsTab({ query, onCount }: LessonsTabProps) {
 interface RowProps {
   lessons: LibraryLesson[];
   onAssign: (l: LibraryLesson) => void;
-  onCopy: (l: LibraryLesson) => void;
-  onDelete: (l: LibraryLesson) => void;
 }
 
-function GridView({ lessons, onAssign, onCopy, onDelete }: RowProps) {
+function GridView({ lessons, onAssign }: RowProps) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
       {lessons.map((lesson) => (
-        <LessonCard
-          key={lesson.id}
-          lesson={lesson}
-          onAssign={onAssign}
-          onCopy={onCopy}
-          onDelete={onDelete}
-        />
+        <LessonCard key={lesson.id} lesson={lesson} onAssign={onAssign} />
       ))}
     </div>
   );
 }
 
-function ListView({ lessons, onAssign, onCopy, onDelete }: RowProps) {
+function ListView({ lessons, onAssign }: RowProps) {
   return (
     <Card variant="surface" padding="none" className="overflow-hidden">
       <div className="overflow-x-auto">
@@ -259,12 +212,7 @@ function ListView({ lessons, onAssign, onCopy, onDelete }: RowProps) {
                   {lesson.updatedAt}
                 </td>
                 <td className="px-4 py-3 text-right whitespace-nowrap">
-                  <LessonRowActions
-                    lesson={lesson}
-                    onAssign={onAssign}
-                    onCopy={onCopy}
-                    onDelete={onDelete}
-                  />
+                  <LessonRowActions lesson={lesson} onAssign={onAssign} />
                 </td>
               </tr>
             ))}
@@ -278,13 +226,9 @@ function ListView({ lessons, onAssign, onCopy, onDelete }: RowProps) {
 function LessonCard({
   lesson,
   onAssign,
-  onCopy,
-  onDelete,
 }: {
   lesson: LibraryLesson;
   onAssign: (l: LibraryLesson) => void;
-  onCopy: (l: LibraryLesson) => void;
-  onDelete: (l: LibraryLesson) => void;
 }) {
   return (
     <Card variant="surface" padding="sm" className="flex flex-col gap-3">
@@ -320,7 +264,7 @@ function LessonCard({
 
       <div className="flex items-center justify-between mt-auto pt-3 border-t border-border">
         <span className="text-[11px] text-ink-faint tabular-nums">{lesson.updatedAt}</span>
-        <LessonRowActions lesson={lesson} onAssign={onAssign} onCopy={onCopy} onDelete={onDelete} />
+        <LessonRowActions lesson={lesson} onAssign={onAssign} />
       </div>
     </Card>
   );
@@ -333,41 +277,14 @@ function isOwnedLesson(lesson: LibraryLesson): boolean {
 function LessonRowActions({
   lesson,
   onAssign,
-  onCopy,
-  onDelete,
 }: {
   lesson: LibraryLesson;
   onAssign: (l: LibraryLesson) => void;
-  onCopy: (l: LibraryLesson) => void;
-  onDelete: (l: LibraryLesson) => void;
 }) {
-  const isReadOnly = lesson.source === 'platform' || lesson.source === 'template';
   return (
-    <div className="inline-flex items-center gap-1.5">
-      {isReadOnly && (
-        <Button
-          size="sm"
-          variant="secondary"
-          onClick={() => onCopy(lesson)}
-          title="Копіювати в мою бібліотеку"
-        >
-          Копія
-        </Button>
-      )}
-      <Button size="sm" onClick={() => onAssign(lesson)}>
-        Призначити
-      </Button>
-      {!isReadOnly && (
-        <Button
-          size="sm"
-          variant="danger"
-          onClick={() => onDelete(lesson)}
-          title="Видалити урок"
-        >
-          ×
-        </Button>
-      )}
-    </div>
+    <Button size="sm" onClick={() => onAssign(lesson)}>
+      Призначити
+    </Button>
   );
 }
 

@@ -112,6 +112,11 @@ export default function LessonEditorPage() {
     courseTitle: string;
     sectionTitle: string | null;
   } | null>(null);
+  const [parentLink, setParentLink] = useState<{
+    courseDocumentId: string;
+    courseTitle: string | null;
+    sectionSlug: string | null;
+  } | null>(null);
 
   const [mode, setMode] = useState<'edit' | 'preview'>('edit');
   const [picker, setPicker] = useState<{ open: boolean; at: number } | null>(null);
@@ -146,28 +151,19 @@ export default function LessonEditorPage() {
         setSavedAt(new Date());
         setDirty(false);
         if (detail.courseDocumentId) {
-          const courseId = detail.courseDocumentId;
-          const courseTitle = detail.courseTitle ?? courseId;
-          const wantedSlug = detail.sectionSlug;
-          if (wantedSlug) {
-            try {
-              const course = await fetchTeacherCourse(courseId);
-              if (alive) {
-                const match = course?.sections.find((s) => s.slug === wantedSlug);
-                setUsage({
-                  courseDocumentId: courseId,
-                  courseTitle: course?.titleUa || course?.title || courseTitle,
-                  sectionTitle: match?.title ?? wantedSlug,
-                });
-              }
-            } catch {
-              if (alive) {
-                setUsage({ courseDocumentId: courseId, courseTitle, sectionTitle: wantedSlug });
-              }
-            }
-          } else if (alive) {
-            setUsage({ courseDocumentId: courseId, courseTitle, sectionTitle: null });
-          }
+          // Set the immediately-available parent link from the lesson payload;
+          // the section title is hydrated by a separate effect so a slow/failed
+          // course fetch never blocks the editor from going interactive.
+          setParentLink({
+            courseDocumentId: detail.courseDocumentId,
+            courseTitle: detail.courseTitle ?? null,
+            sectionSlug: detail.sectionSlug ?? null,
+          });
+          setUsage({
+            courseDocumentId: detail.courseDocumentId,
+            courseTitle: detail.courseTitle ?? detail.courseDocumentId,
+            sectionTitle: detail.sectionSlug ?? null,
+          });
         }
       } catch (e) {
         if (alive) setLoadError(e instanceof Error ? e.message : 'failed');
@@ -184,6 +180,31 @@ export default function LessonEditorPage() {
     if (loading) return;
     setDirty(true);
   }, [title, level, topic, durationMin, tags, blocks, loading]);
+
+  // Hydrate the section title for the "У курсі" badge from the parent course.
+  // Runs after the lesson load finishes, so a slow course fetch never delays
+  // the editor going interactive.
+  useEffect(() => {
+    if (!parentLink || !parentLink.sectionSlug) return;
+    let alive = true;
+    (async () => {
+      try {
+        const course = await fetchTeacherCourse(parentLink.courseDocumentId);
+        if (!alive || !course) return;
+        const match = course.sections.find((s) => s.slug === parentLink.sectionSlug);
+        setUsage({
+          courseDocumentId: parentLink.courseDocumentId,
+          courseTitle: course.titleUa || course.title || parentLink.courseTitle || parentLink.courseDocumentId,
+          sectionTitle: match?.title ?? parentLink.sectionSlug,
+        });
+      } catch {
+        /* keep the slug-only fallback usage already set during load */
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [parentLink]);
 
   const savedLabel = useMemo(() => {
     if (saving) return 'Зберігаю…';

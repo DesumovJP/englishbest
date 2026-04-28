@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { Card } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -47,6 +48,7 @@ export function VocabularyTab({ query, onCount }: VocabularyTabProps) {
   const [level, setLevel] = useState<Level | 'all'>('all');
   const [sets, setSets] = useState<VocabSetSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -61,6 +63,11 @@ export function VocabularyTab({ query, onCount }: VocabularyTabProps) {
       alive = false;
     };
   }, [onCount]);
+
+  function handleAssign(s: VocabSetSummary) {
+    setToast(`Призначення словника «${s.titleUa || s.title}» — у розробці`);
+    window.setTimeout(() => setToast(null), 2200);
+  }
 
   const filtered = useMemo(() => {
     if (!sets) return [];
@@ -97,15 +104,21 @@ export function VocabularyTab({ query, onCount }: VocabularyTabProps) {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {filtered.map((s) => (
-            <VocabSetCard key={s.documentId} set={s} />
+            <VocabSetCard key={s.documentId} set={s} onAssign={handleAssign} />
           ))}
+        </div>
+      )}
+
+      {toast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-lg bg-primary text-white text-[13px] font-semibold shadow-card-md">
+          {toast}
         </div>
       )}
     </div>
   );
 }
 
-function VocabSetCard({ set }: { set: VocabSetSummary }) {
+function VocabSetCard({ set, onAssign }: { set: VocabSetSummary; onAssign: (s: VocabSetSummary) => void }) {
   return (
     <Card variant="surface" padding="sm" className="flex flex-col gap-2">
       <div className="flex items-center gap-1.5 flex-wrap">
@@ -113,22 +126,28 @@ function VocabSetCard({ set }: { set: VocabSetSummary }) {
         <ScopeBadge set={set} />
       </div>
 
-      <div className="min-w-0 flex items-start gap-2">
+      <Link
+        href={`/dashboard/vocabulary/${set.documentId}/edit`}
+        className="min-w-0 flex items-start gap-2 group"
+      >
         <span aria-hidden className="text-[20px] flex-shrink-0 leading-none">
           {set.iconEmoji ?? '📚'}
         </span>
         <div className="min-w-0 flex-1">
-          <p className="text-[14px] font-semibold text-ink leading-snug line-clamp-2">
+          <p className="text-[14px] font-semibold text-ink leading-snug line-clamp-2 group-hover:underline underline-offset-2">
             {set.titleUa || set.title}
           </p>
           {set.titleUa && set.titleUa !== set.title && (
             <p className="text-[12px] text-ink-muted mt-0.5 truncate">{set.title}</p>
           )}
         </div>
-      </div>
+      </Link>
 
-      <div className="flex items-center gap-3 text-[11px] text-ink-faint tabular-nums mt-auto pt-2 border-t border-border">
-        <span>{set.wordCount} слів</span>
+      <div className="flex items-center justify-between mt-auto pt-2 border-t border-border">
+        <span className="text-[11px] text-ink-faint tabular-nums">{set.wordCount} слів</span>
+        <Button size="sm" onClick={() => onAssign(set)}>
+          Призначити
+        </Button>
       </div>
     </Card>
   );

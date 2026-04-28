@@ -34,6 +34,7 @@ export interface CourseSummary {
   iconEmoji: string | null;
   lessonCount: number;
   vocabSetCount: number;
+  published: boolean;
 }
 
 export interface CourseDetail extends CourseSummary {
@@ -59,6 +60,7 @@ interface RawCourse {
   sections?: unknown[];
   lessons?: unknown[];
   vocabularySets?: unknown[];
+  publishedAt?: string | null;
 }
 
 const LEVELS = new Set<Level>(['A0', 'A1', 'A2', 'B1', 'B2', 'C1', 'C2']);
@@ -99,6 +101,7 @@ function normalizeSummary(raw: RawCourse | null | undefined): CourseSummary | nu
     iconEmoji: raw.iconEmoji || null,
     lessonCount: Array.isArray(raw.lessons) ? raw.lessons.length : 0,
     vocabSetCount: Array.isArray(raw.vocabularySets) ? raw.vocabularySets.length : 0,
+    published: Boolean(raw.publishedAt),
   };
 }
 
@@ -145,11 +148,12 @@ function normalizeDetail(raw: RawCourse | null | undefined): CourseDetail | null
 }
 
 const LIST_QUERY =
-  'fields[0]=slug&fields[1]=title&fields[2]=titleUa&fields[3]=level&fields[4]=audience&fields[5]=kind&fields[6]=status&fields[7]=iconEmoji' +
+  'fields[0]=slug&fields[1]=title&fields[2]=titleUa&fields[3]=level&fields[4]=audience&fields[5]=kind&fields[6]=status&fields[7]=iconEmoji&fields[8]=publishedAt' +
   '&populate[lessons][fields][0]=documentId' +
   '&populate[vocabularySets][fields][0]=documentId' +
   '&filters[status][$ne]=archived' +
-  '&pagination[pageSize]=200&sort=title:asc';
+  '&pagination[pageSize]=200&sort=title:asc' +
+  '&status=draft';
 
 export async function fetchTeacherCourses(): Promise<CourseSummary[]> {
   const res = await fetch(`/api/courses?${LIST_QUERY}`, { cache: 'no-store' });
@@ -160,10 +164,11 @@ export async function fetchTeacherCourses(): Promise<CourseSummary[]> {
 }
 
 const DETAIL_QUERY =
-  'fields[0]=slug&fields[1]=title&fields[2]=titleUa&fields[3]=subtitle&fields[4]=description&fields[5]=descriptionShort&fields[6]=level&fields[7]=audience&fields[8]=kind&fields[9]=status&fields[10]=iconEmoji' +
+  'fields[0]=slug&fields[1]=title&fields[2]=titleUa&fields[3]=subtitle&fields[4]=description&fields[5]=descriptionShort&fields[6]=level&fields[7]=audience&fields[8]=kind&fields[9]=status&fields[10]=iconEmoji&fields[11]=publishedAt' +
   '&populate[sections]=*' +
   '&populate[lessons][fields][0]=documentId&populate[lessons][fields][1]=slug&populate[lessons][fields][2]=sectionSlug&populate[lessons][fields][3]=orderIndex' +
-  '&populate[vocabularySets][fields][0]=documentId';
+  '&populate[vocabularySets][fields][0]=documentId' +
+  '&status=draft';
 
 export async function fetchTeacherCourse(documentId: string): Promise<CourseDetail | null> {
   const res = await fetch(`/api/courses/${documentId}?${DETAIL_QUERY}`, { cache: 'no-store' });
@@ -222,4 +227,65 @@ export async function updateCourseMeta(
   const json = await res.json().catch(() => ({}));
   resetCoursesCache();
   return normalizeDetail(json?.data);
+}
+
+function toCourseSlug(title: string): string {
+  const base = title
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 60);
+  return base || `course-${Date.now().toString(36)}`;
+}
+
+export interface NewCourseInput {
+  title: string;
+  titleUa?: string;
+  level: Level;
+}
+
+export async function createTeacherCourse(input: NewCourseInput): Promise<CourseDetail> {
+  const data: Record<string, unknown> = {
+    slug: `${toCourseSlug(input.title)}-${Date.now().toString(36).slice(-4)}`,
+    title: input.title.trim(),
+    titleUa: input.titleUa?.trim() || undefined,
+    level: input.level,
+    kind: 'course',
+    audience: 'any',
+  };
+  const res = await fetch(`/api/courses?${DETAIL_QUERY}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ data }),
+  });
+  if (!res.ok) throw new Error(`createTeacherCourse ${res.status}`);
+  const json = await res.json().catch(() => ({}));
+  resetCoursesCache();
+  const detail = normalizeDetail(json?.data);
+  if (!detail) throw new Error('createTeacherCourse: malformed response');
+  return detail;
+}
+
+export async function publishCourse(documentId: string): Promise<CourseDetail | null> {
+  const res = await fetch(`/api/courses/${documentId}/publish`, { method: 'POST' });
+  if (!res.ok) throw new Error(`publishCourse ${res.status}`);
+  const json = await res.json().catch(() => ({}));
+  resetCoursesCache();
+  return normalizeDetail(json?.data);
+}
+
+export async function unpublishCourse(documentId: string): Promise<CourseDetail | null> {
+  const res = await fetch(`/api/courses/${documentId}/unpublish`, { method: 'POST' });
+  if (!res.ok) throw new Error(`unpublishCourse ${res.status}`);
+  const json = await res.json().catch(() => ({}));
+  resetCoursesCache();
+  return normalizeDetail(json?.data);
+}
+
+export async function deleteTeacherCourse(documentId: string): Promise<void> {
+  const res = await fetch(`/api/courses/${documentId}`, { method: 'DELETE' });
+  if (!res.ok) throw new Error(`deleteTeacherCourse ${res.status}`);
+  resetCoursesCache();
 }

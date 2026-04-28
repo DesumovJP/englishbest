@@ -14,19 +14,22 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { DashboardPageShell } from '@/components/ui/shells';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { WipSection } from '@/components/ui/WipSection';
 import {
+  deleteTeacherCourse,
   fetchTeacherCourse,
+  publishCourse,
+  unpublishCourse,
   updateCourseMeta,
   updateCourseSections,
   type CourseDetail,
   type CourseSection,
   type Level,
-  type CourseAudience,
 } from '@/lib/teacher-courses';
 import { fetchLessonsCached, updateLesson } from '@/lib/teacher-library';
 import type { LibraryLesson } from '@/lib/types/teacher';
@@ -37,16 +40,17 @@ const SECTION_LABEL_CLS =
   'font-bold text-[11px] uppercase tracking-[0.04em] text-ink-muted';
 
 const LEVELS: Level[] = ['A0', 'A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
-const AUDIENCES: CourseAudience[] = ['kids', 'teens', 'adults', 'any'];
 
 export default function CourseEditorPage() {
   const params = useParams<{ id: string }>();
+  const router = useRouter();
   const documentId = params?.id ?? '';
 
   const [course, setCourse] = useState<CourseDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [savingMeta, setSavingMeta] = useState(false);
   const [savingSections, setSavingSections] = useState(false);
+  const [publishing, setPublishing] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
   const [draftMeta, setDraftMeta] = useState({
@@ -56,8 +60,6 @@ export default function CourseEditorPage() {
     descriptionShort: '',
     description: '',
     level: 'A1' as Level,
-    audience: 'kids' as CourseAudience,
-    iconEmoji: '🎓',
   });
   const [draftSections, setDraftSections] = useState<CourseSection[]>([]);
 
@@ -81,8 +83,6 @@ export default function CourseEditorPage() {
           descriptionShort: c.descriptionShort ?? '',
           description: c.description ?? '',
           level: c.level ?? 'A1',
-          audience: c.audience ?? 'any',
-          iconEmoji: c.iconEmoji ?? '🎓',
         });
         setDraftSections(c.sections);
       })
@@ -126,8 +126,6 @@ export default function CourseEditorPage() {
         descriptionShort: draftMeta.descriptionShort.trim() || null,
         description: draftMeta.description.trim() || null,
         level: draftMeta.level,
-        audience: draftMeta.audience,
-        iconEmoji: draftMeta.iconEmoji,
       });
       if (updated) setCourse(updated);
       notify('Метадані збережено');
@@ -135,6 +133,33 @@ export default function CourseEditorPage() {
       setError(e instanceof Error ? e.message : 'failed');
     } finally {
       setSavingMeta(false);
+    }
+  }
+
+  async function handleTogglePublish() {
+    if (!course) return;
+    setPublishing(true);
+    try {
+      const updated = course.published
+        ? await unpublishCourse(course.documentId)
+        : await publishCourse(course.documentId);
+      if (updated) setCourse(updated);
+      notify(course.published ? 'Знято з публікації' : 'Опубліковано');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'failed');
+    } finally {
+      setPublishing(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (!course) return;
+    if (!window.confirm(`Видалити курс «${course.titleUa || course.title}»?`)) return;
+    try {
+      await deleteTeacherCourse(course.documentId);
+      router.push('/dashboard/library');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Не вдалося видалити');
     }
   }
 
@@ -249,7 +274,28 @@ export default function CourseEditorPage() {
   const pickerSection = pickerForSection !== null ? draftSections[pickerForSection] : null;
 
   return (
-    <DashboardPageShell title={`Курс · ${course.titleUa || course.title}`}>
+    <DashboardPageShell
+      title={`Курс · ${course.titleUa || course.title}`}
+      subtitle={course.published ? 'Опубліковано' : 'Чернетка'}
+      actions={
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button
+            variant={course.published ? 'secondary' : 'primary'}
+            onClick={handleTogglePublish}
+            disabled={publishing}
+          >
+            {publishing
+              ? '…'
+              : course.published
+                ? 'Зняти з публікації'
+                : 'Опублікувати'}
+          </Button>
+          <Button variant="danger" onClick={handleDelete}>
+            Видалити
+          </Button>
+        </div>
+      }
+    >
       <div className="flex flex-col gap-4">
         <Card variant="surface" padding="md">
           <div className="flex items-center justify-between gap-3 mb-3">
@@ -309,29 +355,14 @@ export default function CourseEditorPage() {
                 ))}
               </select>
             </label>
-            <label className="flex flex-col gap-1">
-              <span className={SECTION_LABEL_CLS}>Аудиторія</span>
-              <select
-                value={draftMeta.audience}
-                onChange={(e) =>
-                  setDraftMeta({ ...draftMeta, audience: e.target.value as CourseAudience })
-                }
-                className="ios-input"
-              >
-                {AUDIENCES.map((a) => (
-                  <option key={a} value={a}>{a}</option>
-                ))}
-              </select>
-            </label>
-            <label className="flex flex-col gap-1 w-32">
-              <span className={SECTION_LABEL_CLS}>Емоджі</span>
-              <Input
-                value={draftMeta.iconEmoji}
-                onChange={(e) => setDraftMeta({ ...draftMeta, iconEmoji: e.target.value })}
-                maxLength={4}
-                className="text-center text-[20px]"
-              />
-            </label>
+          </div>
+          <div className="mt-3">
+            <p className={`${SECTION_LABEL_CLS} mb-1.5`}>Обкладинка курсу</p>
+            <WipSection
+              title="Завантаження картинки — у розробці"
+              description="Тут буде поле вибору файлу-обкладинки. Поки що курс рендериться з дефолтним фоном."
+              compact
+            />
           </div>
         </Card>
 
