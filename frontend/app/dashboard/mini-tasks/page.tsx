@@ -215,34 +215,60 @@ export default function MiniTasksPage() {
             const isMine = role === 'admin' || (myAuthorId ? task.authorId === myAuthorId : false);
             const deleting = deletingId === task.documentId;
             const stats = statsByTask.get(task.documentId);
+            // Default click target — admins / owners go straight into the
+            // builder; non-owners with attempts open the results modal so
+            // the card always does something on click. Non-owners without
+            // attempts see a static card (no useful action available).
+            const handleCardClick = isMine
+              ? () => handleEdit(task)
+              : stats && stats.total > 0
+                ? () => setResultsTask(task)
+                : undefined;
+            const cardClickable = handleCardClick !== undefined;
             return (
-              <Card key={task.documentId} variant="surface" padding="sm" className="flex flex-col gap-3">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0 flex flex-col gap-1">
-                    <p className="text-[10px] font-semibold text-ink-faint uppercase tracking-wider">
-                      {KIND_LABEL[task.kind]}
-                    </p>
-                    <p className="text-[14px] font-semibold text-ink leading-snug">
-                      {task.title}
-                    </p>
+              <Card
+                key={task.documentId}
+                variant="surface"
+                padding="none"
+                className="flex flex-col overflow-hidden"
+              >
+                <button
+                  type="button"
+                  onClick={handleCardClick}
+                  disabled={!cardClickable}
+                  className={`flex flex-col gap-3 p-3 text-left transition-colors ${
+                    cardClickable
+                      ? 'hover:bg-surface-hover cursor-pointer'
+                      : 'cursor-default'
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex flex-col gap-1">
+                      <p className="text-[10px] font-semibold text-ink-faint uppercase tracking-wider">
+                        {KIND_LABEL[task.kind]}
+                      </p>
+                      <p className="text-[14px] font-semibold text-ink leading-snug">
+                        {task.title}
+                      </p>
+                    </div>
+                    {task.level && <LevelBadge level={task.level} />}
                   </div>
-                  {task.level && <LevelBadge level={task.level} />}
-                </div>
 
-                <div className="flex flex-wrap gap-1.5 text-[11px] text-ink-muted tabular-nums">
-                  {task.topic && <span className="ios-chip">{task.topic}</span>}
-                  <span className="ios-chip">{task.durationMin} хв</span>
-                  {task.isPublic && <span className="ios-chip">Публічне</span>}
-                </div>
+                  <div className="flex flex-wrap gap-1.5 text-[11px] text-ink-muted tabular-nums">
+                    {task.topic && <span className="ios-chip">{task.topic}</span>}
+                    <span className="ios-chip">{task.durationMin} хв</span>
+                    {task.isPublic && <span className="ios-chip">Публічне</span>}
+                  </div>
 
-                <div className="flex items-center justify-between gap-2 pt-1">
-                  <CoinTag amount={task.coinReward} />
-                  {task.exercise && (
-                    <span className="text-[10px] text-ink-faint uppercase tracking-wider">
-                      {task.exercise.type}
-                    </span>
-                  )}
-                </div>
+                  <div className="flex items-center justify-between gap-2 pt-1">
+                    <CoinTag amount={task.coinReward} />
+                    {task.exercise && (
+                      <span className="text-[10px] text-ink-faint uppercase tracking-wider">
+                        {task.exercise.type}
+                      </span>
+                    )}
+                  </div>
+                </button>
 
                 {/* Live attempts summary — hidden when there are no attempts so the
                    freshly-created cards stay visually clean. */}
@@ -250,7 +276,7 @@ export default function MiniTasksPage() {
                   <button
                     type="button"
                     onClick={() => setResultsTask(task)}
-                    className="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg bg-surface-muted hover:bg-border/40 text-left transition-colors"
+                    className="flex items-center justify-between gap-2 mx-3 mb-3 px-2.5 py-1.5 rounded-lg bg-surface-muted hover:bg-border/40 text-left transition-colors"
                   >
                     <span className="flex items-center gap-2 text-[11px] tabular-nums">
                       <span className="font-semibold text-ink">{stats.total} спроб</span>
@@ -268,7 +294,7 @@ export default function MiniTasksPage() {
                 )}
 
                 {isMine && (
-                  <div className="flex gap-2 pt-3 border-t border-border">
+                  <div className="flex gap-2 px-3 pb-3 pt-3 border-t border-border">
                     <Button
                       size="sm"
                       variant="secondary"
@@ -278,11 +304,10 @@ export default function MiniTasksPage() {
                     </Button>
                     <Button
                       size="sm"
-                      variant="secondary"
-                      disabled={deleting}
                       onClick={() => handleEdit(task)}
+                      disabled={deleting}
                     >
-                      Ред.
+                      Редагувати
                     </Button>
                     <Button
                       size="sm"
