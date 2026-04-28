@@ -36,6 +36,7 @@ export interface CourseSummary {
   vocabSetCount: number;
   published: boolean;
   reviewStatus: 'draft' | 'submitted' | 'approved' | 'rejected' | null;
+  coverImageUrl: string | null;
 }
 
 export type ReviewStatus = 'draft' | 'submitted' | 'approved' | 'rejected';
@@ -119,6 +120,7 @@ function normalizeSummary(raw: RawCourse | null | undefined): CourseSummary | nu
     vocabSetCount: Array.isArray(raw.vocabularySets) ? raw.vocabularySets.length : 0,
     published: Boolean(raw.publishedAt),
     reviewStatus: pickReviewStatus(raw.reviewStatus),
+    coverImageUrl: typeof raw.coverImage?.url === 'string' ? raw.coverImage.url : null,
   };
 }
 
@@ -182,6 +184,7 @@ const LIST_QUERY =
   'fields[0]=slug&fields[1]=title&fields[2]=titleUa&fields[3]=level&fields[4]=audience&fields[5]=kind&fields[6]=status&fields[7]=iconEmoji&fields[8]=publishedAt&fields[9]=reviewStatus' +
   '&populate[lessons][fields][0]=documentId' +
   '&populate[vocabularySets][fields][0]=documentId' +
+  '&populate[coverImage][fields][0]=url' +
   '&filters[status][$ne]=archived' +
   '&pagination[pageSize]=200&sort=title:asc' +
   '&status=draft';

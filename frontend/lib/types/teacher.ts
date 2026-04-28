@@ -140,6 +140,9 @@ export interface LibraryLesson {
   reviewStatus?: 'draft' | 'submitted' | 'approved' | 'rejected' | null;
   /** Admin-supplied reason when `reviewStatus === 'rejected'`. */
   rejectionReason?: string | null;
+  /** URL of the cover image (lesson.cover media). May be absolute (DO Spaces)
+   *  or relative (local provider) — UI absolutizes via `lib/normalize.mediaUrl`. */
+  coverImageUrl?: string | null;
 }
 
 export interface LessonBlock {

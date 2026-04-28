@@ -24,6 +24,7 @@ import {
 } from '@/lib/teacher-library';
 import { fetchTeacherCourse } from '@/lib/teacher-courses';
 import { ModerationBanner } from '@/components/teacher/ModerationBanner';
+import { MediaPickerCard } from '@/components/ui/MediaPickerCard';
 import { SegmentedControl, type SegmentedControlOption } from '@/components/teacher/ui';
 import { BlockPicker } from '@/components/teacher/BlockPicker';
 import { LessonBlockEditor } from '@/components/teacher/LessonBlockEditor';
@@ -118,6 +119,7 @@ export default function LessonEditorPage() {
   const [rejectionReason, setRejectionReason] = useState<string | null>(null);
   const [moderating, setModerating] = useState(false);
   const [ownerProfileId, setOwnerProfileId] = useState<string | null>(null);
+  const [coverImageUrl, setCoverImageUrl] = useState<string | null>(null);
   const [usage, setUsage] = useState<{
     courseDocumentId: string;
     courseTitle: string;
@@ -223,6 +225,7 @@ export default function LessonEditorPage() {
         setReviewStatus(detail.reviewStatus ?? null);
         setRejectionReason(detail.rejectionReason ?? null);
         setOwnerProfileId(detail.ownerId ?? null);
+        setCoverImageUrl(detail.coverImageUrl ?? null);
         setSavedAt(new Date());
         setDirty(false);
         if (detail.courseDocumentId) {
@@ -714,6 +717,18 @@ export default function LessonEditorPage() {
             <p className="text-[12px] text-danger-dark">{saveError}</p>
           )}
         </div>
+
+        {!isNew && docId && !readOnly && (
+          <MediaPickerCard
+            label="Обкладинка уроку"
+            hint="Показується в каталозі та на картці уроку"
+            initialUrl={coverImageUrl}
+            onSaved={async (media) => {
+              const fresh = await updateLesson(docId, { cover: media.id });
+              setCoverImageUrl(fresh.coverImageUrl ?? media.url);
+            }}
+          />
+        )}
 
         <LessonVocabularySection
           lessonDocumentId={docId}

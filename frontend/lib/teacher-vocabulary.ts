@@ -39,6 +39,8 @@ export interface VocabSetSummary {
   reviewStatus: 'draft' | 'submitted' | 'approved' | 'rejected' | null;
   /** documentId of the owning teacher-profile (null = platform/admin). */
   ownerDocumentId: string | null;
+  /** Cover image URL — may be relative for local provider, absolute for DO. */
+  coverImageUrl: string | null;
 }
 
 interface RawSet {
@@ -54,6 +56,7 @@ interface RawSet {
   reviewStatus?: string;
   rejectionReason?: string;
   owner?: { documentId?: string } | null;
+  coverImage?: { url?: string } | null;
 }
 
 const VOCAB_REVIEW_STATUSES = new Set(['draft', 'submitted', 'approved', 'rejected'] as const);
@@ -68,6 +71,7 @@ const LIST_QUERY =
   '&populate[course][fields][0]=documentId&populate[course][fields][1]=slug' +
   '&populate[lesson][fields][0]=documentId&populate[lesson][fields][1]=slug' +
   '&populate[owner][fields][0]=documentId' +
+  '&populate[coverImage][fields][0]=url' +
   '&pagination[pageSize]=200&sort=title:asc' +
   // Without `status=draft` Strapi returns only published rows. Vocab
   // sets seeded as drafts (or any non-published) would appear empty in
@@ -96,6 +100,7 @@ function normalize(raw: RawSet | null | undefined): VocabSetSummary | null {
     courseSlug: raw.course?.slug ?? null,
     reviewStatus: pickVocabReviewStatus(raw.reviewStatus),
     ownerDocumentId: raw.owner?.documentId ?? null,
+    coverImageUrl: typeof raw.coverImage?.url === 'string' ? raw.coverImage.url : null,
   };
 }
 

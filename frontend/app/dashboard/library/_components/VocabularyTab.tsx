@@ -12,6 +12,7 @@ import {
   LevelBadge,
   type FilterChipOption,
 } from '@/components/teacher/ui';
+import { CoverThumbnail } from '@/components/teacher/CoverThumbnail';
 import {
   fetchAllVocabSets,
   type VocabSetSummary,
@@ -132,34 +133,46 @@ export function VocabularyTab({ query, onCount }: VocabularyTabProps) {
 
 function VocabSetCard({ set, onAssign }: { set: VocabSetSummary; onAssign: (s: VocabSetSummary) => void }) {
   return (
-    <Card variant="surface" padding="sm" className="flex flex-col gap-2">
-      <div className="flex items-center gap-1.5 flex-wrap">
-        {set.level && <LevelBadge level={set.level} />}
-        <ScopeBadge set={set} />
-      </div>
-
+    <Card variant="surface" padding="none" className="flex flex-col overflow-hidden">
       <Link
         href={`/dashboard/vocabulary/${set.documentId}/edit`}
-        className="min-w-0 flex items-start gap-2 group"
+        aria-label={set.titleUa || set.title}
+        className="block"
       >
-        <span aria-hidden className="text-[20px] flex-shrink-0 leading-none">
-          {set.iconEmoji ?? '📚'}
-        </span>
-        <div className="min-w-0 flex-1">
+        <CoverThumbnail
+          url={set.coverImageUrl}
+          emoji={set.iconEmoji ?? '📚'}
+          alt={set.titleUa || set.title}
+          aspect="video"
+          size="md"
+          className="rounded-none"
+        />
+      </Link>
+
+      <div className="flex flex-col gap-2 p-3">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {set.level && <LevelBadge level={set.level} />}
+          <ScopeBadge set={set} />
+        </div>
+
+        <Link
+          href={`/dashboard/vocabulary/${set.documentId}/edit`}
+          className="min-w-0 group"
+        >
           <p className="text-[14px] font-semibold text-ink leading-snug line-clamp-2 group-hover:underline underline-offset-2">
             {set.titleUa || set.title}
           </p>
           {set.titleUa && set.titleUa !== set.title && (
             <p className="text-[12px] text-ink-muted mt-0.5 truncate">{set.title}</p>
           )}
-        </div>
-      </Link>
+        </Link>
 
-      <div className="flex items-center justify-between mt-auto pt-2 border-t border-border">
-        <span className="text-[11px] text-ink-faint tabular-nums">{set.wordCount} слів</span>
-        <Button size="sm" onClick={() => onAssign(set)}>
-          Призначити
-        </Button>
+        <div className="flex items-center justify-between mt-auto pt-2 border-t border-border">
+          <span className="text-[11px] text-ink-faint tabular-nums">{set.wordCount} слів</span>
+          <Button size="sm" onClick={() => onAssign(set)}>
+            Призначити
+          </Button>
+        </div>
       </div>
     </Card>
   );

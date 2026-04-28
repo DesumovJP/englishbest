@@ -13,6 +13,7 @@ import {
   type SegmentedControlOption,
 } from '@/components/teacher/ui';
 import { CreateHomeworkModal } from '@/components/teacher/CreateHomeworkModal';
+import { CoverThumbnail } from '@/components/teacher/CoverThumbnail';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { LoadingState } from '@/components/ui/LoadingState';
@@ -235,25 +236,41 @@ function LessonCard({
   lesson: LibraryLesson;
   onAssign: (l: LibraryLesson) => void;
 }) {
+  const firstLetter = lesson.title?.charAt(0)?.toUpperCase() ?? '?';
   return (
-    <Card variant="surface" padding="sm" className="flex flex-col gap-3">
-      <div className="flex items-center gap-1.5 flex-wrap">
-        <LevelBadge level={lesson.level} />
-        <span className="ios-chip">{LESSON_SOURCE_LABELS[lesson.source]}</span>
-        {isOwnedLesson(lesson) && !lesson.published && (
-          <span className="ios-chip bg-surface-muted text-ink-muted">Чернетка</span>
-        )}
-      </div>
+    <Card variant="surface" padding="none" className="flex flex-col overflow-hidden">
+      <Link
+        href={`/dashboard/teacher-library/${lesson.id}/edit`}
+        aria-label={lesson.title}
+        className="block"
+      >
+        <CoverThumbnail
+          url={lesson.coverImageUrl}
+          letter={firstLetter}
+          alt={lesson.title}
+          aspect="video"
+          size="md"
+          className="rounded-none"
+        />
+      </Link>
+      <div className="flex flex-col gap-3 p-3">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <LevelBadge level={lesson.level} />
+          <span className="ios-chip">{LESSON_SOURCE_LABELS[lesson.source]}</span>
+          {isOwnedLesson(lesson) && !lesson.published && (
+            <span className="ios-chip bg-surface-muted text-ink-muted">Чернетка</span>
+          )}
+        </div>
 
-      <div className="min-w-0">
-        <Link
-          href={`/dashboard/teacher-library/${lesson.id}/edit`}
-          className="text-[14px] font-semibold text-ink leading-snug hover:underline underline-offset-2 line-clamp-2"
-        >
-          {lesson.title}
-        </Link>
-        <p className="text-[12px] text-ink-muted mt-1 truncate">{lesson.topic}</p>
-      </div>
+        <div className="min-w-0">
+          <Link
+            href={`/dashboard/teacher-library/${lesson.id}/edit`}
+            className="text-[14px] font-semibold text-ink leading-snug hover:underline underline-offset-2 line-clamp-2"
+          >
+            {lesson.title}
+          </Link>
+          <p className="text-[12px] text-ink-muted mt-1 truncate">{lesson.topic}</p>
+        </div>
 
       {lesson.hasUpdateFromOriginal && (
         <p className="text-[11px] font-semibold text-ink bg-surface-muted rounded-md px-2 py-1 border border-border">
@@ -267,9 +284,10 @@ function LessonCard({
         <span>{lesson.blocksCount} блоків</span>
       </div>
 
-      <div className="flex items-center justify-between mt-auto pt-3 border-t border-border">
-        <span className="text-[11px] text-ink-faint tabular-nums">{lesson.updatedAt}</span>
-        <LessonRowActions lesson={lesson} onAssign={onAssign} />
+        <div className="flex items-center justify-between mt-auto pt-3 border-t border-border">
+          <span className="text-[11px] text-ink-faint tabular-nums">{lesson.updatedAt}</span>
+          <LessonRowActions lesson={lesson} onAssign={onAssign} />
+        </div>
       </div>
     </Card>
   );

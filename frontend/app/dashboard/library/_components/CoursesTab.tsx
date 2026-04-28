@@ -7,6 +7,7 @@ import { LoadingState } from '@/components/ui/LoadingState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { FilterChips, type FilterChipOption } from '@/components/teacher/ui';
+import { AvatarThumbnail } from '@/components/teacher/CoverThumbnail';
 import {
   fetchTeacherCourses,
   type CourseSummary,
@@ -92,9 +93,12 @@ function CourseList({ rows }: { rows: CourseSummary[] }) {
               href={`/dashboard/courses/${c.documentId}/edit`}
               className="flex items-center gap-3 px-3 py-3 transition-colors hover:bg-surface-hover"
             >
-              <span aria-hidden className="text-[22px] flex-shrink-0">
-                {c.iconEmoji ?? '🎓'}
-              </span>
+              <AvatarThumbnail
+                url={c.coverImageUrl}
+                emoji={c.iconEmoji ?? '🎓'}
+                alt={c.titleUa || c.title}
+                size={40}
+              />
               <div className="flex-1 min-w-0">
                 <p className="font-black text-[14px] text-ink leading-tight truncate">
                   {c.titleUa || c.title}

@@ -150,6 +150,7 @@ function normalize(raw: any): LibraryLesson | null {
   const blocks = parseBlocks(raw.steps);
   const course =
     raw.course && typeof raw.course === 'object' ? raw.course : null;
+  const cover = raw.cover && typeof raw.cover === 'object' ? raw.cover : null;
   return {
     id: String(raw.documentId),
     slug: typeof raw.slug === 'string' ? raw.slug : '',
@@ -179,6 +180,7 @@ function normalize(raw: any): LibraryLesson | null {
     sectionSlug: typeof raw.sectionSlug === 'string' ? raw.sectionSlug : null,
     reviewStatus: pickReviewStatus(raw.reviewStatus),
     rejectionReason: typeof raw.rejectionReason === 'string' ? raw.rejectionReason : null,
+    coverImageUrl: cover && typeof cover.url === 'string' ? cover.url : null,
   };
 }
 
@@ -192,6 +194,7 @@ const LIST_QUERY =
   '&populate[owner][fields][0]=documentId' +
   '&populate[originalLesson][fields][0]=documentId' +
   '&populate[course][fields][0]=documentId&populate[course][fields][1]=slug&populate[course][fields][2]=title&populate[course][fields][3]=titleUa' +
+  '&populate[cover][fields][0]=url' +
   '&pagination[pageSize]=200&sort=updatedAt:desc' +
   '&status=draft';
 
@@ -221,7 +224,8 @@ export async function fetchLesson(documentId: string): Promise<LessonDetail | nu
   const q =
     'populate[owner][fields][0]=documentId' +
     '&populate[originalLesson][fields][0]=documentId' +
-    '&populate[course][fields][0]=documentId&populate[course][fields][1]=slug&populate[course][fields][2]=title&populate[course][fields][3]=titleUa';
+    '&populate[course][fields][0]=documentId&populate[course][fields][1]=slug&populate[course][fields][2]=title&populate[course][fields][3]=titleUa' +
+    '&populate[cover][fields][0]=url';
   const res = await fetch(`/api/lessons/${documentId}?${q}`, { cache: 'no-store' });
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`fetchLesson ${res.status}`);
@@ -247,6 +251,8 @@ export interface LessonInput {
   sectionSlug?: string | null;
   /** Position of the lesson within its section (0-based). */
   orderIndex?: number | null;
+  /** Strapi media id (number) — pass `null` to detach the cover. */
+  cover?: number | null;
 }
 
 function toPayload(input: LessonInput): Record<string, unknown> {
@@ -263,6 +269,7 @@ function toPayload(input: LessonInput): Record<string, unknown> {
   if (input.course !== undefined) data.course = input.course;
   if (input.sectionSlug !== undefined) data.sectionSlug = input.sectionSlug;
   if (input.orderIndex !== undefined) data.orderIndex = input.orderIndex;
+  if (input.cover !== undefined) data.cover = input.cover;
   return data;
 }
 
