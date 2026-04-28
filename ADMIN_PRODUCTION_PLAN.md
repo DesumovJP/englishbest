@@ -5,6 +5,11 @@
 **Scope:** End-to-end admin role: identity, authorization, UI surface, accountability, security, ops.
 **Reading order:** §1 (mission) → §2 (current state) → §10 (roadmap) for the action list. Sections 3-9 are reference depth.
 
+**Companion plan:** `CONTENT_LIFECYCLE_PLAN.md` covers the library content
+moderation flow (teachers propose → admin approves) in depth — that work
+lands as Phase 2.5 of this admin roadmap (between audit lifecycle and
+user management). Read it before starting Phase 2.5.
+
 ---
 
 ## 1. Mission
@@ -51,6 +56,10 @@ A teacher manages their classroom; an admin manages the school. The two roles **
 | 1 | **User management UI** (suspend / role-change / soft-delete / impersonate) | FE+BE | Admin can't onboard new staff or kill abusive accounts without DB access |
 | 2 | **Audit-log viewer** | FE | 26 admin-only actions exist but no way to *see* what staff did; the entire compliance story sits behind a stub |
 | 3 | **Lifecycle hook for audit logging** | BE | No mutation auto-logs; audit-log is empty unless manually populated |
+| 3a | **Vocab controller has zero scoping** (any STAFF edits any vocab) | BE | Wild-west — teacher A can rewrite teacher B's vocab. See `CONTENT_LIFECYCLE_PLAN.md` §4 |
+| 3b | **No `reviewStatus` field on lesson / course / vocab** | BE | Approval workflow can't ship without it |
+| 3c | **No content-moderation queue** (admin sees teacher submissions) | FE+BE | Teachers can't propose content for review; admin can't gatekeep |
+| 3d | **Course + vocab missing `owner` / `source`** | BE | No way to distinguish platform-curated vs. teacher-original |
 | 4 | **Lesson-payment / teacher-payout admin UI** | FE+BE | Schema exists, but no FE; payouts must be done in Strapi admin |
 | 5 | **Catalog admin** (achievements, shop-items, characters, rooms) | FE | Schema + perms wired; no FE means content drift requires Strapi admin login |
 | 6 | **Consent-log viewer** | FE | GDPR audit needs admin to read consent history; only Strapi admin can today |
@@ -431,6 +440,44 @@ Default: **365 days** rolling. Older rows archived to cold storage (DO Spaces) v
 - [ ] Wire into destructive ops first: course/lesson/homework delete; user role/suspend.
 - [ ] Audit-log viewer page (`/dashboard/admin/audit-log`) with `DataTable` + filters.
 - [ ] CSV export endpoint.
+
+### Phase 2.5 — Content moderation workflow (added 2026-04-28)
+
+> Detailed design in **`CONTENT_LIFECYCLE_PLAN.md`** — read it first.
+> Goal: teachers propose content (lesson / course / vocab), admin
+> approves to publish; admin can also create + publish directly.
+
+- [ ] **L1** — Schema additions: `reviewStatus` / `rejectionReason` /
+  `reviewedBy` / `reviewedAt` on lesson, course, vocab; `owner` /
+  `source` on course + vocab; `originalVocabularySet` self-rel on vocab.
+- [ ] **L2** — Idempotent backfill script
+  (`backend/scripts/backfill-content-lifecycle.ts`) — sets
+  `reviewStatus='approved'` on existing rows; derives `owner` + `source`
+  for course / vocab from existing relations.
+- [ ] **L3** — Vocab controller scoping: replace default with scoped
+  controller mirroring `lesson` (find/findOne/create/update/delete +
+  custom `clone`). Closes the "any teacher edits any vocab" hole.
+- [ ] **L4** — Course controller hardening: enforce `owner` on
+  create/update/delete (custom controller already exists, just adds
+  ownership checks).
+- [ ] **L5** — Approval-workflow backend: custom `submit` / `approve` /
+  `reject` actions per content type; audit-log integration via Phase 2
+  helper; new permissions in matrix.
+- [ ] **L6** — Editor FE: status badge + role-aware action set via a
+  `useEditorActions(role, source, status, isOwner)` hook. Same hook
+  drives lesson, course, vocab editors. **No bespoke buttons — reuse
+  `<Button>` + `<StatusPill>`.**
+- [ ] **L7** — Admin review-queue page
+  (`/dashboard/admin/review-queue`) with three tabs (lessons / courses
+  / vocab), badge counts, `DataTable` rows.
+- [ ] **L8** — Library filters: status filter chips + ownership filter
+  in lessons / courses / vocab tabs of `/dashboard/library`.
+- [ ] **L9** — Vocab cover-image upload via the existing DO Spaces flow
+  (`AvatarUpload` extracted to a shared `<MediaPickerCard>`).
+- [ ] **L10** — Polish: word-cap + dedup in vocab controller; force
+  `vocab.course = vocab.lesson.course` consistency; notification bell.
+- [ ] **L11** — (deferred) Email notifications on submit / approve /
+  reject — needs SMTP infra.
 
 ### Phase 3 — User management
 
