@@ -19,13 +19,18 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import {
-  fetchVocabSet,
-  updateVocabSet,
+  approveVocabSet,
   deleteVocabSet,
+  fetchVocabSet,
+  rejectVocabSet,
+  submitVocabSet,
+  updateVocabSet,
   type VocabSetDetail,
   type VocabWord,
   type Level,
 } from '@/lib/teacher-vocabulary';
+import { ModerationBanner } from '@/components/teacher/ModerationBanner';
+import { useSession } from '@/lib/session-context';
 
 const LEVELS: Level[] = ['A0', 'A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
 const LEVEL_OPTIONS = LEVELS.map((l) => ({ value: l, label: `Рівень ${l}` }));
@@ -37,6 +42,12 @@ export default function VocabSetEditorPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const documentId = params?.id ?? '';
+
+  const { session } = useSession();
+  const isAdmin = session?.profile?.role === 'admin';
+  const callerTeacherProfileId =
+    (session?.profile?.teacherProfile as { documentId?: string } | null | undefined)?.documentId ??
+    null;
 
   const [detail, setDetail] = useState<VocabSetDetail | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -52,6 +63,7 @@ export default function VocabSetEditorPage() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [moderating, setModerating] = useState(false);
 
   useEffect(() => {
     if (!documentId) return;
@@ -146,6 +158,45 @@ export default function VocabSetEditorPage() {
     }
   }
 
+  async function handleSubmitForReview() {
+    setModerating(true);
+    try {
+      const fresh = await submitVocabSet(documentId);
+      if (fresh) setDetail(fresh);
+      notify('Подано на затвердження');
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : 'Не вдалося подати');
+    } finally {
+      setModerating(false);
+    }
+  }
+
+  async function handleApprove() {
+    setModerating(true);
+    try {
+      const fresh = await approveVocabSet(documentId);
+      if (fresh) setDetail(fresh);
+      notify('Затверджено');
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : 'Не вдалося затвердити');
+    } finally {
+      setModerating(false);
+    }
+  }
+
+  async function handleReject(reason: string) {
+    setModerating(true);
+    try {
+      const fresh = await rejectVocabSet(documentId, reason);
+      if (fresh) setDetail(fresh);
+      notify('Відхилено');
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : 'Не вдалося відхилити');
+    } finally {
+      setModerating(false);
+    }
+  }
+
   const backLink = (
     <Link
       href="/dashboard/library?tab=vocabulary"
@@ -188,6 +239,21 @@ export default function VocabSetEditorPage() {
         }
       >
         <div className="flex flex-col gap-4">
+          {detail?.reviewStatus && (
+            <ModerationBanner
+              status={detail.reviewStatus}
+              rejectionReason={detail.rejectionReason}
+              isAdmin={isAdmin}
+              isOwner={
+                callerTeacherProfileId !== null &&
+                callerTeacherProfileId === detail.ownerDocumentId
+              }
+              busy={moderating}
+              onSubmit={handleSubmitForReview}
+              onApprove={handleApprove}
+              onReject={handleReject}
+            />
+          )}
           <Card variant="surface" padding="md">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <label className="flex flex-col gap-1">

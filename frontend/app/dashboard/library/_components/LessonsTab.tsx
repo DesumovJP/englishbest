@@ -19,6 +19,16 @@ import { LoadingState } from '@/components/ui/LoadingState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { EmptyState } from '@/components/ui/EmptyState';
 
+type ReviewStatusFilter = 'all' | 'draft' | 'submitted' | 'approved' | 'rejected';
+
+const STATUS_OPTIONS: ReadonlyArray<FilterChipOption<ReviewStatusFilter>> = [
+  { value: 'all',       label: 'Усі' },
+  { value: 'draft',     label: 'Чернетки' },
+  { value: 'submitted', label: 'На розгляді' },
+  { value: 'approved',  label: 'Затверджено' },
+  { value: 'rejected',  label: 'Відхилено' },
+];
+
 const SOURCE_OPTIONS: ReadonlyArray<FilterChipOption<LessonSource | 'all'>> = [
   { value: 'all',      label: 'Усе' },
   { value: 'platform', label: 'Платформа' },
@@ -50,6 +60,7 @@ interface LessonsTabProps {
 
 export function LessonsTab({ query, onCount }: LessonsTabProps) {
   const [view, setView] = useState<'grid' | 'list'>('grid');
+  const [status, setStatus] = useState<ReviewStatusFilter>('all');
   const [source, setSource] = useState<LessonSource | 'all'>('all');
   const [level, setLevel] = useState<Level | 'all'>('all');
   const [assignFor, setAssignFor] = useState<LibraryLesson | null>(null);
@@ -84,13 +95,14 @@ export function LessonsTab({ query, onCount }: LessonsTabProps) {
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return lessons.filter((l) => {
+      if (status !== 'all' && l.reviewStatus !== status) return false;
       if (source !== 'all' && l.source !== source) return false;
       if (level !== 'all' && l.level !== level) return false;
       if (q === '') return true;
       const haystack = [l.title, l.topic, ...(l.tags ?? [])].join(' ').toLowerCase();
       return haystack.includes(q);
     });
-  }, [lessons, source, level, query]);
+  }, [lessons, status, source, level, query]);
 
   function flashToast(msg: string) {
     setToast(msg);
@@ -101,6 +113,7 @@ export function LessonsTab({ query, onCount }: LessonsTabProps) {
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center gap-3 justify-between">
         <div className="flex flex-col gap-2 flex-1 min-w-0">
+          <FilterChips value={status} onChange={setStatus} options={STATUS_OPTIONS} />
           <FilterChips value={source} onChange={setSource} options={SOURCE_OPTIONS} />
           <FilterChips value={level} onChange={setLevel} options={LEVEL_OPTIONS} />
         </div>

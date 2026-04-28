@@ -21,9 +21,12 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { WipSection } from '@/components/ui/WipSection';
 import {
+  approveCourse,
   deleteTeacherCourse,
   fetchTeacherCourse,
   publishCourse,
+  rejectCourse,
+  submitCourse,
   unpublishCourse,
   updateCourseMeta,
   updateCourseSections,
@@ -35,6 +38,8 @@ import { fetchLessonsCached, updateLesson } from '@/lib/teacher-library';
 import type { LibraryLesson } from '@/lib/types/teacher';
 import { VocabularyAttachSection } from '@/components/teacher/LessonVocabularySection';
 import { LessonPickerModal } from '@/components/teacher/LessonPickerModal';
+import { ModerationBanner } from '@/components/teacher/ModerationBanner';
+import { useSession } from '@/lib/session-context';
 
 const SECTION_LABEL_CLS =
   'font-bold text-[11px] uppercase tracking-[0.04em] text-ink-muted';
@@ -46,11 +51,18 @@ export default function CourseEditorPage() {
   const router = useRouter();
   const documentId = params?.id ?? '';
 
+  const { session } = useSession();
+  const isAdmin = session?.profile?.role === 'admin';
+  const callerTeacherProfileId =
+    (session?.profile?.teacherProfile as { documentId?: string } | null | undefined)?.documentId ??
+    null;
+
   const [course, setCourse] = useState<CourseDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [savingMeta, setSavingMeta] = useState(false);
   const [savingSections, setSavingSections] = useState(false);
   const [publishing, setPublishing] = useState(false);
+  const [moderating, setModerating] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
   const [draftMeta, setDraftMeta] = useState({
@@ -161,6 +173,48 @@ export default function CourseEditorPage() {
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Не вдалося видалити';
       notify(`Помилка: ${msg}`);
+    }
+  }
+
+  async function handleSubmitForReview() {
+    if (!course) return;
+    setModerating(true);
+    try {
+      const fresh = await submitCourse(course.documentId);
+      if (fresh) setCourse(fresh);
+      notify('Подано на затвердження');
+    } catch (e) {
+      notify(`Помилка: ${e instanceof Error ? e.message : 'failed'}`);
+    } finally {
+      setModerating(false);
+    }
+  }
+
+  async function handleApprove() {
+    if (!course) return;
+    setModerating(true);
+    try {
+      const fresh = await approveCourse(course.documentId);
+      if (fresh) setCourse(fresh);
+      notify('Затверджено');
+    } catch (e) {
+      notify(`Помилка: ${e instanceof Error ? e.message : 'failed'}`);
+    } finally {
+      setModerating(false);
+    }
+  }
+
+  async function handleReject(reason: string) {
+    if (!course) return;
+    setModerating(true);
+    try {
+      const fresh = await rejectCourse(course.documentId, reason);
+      if (fresh) setCourse(fresh);
+      notify('Відхилено');
+    } catch (e) {
+      notify(`Помилка: ${e instanceof Error ? e.message : 'failed'}`);
+    } finally {
+      setModerating(false);
     }
   }
 
@@ -298,6 +352,21 @@ export default function CourseEditorPage() {
       }
     >
       <div className="flex flex-col gap-4">
+        {course.reviewStatus && (
+          <ModerationBanner
+            status={course.reviewStatus}
+            rejectionReason={course.rejectionReason}
+            isAdmin={isAdmin}
+            isOwner={
+              callerTeacherProfileId !== null &&
+              callerTeacherProfileId === course.ownerDocumentId
+            }
+            busy={moderating}
+            onSubmit={handleSubmitForReview}
+            onApprove={handleApprove}
+            onReject={handleReject}
+          />
+        )}
         <Card variant="surface" padding="md">
           <div className="flex items-center justify-between gap-3 mb-3">
             <p className={SECTION_LABEL_CLS}>Метадані</p>

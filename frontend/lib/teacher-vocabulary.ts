@@ -35,6 +35,10 @@ export interface VocabSetSummary {
   /** Linked-course documentId, if any. */
   courseDocumentId: string | null;
   courseSlug: string | null;
+  /** Moderation state — see CONTENT_LIFECYCLE_PLAN.md §6. */
+  reviewStatus: 'draft' | 'submitted' | 'approved' | 'rejected' | null;
+  /** documentId of the owning teacher-profile (null = platform/admin). */
+  ownerDocumentId: string | null;
 }
 
 interface RawSet {
@@ -47,12 +51,23 @@ interface RawSet {
   words?: unknown[];
   course?: { documentId?: string; slug?: string } | null;
   lesson?: { documentId?: string; slug?: string } | null;
+  reviewStatus?: string;
+  rejectionReason?: string;
+  owner?: { documentId?: string } | null;
+}
+
+const VOCAB_REVIEW_STATUSES = new Set(['draft', 'submitted', 'approved', 'rejected'] as const);
+function pickVocabReviewStatus(v: unknown): VocabSetSummary['reviewStatus'] {
+  return typeof v === 'string' && VOCAB_REVIEW_STATUSES.has(v as never)
+    ? (v as never)
+    : null;
 }
 
 const LIST_QUERY =
-  'fields[0]=slug&fields[1]=title&fields[2]=titleUa&fields[3]=level&fields[4]=iconEmoji&fields[5]=words' +
+  'fields[0]=slug&fields[1]=title&fields[2]=titleUa&fields[3]=level&fields[4]=iconEmoji&fields[5]=words&fields[6]=reviewStatus&fields[7]=rejectionReason' +
   '&populate[course][fields][0]=documentId&populate[course][fields][1]=slug' +
   '&populate[lesson][fields][0]=documentId&populate[lesson][fields][1]=slug' +
+  '&populate[owner][fields][0]=documentId' +
   '&pagination[pageSize]=200&sort=title:asc';
 
 const LEVELS = new Set<Level>(['A0', 'A1', 'A2', 'B1', 'B2', 'C1', 'C2']);
@@ -75,6 +90,8 @@ function normalize(raw: RawSet | null | undefined): VocabSetSummary | null {
     lessonSlug: raw.lesson?.slug ?? null,
     courseDocumentId: raw.course?.documentId ?? null,
     courseSlug: raw.course?.slug ?? null,
+    reviewStatus: pickVocabReviewStatus(raw.reviewStatus),
+    ownerDocumentId: raw.owner?.documentId ?? null,
   };
 }
 
@@ -112,12 +129,14 @@ export interface VocabSetDetail extends VocabSetSummary {
   topic: string | null;
   description: string | null;
   words: VocabWord[];
+  rejectionReason: string | null;
 }
 
 const DETAIL_QUERY =
-  'fields[0]=slug&fields[1]=title&fields[2]=titleUa&fields[3]=level&fields[4]=iconEmoji&fields[5]=words&fields[6]=topic&fields[7]=description' +
+  'fields[0]=slug&fields[1]=title&fields[2]=titleUa&fields[3]=level&fields[4]=iconEmoji&fields[5]=words&fields[6]=topic&fields[7]=description&fields[8]=reviewStatus&fields[9]=rejectionReason' +
   '&populate[course][fields][0]=documentId&populate[course][fields][1]=slug' +
-  '&populate[lesson][fields][0]=documentId&populate[lesson][fields][1]=slug';
+  '&populate[lesson][fields][0]=documentId&populate[lesson][fields][1]=slug' +
+  '&populate[owner][fields][0]=documentId';
 
 interface RawDetail extends RawSet {
   topic?: string;
@@ -145,6 +164,7 @@ function normalizeDetail(raw: RawDetail | null | undefined): VocabSetDetail | nu
     topic: typeof raw.topic === 'string' ? raw.topic : null,
     description: typeof raw.description === 'string' ? raw.description : null,
     words,
+    rejectionReason: typeof raw.rejectionReason === 'string' ? raw.rejectionReason : null,
   };
 }
 

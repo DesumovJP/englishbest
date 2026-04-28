@@ -35,6 +35,7 @@ export interface CourseSummary {
   lessonCount: number;
   vocabSetCount: number;
   published: boolean;
+  reviewStatus: 'draft' | 'submitted' | 'approved' | 'rejected' | null;
 }
 
 export type ReviewStatus = 'draft' | 'submitted' | 'approved' | 'rejected';
@@ -46,6 +47,7 @@ export interface CourseDetail extends CourseSummary {
   sections: CourseSection[];
   reviewStatus: ReviewStatus | null;
   rejectionReason: string | null;
+  ownerDocumentId: string | null;
 }
 
 interface RawCourse {
@@ -67,6 +69,7 @@ interface RawCourse {
   publishedAt?: string | null;
   reviewStatus?: string;
   rejectionReason?: string;
+  owner?: { documentId?: string } | null;
 }
 
 const REVIEW_STATUSES = new Set<ReviewStatus>(['draft', 'submitted', 'approved', 'rejected']);
@@ -113,6 +116,7 @@ function normalizeSummary(raw: RawCourse | null | undefined): CourseSummary | nu
     lessonCount: Array.isArray(raw.lessons) ? raw.lessons.length : 0,
     vocabSetCount: Array.isArray(raw.vocabularySets) ? raw.vocabularySets.length : 0,
     published: Boolean(raw.publishedAt),
+    reviewStatus: pickReviewStatus(raw.reviewStatus),
   };
 }
 
@@ -159,11 +163,12 @@ function normalizeDetail(raw: RawCourse | null | undefined): CourseDetail | null
     sections,
     reviewStatus: pickReviewStatus(raw.reviewStatus),
     rejectionReason: raw.rejectionReason ?? null,
+    ownerDocumentId: raw.owner?.documentId ?? null,
   };
 }
 
 const LIST_QUERY =
-  'fields[0]=slug&fields[1]=title&fields[2]=titleUa&fields[3]=level&fields[4]=audience&fields[5]=kind&fields[6]=status&fields[7]=iconEmoji&fields[8]=publishedAt' +
+  'fields[0]=slug&fields[1]=title&fields[2]=titleUa&fields[3]=level&fields[4]=audience&fields[5]=kind&fields[6]=status&fields[7]=iconEmoji&fields[8]=publishedAt&fields[9]=reviewStatus' +
   '&populate[lessons][fields][0]=documentId' +
   '&populate[vocabularySets][fields][0]=documentId' +
   '&filters[status][$ne]=archived' +
@@ -183,6 +188,7 @@ const DETAIL_QUERY =
   '&populate[sections]=*' +
   '&populate[lessons][fields][0]=documentId&populate[lessons][fields][1]=slug&populate[lessons][fields][2]=sectionSlug&populate[lessons][fields][3]=orderIndex' +
   '&populate[vocabularySets][fields][0]=documentId' +
+  '&populate[owner][fields][0]=documentId' +
   '&status=draft';
 
 export async function fetchTeacherCourse(documentId: string): Promise<CourseDetail | null> {

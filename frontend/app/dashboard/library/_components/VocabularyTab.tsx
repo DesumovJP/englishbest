@@ -19,6 +19,15 @@ import {
 import type { Level } from '@/lib/types/teacher';
 
 type Scope = 'all' | 'course' | 'lesson' | 'standalone';
+type ReviewStatusFilter = 'all' | 'draft' | 'submitted' | 'approved' | 'rejected';
+
+const STATUS_OPTIONS: ReadonlyArray<FilterChipOption<ReviewStatusFilter>> = [
+  { value: 'all',       label: 'Усі' },
+  { value: 'draft',     label: 'Чернетки' },
+  { value: 'submitted', label: 'На розгляді' },
+  { value: 'approved',  label: 'Затверджено' },
+  { value: 'rejected',  label: 'Відхилено' },
+];
 
 const SCOPE_OPTIONS: ReadonlyArray<FilterChipOption<Scope>> = [
   { value: 'all',        label: 'Усе' },
@@ -44,6 +53,7 @@ interface VocabularyTabProps {
 }
 
 export function VocabularyTab({ query, onCount }: VocabularyTabProps) {
+  const [status, setStatus] = useState<ReviewStatusFilter>('all');
   const [scope, setScope] = useState<Scope>('all');
   const [level, setLevel] = useState<Level | 'all'>('all');
   const [sets, setSets] = useState<VocabSetSummary[] | null>(null);
@@ -73,6 +83,7 @@ export function VocabularyTab({ query, onCount }: VocabularyTabProps) {
     if (!sets) return [];
     const q = query.trim().toLowerCase();
     return sets.filter((s) => {
+      if (status !== 'all' && s.reviewStatus !== status) return false;
       if (level !== 'all' && s.level !== level) return false;
       if (scope === 'course'     && !(s.courseDocumentId && !s.lessonDocumentId)) return false;
       if (scope === 'lesson'     && !s.lessonDocumentId) return false;
@@ -80,7 +91,7 @@ export function VocabularyTab({ query, onCount }: VocabularyTabProps) {
       if (q && !`${s.title} ${s.titleUa ?? ''}`.toLowerCase().includes(q)) return false;
       return true;
     });
-  }, [sets, query, scope, level]);
+  }, [sets, query, status, scope, level]);
 
   if (error) return <ErrorState description={error} onRetry={() => location.reload()} />;
   if (!sets)  return <LoadingState shape="card" rows={4} />;
@@ -88,6 +99,7 @@ export function VocabularyTab({ query, onCount }: VocabularyTabProps) {
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-col gap-2">
+        <FilterChips value={status} onChange={setStatus} options={STATUS_OPTIONS} />
         <FilterChips value={scope} onChange={setScope} options={SCOPE_OPTIONS} />
         <FilterChips value={level} onChange={setLevel} options={LEVEL_OPTIONS} />
       </div>
