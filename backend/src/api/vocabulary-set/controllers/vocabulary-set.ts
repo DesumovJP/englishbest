@@ -133,10 +133,20 @@ export default factories.createCoreController(VOCAB_UID as any, ({ strapi }) => 
         $or: [
           { owner: { documentId: { $eq: teacherId } } },
           { source: { $in: PUBLIC_SOURCES as unknown as string[] } },
+          // Orphans (no owner — pre-backfill seed data, or admin-created
+          // without an owner) fall through as visible. They behave like
+          // platform content for this caller. Tighten later via a
+          // dedicated «adopt orphan» flow once backfill is verified.
+          { owner: { $null: true } },
         ],
       };
     } else {
-      scopeFilter = { source: { $in: PUBLIC_SOURCES as unknown as string[] } };
+      scopeFilter = {
+        $or: [
+          { source: { $in: PUBLIC_SOURCES as unknown as string[] } },
+          { owner: { $null: true } },
+        ],
+      };
     }
     return scopedFind(ctx, this, VOCAB_UID as any, scopeFilter);
   },
@@ -155,14 +165,17 @@ export default factories.createCoreController(VOCAB_UID as any, ({ strapi }) => 
 
     const source = (entity as any).source;
     const ownerId = (entity as any).owner?.documentId ?? null;
+    const isOrphan = ownerId === null;
+    const isPublic = (PUBLIC_SOURCES as readonly string[]).includes(source);
 
     if (user && role === 'teacher') {
       const teacherId = await callerTeacherProfileId(strapi, user.id);
       const mine = teacherId && ownerId === teacherId;
-      const isPublic = (PUBLIC_SOURCES as readonly string[]).includes(source);
-      if (!mine && !isPublic) return ctx.forbidden();
+      // Orphan rows visible to staff during the migration window
+      // (mirrors the find-scope above).
+      if (!mine && !isPublic && !isOrphan) return ctx.forbidden();
     } else {
-      if (!(PUBLIC_SOURCES as readonly string[]).includes(source)) return ctx.forbidden();
+      if (!isPublic && !isOrphan) return ctx.forbidden();
     }
     return (super.findOne as any)(ctx);
   },
