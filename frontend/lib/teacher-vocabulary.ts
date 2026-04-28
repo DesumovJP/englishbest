@@ -130,17 +130,35 @@ export interface VocabSetDetail extends VocabSetSummary {
   description: string | null;
   words: VocabWord[];
   rejectionReason: string | null;
+  coverImageUrl: string | null;
 }
 
 const DETAIL_QUERY =
   'fields[0]=slug&fields[1]=title&fields[2]=titleUa&fields[3]=level&fields[4]=iconEmoji&fields[5]=words&fields[6]=topic&fields[7]=description&fields[8]=reviewStatus&fields[9]=rejectionReason' +
   '&populate[course][fields][0]=documentId&populate[course][fields][1]=slug' +
   '&populate[lesson][fields][0]=documentId&populate[lesson][fields][1]=slug' +
-  '&populate[owner][fields][0]=documentId';
+  '&populate[owner][fields][0]=documentId' +
+  '&populate[coverImage][fields][0]=url';
 
 interface RawDetail extends RawSet {
   topic?: string;
   description?: string;
+  coverImage?: { url?: string } | null;
+}
+
+function absolutizeMediaUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  if (/^https?:\/\//i.test(url)) return url;
+  // Same shape as lib/normalize.ts.mediaUrl, scoped to this module to
+  // avoid pulling the kids-side normalizer into a teacher-write path.
+  // Browser context — read NEXT_PUBLIC_API_BASE_URL via the lib config.
+  const base =
+    (typeof window !== 'undefined'
+      ? (window as unknown as { __API_BASE_URL__?: string }).__API_BASE_URL__
+      : null) ??
+    (process.env.NEXT_PUBLIC_API_BASE_URL ?? '');
+  const trimmed = base.replace(/\/+$/, '');
+  return trimmed ? `${trimmed}${url.startsWith('/') ? '' : '/'}${url}` : url;
 }
 
 function normalizeDetail(raw: RawDetail | null | undefined): VocabSetDetail | null {
@@ -165,6 +183,7 @@ function normalizeDetail(raw: RawDetail | null | undefined): VocabSetDetail | nu
     description: typeof raw.description === 'string' ? raw.description : null,
     words,
     rejectionReason: typeof raw.rejectionReason === 'string' ? raw.rejectionReason : null,
+    coverImageUrl: absolutizeMediaUrl(raw.coverImage?.url ?? null),
   };
 }
 
@@ -186,6 +205,8 @@ export interface VocabSetPatch {
   topic?: string | null;
   iconEmoji?: string | null;
   words?: VocabWord[];
+  /** Strapi media id (number) — pass `null` to detach the cover. */
+  coverImage?: number | null;
 }
 
 export async function updateVocabSet(

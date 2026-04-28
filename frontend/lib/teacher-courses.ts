@@ -48,6 +48,7 @@ export interface CourseDetail extends CourseSummary {
   reviewStatus: ReviewStatus | null;
   rejectionReason: string | null;
   ownerDocumentId: string | null;
+  coverImageUrl: string | null;
 }
 
 interface RawCourse {
@@ -70,6 +71,7 @@ interface RawCourse {
   reviewStatus?: string;
   rejectionReason?: string;
   owner?: { documentId?: string } | null;
+  coverImage?: { url?: string } | null;
 }
 
 const REVIEW_STATUSES = new Set<ReviewStatus>(['draft', 'submitted', 'approved', 'rejected']);
@@ -164,7 +166,16 @@ function normalizeDetail(raw: RawCourse | null | undefined): CourseDetail | null
     reviewStatus: pickReviewStatus(raw.reviewStatus),
     rejectionReason: raw.rejectionReason ?? null,
     ownerDocumentId: raw.owner?.documentId ?? null,
+    coverImageUrl: absolutizeMediaUrl(raw.coverImage?.url ?? null),
   };
+}
+
+function absolutizeMediaUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  if (/^https?:\/\//i.test(url)) return url;
+  const base = process.env.NEXT_PUBLIC_API_BASE_URL ?? '';
+  const trimmed = base.replace(/\/+$/, '');
+  return trimmed ? `${trimmed}${url.startsWith('/') ? '' : '/'}${url}` : url;
 }
 
 const LIST_QUERY =
@@ -189,6 +200,7 @@ const DETAIL_QUERY =
   '&populate[lessons][fields][0]=documentId&populate[lessons][fields][1]=slug&populate[lessons][fields][2]=sectionSlug&populate[lessons][fields][3]=orderIndex' +
   '&populate[vocabularySets][fields][0]=documentId' +
   '&populate[owner][fields][0]=documentId' +
+  '&populate[coverImage][fields][0]=url' +
   '&status=draft';
 
 export async function fetchTeacherCourse(documentId: string): Promise<CourseDetail | null> {
@@ -233,6 +245,8 @@ export interface CourseMetaPatch {
   audience?: CourseAudience;
   iconEmoji?: string | null;
   status?: CourseStatus;
+  /** Strapi media id (number) — pass `null` to detach the cover. */
+  coverImage?: number | null;
 }
 
 export async function updateCourseMeta(

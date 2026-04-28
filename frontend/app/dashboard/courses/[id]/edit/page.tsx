@@ -19,7 +19,7 @@ import { DashboardPageShell } from '@/components/ui/shells';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { WipSection } from '@/components/ui/WipSection';
+import { MediaPickerCard } from '@/components/ui/MediaPickerCard';
 import {
   approveCourse,
   deleteTeacherCourse,
@@ -426,15 +426,20 @@ export default function CourseEditorPage() {
               </select>
             </label>
           </div>
-          <div className="mt-3">
-            <p className={`${SECTION_LABEL_CLS} mb-1.5`}>Обкладинка курсу</p>
-            <WipSection
-              title="Завантаження картинки — у розробці"
-              description="Тут буде поле вибору файлу-обкладинки. Поки що курс рендериться з дефолтним фоном."
-              compact
-            />
-          </div>
         </Card>
+
+        <MediaPickerCard
+          label="Обкладинка курсу"
+          hint="Показується в каталозі та на детальній сторінці"
+          initialUrl={course.coverImageUrl}
+          onSaved={async (media) => {
+            const updated = await updateCourseMeta(course.documentId, {
+              coverImage: media.id,
+            });
+            if (updated) setCourse(updated);
+            notify('Обкладинку оновлено');
+          }}
+        />
 
         <Card variant="surface" padding="md">
           <div className="flex items-center justify-between gap-3 mb-3">

@@ -34,8 +34,76 @@ import {
 } from '../../../lib/content-moderation';
 
 const VOCAB_UID = 'api::vocabulary-set.vocabulary-set';
+const LESSON_UID = 'api::lesson.lesson';
 const TEACHER_UID = 'api::teacher-profile.teacher-profile';
 const PUBLIC_SOURCES = ['platform', 'template'] as const;
+const MAX_WORDS = 200;
+
+interface RawWord {
+  word?: unknown;
+  translation?: unknown;
+  example?: unknown;
+  exampleTranslation?: unknown;
+  partOfSpeech?: unknown;
+}
+
+/**
+ * Trim + dedupe + cap word list. Keeps the first occurrence of each
+ * `word` (case-insensitive), strips empty rows, hard-caps at MAX_WORDS.
+ * Pure function — returns a new array, doesn't touch the caller's payload
+ * until the controller writes it back.
+ */
+function normalizeWords(input: unknown): RawWord[] | null {
+  if (input === undefined) return null; // caller didn't include `words`
+  if (!Array.isArray(input)) return [];
+  const seen = new Set<string>();
+  const out: RawWord[] = [];
+  for (const raw of input) {
+    if (!raw || typeof raw !== 'object') continue;
+    const r = raw as RawWord;
+    const word = typeof r.word === 'string' ? r.word.trim() : '';
+    const translation = typeof r.translation === 'string' ? r.translation.trim() : '';
+    if (!word && !translation) continue;
+    const key = word.toLowerCase();
+    if (key && seen.has(key)) continue;
+    if (key) seen.add(key);
+    out.push({
+      word,
+      translation,
+      example: typeof r.example === 'string' ? r.example.trim() : undefined,
+      exampleTranslation:
+        typeof r.exampleTranslation === 'string' ? r.exampleTranslation.trim() : undefined,
+      partOfSpeech:
+        typeof r.partOfSpeech === 'string' ? r.partOfSpeech.trim() : undefined,
+    });
+    if (out.length >= MAX_WORDS) break;
+  }
+  return out;
+}
+
+/**
+ * Force vocab.course to match vocab.lesson.course when a lesson is
+ * attached — closes the inconsistency described in
+ * CONTENT_LIFECYCLE_PLAN.md §4.4. If `lesson` is set in the patch but
+ * `course` isn't, derives course; if both are set and disagree, lesson
+ * wins (server overrides client to keep the data clean).
+ */
+async function enforceCourseLessonConsistency(
+  strapi: any,
+  data: Record<string, unknown>,
+): Promise<void> {
+  const lessonId = data.lesson;
+  if (!lessonId || typeof lessonId !== 'string') return;
+  const lesson = await strapi.documents(LESSON_UID).findOne({
+    documentId: lessonId,
+    populate: { course: { fields: ['documentId'] } },
+  });
+  const lessonCourseId = (lesson as { course?: { documentId?: string } } | null)
+    ?.course?.documentId ?? null;
+  if (lessonCourseId) {
+    data.course = lessonCourseId;
+  }
+}
 
 function roleType(ctxUser: any): string {
   return (ctxUser?.role?.type ?? '').toLowerCase();
@@ -108,6 +176,14 @@ export default factories.createCoreController(VOCAB_UID as any, ({ strapi }) => 
     ctx.request.body = ctx.request.body || {};
     const data = ((ctx.request.body as any).data ?? {}) as Record<string, unknown>;
 
+    // Word normalization — applied to teacher + admin equally so the
+    // data shape stays consistent regardless of caller.
+    const cleanedWords = normalizeWords(data.words);
+    if (cleanedWords !== null) data.words = cleanedWords;
+
+    // Force course to match lesson's course when the set is lesson-scoped.
+    await enforceCourseLessonConsistency(strapi, data);
+
     if (role === 'teacher') {
       const teacherId = await callerTeacherProfileId(strapi, user.id);
       if (!teacherId) return ctx.forbidden('no teacher-profile');
@@ -118,13 +194,11 @@ export default factories.createCoreController(VOCAB_UID as any, ({ strapi }) => 
       const requestedSource = typeof data.source === 'string' ? data.source : 'own';
       const source = requestedSource === 'copy' ? 'copy' : 'own';
 
-      (ctx.request.body as any).data = {
-        ...data,
-        owner: teacherId,
-        source,
-      };
+      data.owner = teacherId;
+      data.source = source;
     }
-    // Admin: trust the payload as-is (admin may legitimately create
+    (ctx.request.body as any).data = data;
+    // Admin: trust the rest of the payload (admin may legitimately create
     // platform/template-source sets and own them or leave owner null).
     return (super.create as any)(ctx);
   },
@@ -154,6 +228,13 @@ export default factories.createCoreController(VOCAB_UID as any, ({ strapi }) => 
       delete data.originalVocabularySet;
       (ctx.request.body as any).data = data;
     }
+
+    // Apply normalization on update too — words may have been edited.
+    const data = ((ctx.request.body as any).data ?? {}) as Record<string, unknown>;
+    const cleanedWords = normalizeWords(data.words);
+    if (cleanedWords !== null) data.words = cleanedWords;
+    await enforceCourseLessonConsistency(strapi, data);
+    (ctx.request.body as any).data = data;
     return (super.update as any)(ctx);
   },
 

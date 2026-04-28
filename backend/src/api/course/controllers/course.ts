@@ -39,30 +39,85 @@ export default factories.createCoreController(COURSE_UID, ({ strapi }) => ({
   async create(ctx) {
     const user = ctx.state.user;
     if (!user) return ctx.unauthorized();
-    if (!STAFF_ROLES.has(roleType(user))) return ctx.forbidden();
+    const role = roleType(user);
+    if (!STAFF_ROLES.has(role)) return ctx.forbidden();
+
+    ctx.request.body = ctx.request.body || {};
+    const data = ((ctx.request.body as any).data ?? {}) as Record<string, unknown>;
+
+    if (role === 'teacher') {
+      const teacherId = await callerTeacherProfileId(strapi, user.id);
+      if (!teacherId) return ctx.forbidden('no teacher-profile');
+      // Force ownership; teachers can only mark new courses as 'own'
+      // or 'copy'. Coerce anything else (incl. 'platform') down.
+      const requestedSource = typeof data.source === 'string' ? data.source : 'own';
+      const source = requestedSource === 'copy' ? 'copy' : 'own';
+      (ctx.request.body as any).data = {
+        ...data,
+        owner: teacherId,
+        source,
+      };
+    }
+    // Admin: trust the payload (admin can leave owner null or set
+    // arbitrary teacher-profile + source='platform' for shared rows).
     return (super.create as never as (c: typeof ctx) => unknown)(ctx);
   },
 
   async update(ctx) {
     const user = ctx.state.user;
     if (!user) return ctx.unauthorized();
-    if (!STAFF_ROLES.has(roleType(user))) return ctx.forbidden();
+    const role = roleType(user);
+    if (!STAFF_ROLES.has(role)) return ctx.forbidden();
+
+    if (role === 'teacher') {
+      const existing = await (strapi as any).documents(COURSE_UID).findOne({
+        documentId: ctx.params.id,
+        populate: { owner: true },
+      });
+      if (!existing) return ctx.notFound();
+      const teacherId = await callerTeacherProfileId(strapi, user.id);
+      const ownerId = (existing as any).owner?.documentId ?? null;
+      if (!teacherId || !ownerId || ownerId !== teacherId) {
+        return ctx.forbidden('not the owner');
+      }
+      if ((existing as any).source === 'platform') {
+        return ctx.forbidden('platform courses are managed by admin');
+      }
+
+      const data = (ctx.request.body as any)?.data ?? {};
+      delete data.owner;
+      delete data.source;
+      (ctx.request.body as any).data = data;
+    }
     return (super.update as never as (c: typeof ctx) => unknown)(ctx);
   },
 
   async delete(ctx) {
     const user = ctx.state.user;
     if (!user) return ctx.unauthorized();
-    if (!STAFF_ROLES.has(roleType(user))) return ctx.forbidden();
+    const role = roleType(user);
+    if (!STAFF_ROLES.has(role)) return ctx.forbidden();
 
     // Use the Documents API directly. The default core-controller delete
     // legacy-serializes the deleted entity (with populate) AFTER the row
     // is gone, which 500s on courses that had `sections` components +
     // related lessons. This path returns a clean envelope.
-    const existing = await strapi.documents(COURSE_UID).findOne({
+    const existing = await (strapi as any).documents(COURSE_UID).findOne({
       documentId: ctx.params.id,
+      populate: { owner: true },
     });
     if (!existing) return ctx.notFound();
+
+    if (role === 'teacher') {
+      const teacherId = await callerTeacherProfileId(strapi, user.id);
+      const ownerId = (existing as any).owner?.documentId ?? null;
+      if (!teacherId || !ownerId || ownerId !== teacherId) {
+        return ctx.forbidden('not the owner');
+      }
+      if ((existing as any).source === 'platform') {
+        return ctx.forbidden('cannot delete platform course');
+      }
+    }
 
     await strapi.documents(COURSE_UID).delete({ documentId: ctx.params.id });
     await writeAudit(strapi, ctx, {
@@ -77,12 +132,22 @@ export default factories.createCoreController(COURSE_UID, ({ strapi }) => ({
   async publish(ctx) {
     const user = ctx.state.user;
     if (!user) return ctx.unauthorized();
-    if (!STAFF_ROLES.has(roleType(user))) return ctx.forbidden();
+    const role = roleType(user);
+    if (!STAFF_ROLES.has(role)) return ctx.forbidden();
 
-    const existing = await strapi.documents(COURSE_UID).findOne({
+    const existing = await (strapi as any).documents(COURSE_UID).findOne({
       documentId: ctx.params.id,
+      populate: { owner: true },
     });
     if (!existing) return ctx.notFound();
+
+    if (role === 'teacher') {
+      const teacherId = await callerTeacherProfileId(strapi, user.id);
+      const ownerId = (existing as any).owner?.documentId ?? null;
+      if (!teacherId || !ownerId || ownerId !== teacherId) {
+        return ctx.forbidden('not the owner');
+      }
+    }
 
     await strapi.documents(COURSE_UID).publish({ documentId: ctx.params.id });
     const fresh = await strapi.documents(COURSE_UID).findOne({
@@ -101,12 +166,22 @@ export default factories.createCoreController(COURSE_UID, ({ strapi }) => ({
   async unpublish(ctx) {
     const user = ctx.state.user;
     if (!user) return ctx.unauthorized();
-    if (!STAFF_ROLES.has(roleType(user))) return ctx.forbidden();
+    const role = roleType(user);
+    if (!STAFF_ROLES.has(role)) return ctx.forbidden();
 
-    const existing = await strapi.documents(COURSE_UID).findOne({
+    const existing = await (strapi as any).documents(COURSE_UID).findOne({
       documentId: ctx.params.id,
+      populate: { owner: true },
     });
     if (!existing) return ctx.notFound();
+
+    if (role === 'teacher') {
+      const teacherId = await callerTeacherProfileId(strapi, user.id);
+      const ownerId = (existing as any).owner?.documentId ?? null;
+      if (!teacherId || !ownerId || ownerId !== teacherId) {
+        return ctx.forbidden('not the owner');
+      }
+    }
 
     await strapi.documents(COURSE_UID).unpublish({ documentId: ctx.params.id });
     const fresh = await strapi.documents(COURSE_UID).findOne({

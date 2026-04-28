@@ -18,6 +18,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
+import { MediaPickerCard } from '@/components/ui/MediaPickerCard';
 import {
   approveVocabSet,
   deleteVocabSet,
@@ -287,6 +288,19 @@ export default function VocabSetEditorPage() {
               </label>
             </div>
           </Card>
+
+          <MediaPickerCard
+            label="Обкладинка словника"
+            hint="Опціонально — показується в картці словника"
+            initialUrl={detail?.coverImageUrl ?? null}
+            onSaved={async (media) => {
+              const updated = await updateVocabSet(documentId, {
+                coverImage: media.id,
+              });
+              if (updated) setDetail(updated);
+              notify('Обкладинку оновлено');
+            }}
+          />
 
           <Card variant="surface" padding="md">
             <div className="flex items-center justify-between gap-3 mb-3">
