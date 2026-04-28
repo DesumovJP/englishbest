@@ -129,15 +129,36 @@ export function normalizeTeacherSummary(raw: any): TeacherSummary | undefined {
 export function normalizeCourse(raw: any): Course {
   const teacher = normalizeTeacherSummary(raw?.teacher);
   const thumbnailUrl = mediaFrom(raw?.thumbnail);
+
+  // Prefer the lessons relation (source of truth post-backfill) and group by
+  // sectionSlug. If a section has zero lessons in the relation, fall back to
+  // the legacy `course.sections[].lessonSlugs[]` component array — keeps reads
+  // working for not-yet-backfilled courses.
+  const lessonsBySection = new Map<string, Array<{ slug: string; order: number }>>();
+  const rawLessons = Array.isArray(raw?.lessons) ? raw.lessons : [];
+  for (const l of rawLessons) {
+    const slug = l?.slug;
+    const sectionSlug = l?.sectionSlug;
+    if (typeof slug !== 'string' || typeof sectionSlug !== 'string') continue;
+    const order = typeof l?.orderIndex === 'number' ? l.orderIndex : 0;
+    if (!lessonsBySection.has(sectionSlug)) lessonsBySection.set(sectionSlug, []);
+    lessonsBySection.get(sectionSlug)!.push({ slug, order });
+  }
+  for (const list of lessonsBySection.values()) {
+    list.sort((a, b) => a.order - b.order);
+  }
+
   const sections = Array.isArray(raw?.sections)
     ? raw.sections.map((s: any) => {
-        const lessonSlugs = Array.isArray(s?.lessonSlugs) ? s.lessonSlugs : [];
+        const stored = Array.isArray(s?.lessonSlugs) ? s.lessonSlugs : [];
+        const derived =
+          lessonsBySection.get(s?.slug ?? '')?.map((x) => x.slug) ?? [];
+        const lessonSlugs = derived.length > 0 ? derived : stored;
         return {
           slug: s?.slug ?? '',
           title: s?.title ?? '',
           order: typeof s?.order === 'number' ? s.order : undefined,
           lessonSlugs,
-          // Legacy alias for older consumers.
           lessons: lessonSlugs,
         };
       })

@@ -1,0 +1,161 @@
+'use client';
+
+import Link from 'next/link';
+import { useEffect, useMemo, useState } from 'react';
+import { Card } from '@/components/ui/Card';
+import { LoadingState } from '@/components/ui/LoadingState';
+import { ErrorState } from '@/components/ui/ErrorState';
+import { EmptyState } from '@/components/ui/EmptyState';
+import {
+  FilterChips,
+  LevelBadge,
+  type FilterChipOption,
+} from '@/components/teacher/ui';
+import {
+  fetchAllVocabSets,
+  type VocabSetSummary,
+} from '@/lib/teacher-vocabulary';
+import type { Level } from '@/lib/types/teacher';
+
+type Scope = 'all' | 'course' | 'lesson' | 'standalone';
+
+const SCOPE_OPTIONS: ReadonlyArray<FilterChipOption<Scope>> = [
+  { value: 'all',        label: 'Усе' },
+  { value: 'course',     label: 'У курсі' },
+  { value: 'lesson',     label: 'В уроці' },
+  { value: 'standalone', label: 'Без прив’язки' },
+];
+
+const LEVEL_OPTIONS: ReadonlyArray<FilterChipOption<Level | 'all'>> = [
+  { value: 'all', label: 'Всі рівні' },
+  { value: 'A0',  label: 'A0' },
+  { value: 'A1',  label: 'A1' },
+  { value: 'A2',  label: 'A2' },
+  { value: 'B1',  label: 'B1' },
+  { value: 'B2',  label: 'B2' },
+  { value: 'C1',  label: 'C1' },
+  { value: 'C2',  label: 'C2' },
+];
+
+interface VocabularyTabProps {
+  query: string;
+  onCount?: (n: number) => void;
+}
+
+export function VocabularyTab({ query, onCount }: VocabularyTabProps) {
+  const [scope, setScope] = useState<Scope>('all');
+  const [level, setLevel] = useState<Level | 'all'>('all');
+  const [sets, setSets] = useState<VocabSetSummary[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    fetchAllVocabSets()
+      .then((rows) => {
+        if (!alive) return;
+        setSets(rows);
+        onCount?.(rows.length);
+      })
+      .catch((e) => alive && setError(e instanceof Error ? e.message : 'failed'));
+    return () => {
+      alive = false;
+    };
+  }, [onCount]);
+
+  const filtered = useMemo(() => {
+    if (!sets) return [];
+    const q = query.trim().toLowerCase();
+    return sets.filter((s) => {
+      if (level !== 'all' && s.level !== level) return false;
+      if (scope === 'course'     && !(s.courseDocumentId && !s.lessonDocumentId)) return false;
+      if (scope === 'lesson'     && !s.lessonDocumentId) return false;
+      if (scope === 'standalone' && (s.courseDocumentId || s.lessonDocumentId)) return false;
+      if (q && !`${s.title} ${s.titleUa ?? ''}`.toLowerCase().includes(q)) return false;
+      return true;
+    });
+  }, [sets, query, scope, level]);
+
+  if (error) return <ErrorState description={error} onRetry={() => location.reload()} />;
+  if (!sets)  return <LoadingState shape="card" rows={4} />;
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-2">
+        <FilterChips value={scope} onChange={setScope} options={SCOPE_OPTIONS} />
+        <FilterChips value={level} onChange={setLevel} options={LEVEL_OPTIONS} />
+      </div>
+
+      {filtered.length === 0 ? (
+        <EmptyState
+          title={sets.length === 0 ? 'Словників поки немає' : 'Нічого не знайдено'}
+          description={
+            sets.length === 0
+              ? 'Створи перший словник з редактора уроку — він прикріпиться автоматично.'
+              : 'Спробуй інший фільтр або запит'
+          }
+        />
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {filtered.map((s) => (
+            <VocabSetCard key={s.documentId} set={s} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function VocabSetCard({ set }: { set: VocabSetSummary }) {
+  return (
+    <Card variant="surface" padding="sm" className="flex flex-col gap-2">
+      <div className="flex items-center gap-1.5 flex-wrap">
+        {set.level && <LevelBadge level={set.level} />}
+        <ScopeBadge set={set} />
+      </div>
+
+      <div className="min-w-0 flex items-start gap-2">
+        <span aria-hidden className="text-[20px] flex-shrink-0 leading-none">
+          {set.iconEmoji ?? '📚'}
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-[14px] font-semibold text-ink leading-snug line-clamp-2">
+            {set.titleUa || set.title}
+          </p>
+          {set.titleUa && set.titleUa !== set.title && (
+            <p className="text-[12px] text-ink-muted mt-0.5 truncate">{set.title}</p>
+          )}
+        </div>
+      </div>
+
+      <div className="flex items-center gap-3 text-[11px] text-ink-faint tabular-nums mt-auto pt-2 border-t border-border">
+        <span>{set.wordCount} слів</span>
+      </div>
+    </Card>
+  );
+}
+
+function ScopeBadge({ set }: { set: VocabSetSummary }) {
+  if (set.lessonDocumentId) {
+    return (
+      <Link
+        href={`/dashboard/teacher-library/${set.lessonDocumentId}/edit`}
+        className="ios-chip hover:bg-surface-hover"
+        title="До уроку"
+      >
+        В уроці
+      </Link>
+    );
+  }
+  if (set.courseDocumentId) {
+    return (
+      <Link
+        href={`/dashboard/courses/${set.courseDocumentId}/edit`}
+        className="ios-chip hover:bg-surface-hover"
+        title="До курсу"
+      >
+        У курсі
+      </Link>
+    );
+  }
+  return <span className="ios-chip bg-surface-muted text-ink-muted">Без прив’язки</span>;
+}

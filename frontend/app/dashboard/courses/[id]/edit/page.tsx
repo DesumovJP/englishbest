@@ -4,7 +4,7 @@
  * Surfaces three production-grade levers per course:
  *   1. Metadata — title, titleUa, subtitle, description, level, audience.
  *   2. Sections (units) — add / rename / reorder / delete + per-unit
- *      lesson-slug list (drag-free; explicit "+ урок" buttons).
+ *      lesson list (picker over the library; chip-list with reorder + remove).
  *   3. Vocabulary attach — VocabularyAttachSection (parent="course").
  *
  * Course CREATE is still done in Strapi admin (rare event); this page
@@ -12,9 +12,9 @@
  */
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { DashboardPageShell } from '@/components/ui/shells';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -28,7 +28,10 @@ import {
   type Level,
   type CourseAudience,
 } from '@/lib/teacher-courses';
+import { fetchLessonsCached, updateLesson } from '@/lib/teacher-library';
+import type { LibraryLesson } from '@/lib/types/teacher';
 import { VocabularyAttachSection } from '@/components/teacher/LessonVocabularySection';
+import { LessonPickerModal } from '@/components/teacher/LessonPickerModal';
 
 const SECTION_LABEL_CLS =
   'font-bold text-[11px] uppercase tracking-[0.04em] text-ink-muted';
@@ -38,7 +41,6 @@ const AUDIENCES: CourseAudience[] = ['kids', 'teens', 'adults', 'any'];
 
 export default function CourseEditorPage() {
   const params = useParams<{ id: string }>();
-  const router = useRouter();
   const documentId = params?.id ?? '';
 
   const [course, setCourse] = useState<CourseDetail | null>(null);
@@ -47,7 +49,6 @@ export default function CourseEditorPage() {
   const [savingSections, setSavingSections] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
-  // Editable mirror — committed on save.
   const [draftMeta, setDraftMeta] = useState({
     title: '',
     titleUa: '',
@@ -59,6 +60,9 @@ export default function CourseEditorPage() {
     iconEmoji: '🎓',
   });
   const [draftSections, setDraftSections] = useState<CourseSection[]>([]);
+
+  const [library, setLibrary] = useState<LibraryLesson[]>([]);
+  const [pickerForSection, setPickerForSection] = useState<number | null>(null);
 
   useEffect(() => {
     if (!documentId) return;
@@ -87,6 +91,24 @@ export default function CourseEditorPage() {
       alive = false;
     };
   }, [documentId]);
+
+  useEffect(() => {
+    let alive = true;
+    fetchLessonsCached()
+      .then((rows) => alive && setLibrary(rows))
+      .catch(() => {
+        /* picker still works on slug-only fallback */
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const lessonsBySlug = useMemo(() => {
+    const map = new Map<string, LibraryLesson>();
+    for (const l of library) if (l.slug) map.set(l.slug, l);
+    return map;
+  }, [library]);
 
   function notify(msg: string) {
     setToast(msg);
@@ -119,11 +141,29 @@ export default function CourseEditorPage() {
   async function handleSaveSections() {
     if (!course) return;
     setSavingSections(true);
+    // Capture pre-save assignment map so we can diff and propagate the relation
+    // write *after* the slug-array save succeeds.
+    const oldAssignments = sectionsToAssignmentMap(course.sections);
+    const newAssignments = sectionsToAssignmentMap(draftSections);
     try {
       const updated = await updateCourseSections(course.documentId, draftSections);
       if (updated) {
         setCourse(updated);
         setDraftSections(updated.sections);
+      }
+      await propagateLessonRelations({
+        courseId: course.documentId,
+        oldAssignments,
+        newAssignments,
+        lessonsBySlug,
+      });
+      // Refresh library so courseDocumentId/sectionSlug on lessons reflect
+      // the new bindings on next picker open.
+      try {
+        const fresh = await fetchLessonsCached();
+        setLibrary(fresh);
+      } catch {
+        /* non-fatal — picker still works on stale data */
       }
       notify('Юніти збережено');
     } catch (e) {
@@ -160,14 +200,36 @@ export default function CourseEditorPage() {
     setDraftSections(draftSections.filter((_, i) => i !== idx).map((s, i) => ({ ...s, order: i })));
   }
 
+  function addLessonsToSection(sectionIdx: number, slugs: string[]) {
+    const fresh = slugs.filter((s) => s && !draftSections[sectionIdx].lessonSlugs.includes(s));
+    if (fresh.length === 0) return;
+    patchSection(sectionIdx, {
+      lessonSlugs: [...draftSections[sectionIdx].lessonSlugs, ...fresh],
+    });
+  }
+
+  function removeLesson(sectionIdx: number, lessonIdx: number) {
+    const next = draftSections[sectionIdx].lessonSlugs.filter((_, i) => i !== lessonIdx);
+    patchSection(sectionIdx, { lessonSlugs: next });
+  }
+
+  function moveLesson(sectionIdx: number, lessonIdx: number, dir: -1 | 1) {
+    const list = draftSections[sectionIdx].lessonSlugs;
+    const target = lessonIdx + dir;
+    if (target < 0 || target >= list.length) return;
+    const next = [...list];
+    [next[lessonIdx], next[target]] = [next[target], next[lessonIdx]];
+    patchSection(sectionIdx, { lessonSlugs: next });
+  }
+
   if (error && !course) {
     return (
       <DashboardPageShell title="Курс">
         <Card variant="surface" padding="md">
           <p className="text-[13px] text-danger-dark">{error}</p>
           <div className="mt-3">
-            <Link href="/dashboard/courses" className="ios-btn ios-btn-secondary ios-btn-sm">
-              ← До списку курсів
+            <Link href="/dashboard/library" className="ios-btn ios-btn-secondary ios-btn-sm">
+              ← До бібліотеки
             </Link>
           </div>
         </Card>
@@ -184,10 +246,11 @@ export default function CourseEditorPage() {
     );
   }
 
+  const pickerSection = pickerForSection !== null ? draftSections[pickerForSection] : null;
+
   return (
     <DashboardPageShell title={`Курс · ${course.titleUa || course.title}`}>
       <div className="flex flex-col gap-4">
-        {/* META */}
         <Card variant="surface" padding="md">
           <div className="flex items-center justify-between gap-3 mb-3">
             <p className={SECTION_LABEL_CLS}>Метадані</p>
@@ -272,12 +335,9 @@ export default function CourseEditorPage() {
           </div>
         </Card>
 
-        {/* SECTIONS / UNITS */}
         <Card variant="surface" padding="md">
           <div className="flex items-center justify-between gap-3 mb-3">
-            <p className={SECTION_LABEL_CLS}>
-              Юніти ({draftSections.length})
-            </p>
+            <p className={SECTION_LABEL_CLS}>Юніти ({draftSections.length})</p>
             <div className="flex gap-2">
               <Button onClick={addSection} variant="secondary" size="sm">
                 + Юніт
@@ -290,8 +350,8 @@ export default function CourseEditorPage() {
 
           {draftSections.length === 0 && (
             <p className="text-[12.5px] text-ink-muted">
-              Поки немає юнітів. Додай перший — він стане «Юніт 1». Уроки можна
-              вписувати по одному slug-у через кнопку «+ урок».
+              Поки немає юнітів. Додай перший — він стане «Юніт 1». Уроки додаватимуться через
+              picker з бібліотеки.
             </p>
           )}
 
@@ -302,16 +362,19 @@ export default function CourseEditorPage() {
                 section={s}
                 index={i}
                 total={draftSections.length}
+                lessonsBySlug={lessonsBySlug}
                 onPatch={(p) => patchSection(i, p)}
                 onMoveUp={() => moveSection(i, -1)}
                 onMoveDown={() => moveSection(i, +1)}
                 onDelete={() => deleteSection(i)}
+                onOpenPicker={() => setPickerForSection(i)}
+                onRemoveLesson={(li) => removeLesson(i, li)}
+                onMoveLesson={(li, dir) => moveLesson(i, li, dir)}
               />
             ))}
           </div>
         </Card>
 
-        {/* VOCABULARY */}
         <VocabularyAttachSection
           parent="course"
           parentDocumentId={course.documentId}
@@ -319,6 +382,18 @@ export default function CourseEditorPage() {
           parentLevel={course.level}
         />
       </div>
+
+      <LessonPickerModal
+        open={pickerForSection !== null}
+        onClose={() => setPickerForSection(null)}
+        onConfirm={(slugs) => {
+          if (pickerForSection !== null) addLessonsToSection(pickerForSection, slugs);
+        }}
+        excludedSlugs={pickerSection?.lessonSlugs ?? []}
+        currentCourseId={course.documentId}
+        defaultLevel={course.level ?? undefined}
+        title={pickerSection ? `Додати уроки до «${pickerSection.title}»` : undefined}
+      />
 
       {toast && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-lg bg-primary text-white text-[13px] font-semibold shadow-card-md">
@@ -329,33 +404,95 @@ export default function CourseEditorPage() {
   );
 }
 
+interface Assignment {
+  sectionSlug: string;
+  orderIndex: number;
+}
+
+function sectionsToAssignmentMap(sections: readonly CourseSection[]): Map<string, Assignment> {
+  const map = new Map<string, Assignment>();
+  for (const sec of sections) {
+    sec.lessonSlugs.forEach((slug, idx) => {
+      if (slug) map.set(slug, { sectionSlug: sec.slug, orderIndex: idx });
+    });
+  }
+  return map;
+}
+
+/**
+ * Mirrors `course.sections[].lessonSlugs[]` writes onto each owned lesson's
+ * `course` + `sectionSlug` + `orderIndex` fields. Platform/template lessons are
+ * skipped (teacher cannot edit them; backend would 403). Failures on individual
+ * lesson writes are swallowed so a single 403/permission glitch doesn't undo
+ * the section save the user just confirmed.
+ */
+async function propagateLessonRelations(args: {
+  courseId: string;
+  oldAssignments: Map<string, Assignment>;
+  newAssignments: Map<string, Assignment>;
+  lessonsBySlug: Map<string, LibraryLesson>;
+}): Promise<void> {
+  const { courseId, oldAssignments, newAssignments, lessonsBySlug } = args;
+  const writes: Array<Promise<unknown>> = [];
+
+  for (const [slug, next] of newAssignments) {
+    const lesson = lessonsBySlug.get(slug);
+    if (!lesson || (lesson.source !== 'own' && lesson.source !== 'copy')) continue;
+    const old = oldAssignments.get(slug);
+    const sameAsServer =
+      lesson.courseDocumentId === courseId &&
+      lesson.sectionSlug === next.sectionSlug &&
+      old?.orderIndex === next.orderIndex;
+    if (sameAsServer) continue;
+    writes.push(
+      updateLesson(lesson.id, {
+        course: courseId,
+        sectionSlug: next.sectionSlug,
+        orderIndex: next.orderIndex,
+      }).catch(() => undefined),
+    );
+  }
+
+  for (const [slug] of oldAssignments) {
+    if (newAssignments.has(slug)) continue;
+    const lesson = lessonsBySlug.get(slug);
+    if (!lesson || (lesson.source !== 'own' && lesson.source !== 'copy')) continue;
+    if (lesson.courseDocumentId !== courseId) continue;
+    writes.push(
+      updateLesson(lesson.id, { course: null, sectionSlug: null, orderIndex: null }).catch(
+        () => undefined,
+      ),
+    );
+  }
+
+  await Promise.all(writes);
+}
+
 function SectionRow({
   section,
   index,
   total,
+  lessonsBySlug,
   onPatch,
   onMoveUp,
   onMoveDown,
   onDelete,
+  onOpenPicker,
+  onRemoveLesson,
+  onMoveLesson,
 }: {
   section: CourseSection;
   index: number;
   total: number;
+  lessonsBySlug: Map<string, LibraryLesson>;
   onPatch: (patch: Partial<CourseSection>) => void;
   onMoveUp: () => void;
   onMoveDown: () => void;
   onDelete: () => void;
+  onOpenPicker: () => void;
+  onRemoveLesson: (idx: number) => void;
+  onMoveLesson: (idx: number, dir: -1 | 1) => void;
 }) {
-  function addLessonSlug() {
-    onPatch({ lessonSlugs: [...section.lessonSlugs, ''] });
-  }
-  function removeLessonAt(i: number) {
-    onPatch({ lessonSlugs: section.lessonSlugs.filter((_, idx) => idx !== i) });
-  }
-  function patchLessonAt(i: number, value: string) {
-    onPatch({ lessonSlugs: section.lessonSlugs.map((s, idx) => (idx === i ? value : s)) });
-  }
-
   return (
     <div className="rounded-xl border border-border p-3 bg-surface">
       <div className="flex items-center gap-2 mb-2">
@@ -402,40 +539,75 @@ function SectionRow({
       </div>
 
       <div className="pl-10 flex flex-col gap-1.5">
-        <p className={SECTION_LABEL_CLS}>Уроки (slug-и, по порядку)</p>
+        <p className={SECTION_LABEL_CLS}>Уроки ({section.lessonSlugs.length})</p>
         {section.lessonSlugs.length === 0 && (
           <p className="text-[12px] text-ink-faint">
-            Без уроків. Додай перший слаг — наприклад, <code>a-my-world-1-rooms</code>.
+            Без уроків. Натисни «+ урок» — і обери з бібліотеки.
           </p>
         )}
-        {section.lessonSlugs.map((slug, i) => (
-          <div key={i} className="flex items-center gap-2">
-            <span className="font-medium text-[11.5px] text-ink-faint tabular-nums w-8 text-right">
-              {i + 1}.
-            </span>
-            <Input
-              value={slug}
-              onChange={(e) => patchLessonAt(i, e.target.value)}
-              placeholder="lesson-slug"
-              className="flex-1"
-            />
-            <button
-              type="button"
-              onClick={() => removeLessonAt(i)}
-              className="ios-btn ios-btn-ghost ios-btn-sm text-danger-dark"
-              aria-label="Прибрати"
+        {section.lessonSlugs.map((slug, i) => {
+          const lesson = lessonsBySlug.get(slug);
+          return (
+            <div
+              key={`${slug}-${i}`}
+              className="flex items-center gap-2 rounded-lg border border-border bg-surface px-2.5 py-1.5"
             >
-              ✕
-            </button>
-          </div>
-        ))}
-        <button
-          type="button"
-          onClick={addLessonSlug}
-          className="ios-btn ios-btn-secondary ios-btn-sm self-start mt-1"
+              <span className="font-medium text-[11.5px] text-ink-faint tabular-nums w-6 text-right">
+                {i + 1}.
+              </span>
+              {lesson ? (
+                <Link
+                  href={`/dashboard/teacher-library/${lesson.id}/edit`}
+                  className="flex-1 min-w-0 text-[13px] font-semibold text-ink hover:underline underline-offset-2 truncate"
+                >
+                  {lesson.title}
+                </Link>
+              ) : (
+                <span
+                  className="flex-1 min-w-0 text-[13px] font-semibold text-ink-muted truncate"
+                  title="Урок не знайдено в бібліотеці"
+                >
+                  {slug}
+                </span>
+              )}
+              <span className="text-[11px] text-ink-faint tabular-nums truncate">{slug}</span>
+              <button
+                type="button"
+                onClick={() => onMoveLesson(i, -1)}
+                disabled={i === 0}
+                className="ios-btn ios-btn-ghost ios-btn-sm disabled:opacity-40"
+                aria-label="Вище"
+              >
+                ↑
+              </button>
+              <button
+                type="button"
+                onClick={() => onMoveLesson(i, +1)}
+                disabled={i === section.lessonSlugs.length - 1}
+                className="ios-btn ios-btn-ghost ios-btn-sm disabled:opacity-40"
+                aria-label="Нижче"
+              >
+                ↓
+              </button>
+              <button
+                type="button"
+                onClick={() => onRemoveLesson(i)}
+                className="ios-btn ios-btn-ghost ios-btn-sm text-danger-dark"
+                aria-label="Прибрати"
+              >
+                ✕
+              </button>
+            </div>
+          );
+        })}
+        <Button
+          onClick={onOpenPicker}
+          variant="secondary"
+          size="sm"
+          className="self-start mt-1"
         >
-          + урок
-        </button>
+          + урок з бібліотеки
+        </Button>
       </div>
     </div>
   );

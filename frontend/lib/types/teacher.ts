@@ -117,6 +117,7 @@ export interface ScheduledLesson {
 
 export interface LibraryLesson {
   id: string;
+  slug: string;
   title: string;
   level: Level;
   topic: string;
@@ -129,6 +130,12 @@ export interface LibraryLesson {
   hasUpdateFromOriginal?: boolean;
   tags?: string[];
   published?: boolean;
+  /** Parent course (relation), if any. */
+  courseDocumentId?: string | null;
+  courseSlug?: string | null;
+  courseTitle?: string | null;
+  /** Slug of the course section this lesson sits in (matches course.sections[].slug). */
+  sectionSlug?: string | null;
 }
 
 export interface LessonBlock {

@@ -18,6 +18,7 @@ import {
   unpublishLesson,
   updateLesson,
 } from '@/lib/teacher-library';
+import { fetchTeacherCourse } from '@/lib/teacher-courses';
 import { SegmentedControl, type SegmentedControlOption } from '@/components/teacher/ui';
 import { BlockPicker } from '@/components/teacher/BlockPicker';
 import { LessonBlockEditor } from '@/components/teacher/LessonBlockEditor';
@@ -106,6 +107,11 @@ export default function LessonEditorPage() {
   const [published, setPublished] = useState(false);
   const [loading, setLoading] = useState(!isNew);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [usage, setUsage] = useState<{
+    courseDocumentId: string;
+    courseTitle: string;
+    sectionTitle: string | null;
+  } | null>(null);
 
   const [mode, setMode] = useState<'edit' | 'preview'>('edit');
   const [picker, setPicker] = useState<{ open: boolean; at: number } | null>(null);
@@ -139,6 +145,30 @@ export default function LessonEditorPage() {
         setPublished(Boolean(detail.published));
         setSavedAt(new Date());
         setDirty(false);
+        if (detail.courseDocumentId) {
+          const courseId = detail.courseDocumentId;
+          const courseTitle = detail.courseTitle ?? courseId;
+          const wantedSlug = detail.sectionSlug;
+          if (wantedSlug) {
+            try {
+              const course = await fetchTeacherCourse(courseId);
+              if (alive) {
+                const match = course?.sections.find((s) => s.slug === wantedSlug);
+                setUsage({
+                  courseDocumentId: courseId,
+                  courseTitle: course?.titleUa || course?.title || courseTitle,
+                  sectionTitle: match?.title ?? wantedSlug,
+                });
+              }
+            } catch {
+              if (alive) {
+                setUsage({ courseDocumentId: courseId, courseTitle, sectionTitle: wantedSlug });
+              }
+            }
+          } else if (alive) {
+            setUsage({ courseDocumentId: courseId, courseTitle, sectionTitle: null });
+          }
+        }
       } catch (e) {
         if (alive) setLoadError(e instanceof Error ? e.message : 'failed');
       } finally {
@@ -372,12 +402,27 @@ export default function LessonEditorPage() {
     loading ? 'loading' : loadError ? 'error' : 'ready';
 
   const backLink = (
-    <Link
-      href="/dashboard/teacher-library"
-      className="inline-flex items-center gap-1 text-[12px] font-semibold text-ink-muted hover:text-ink w-fit"
-    >
-      ← Бібліотека
-    </Link>
+    <div className="flex items-center gap-2 flex-wrap text-[12px]">
+      <Link
+        href="/dashboard/library?tab=lessons"
+        className="inline-flex items-center gap-1 font-semibold text-ink-muted hover:text-ink"
+      >
+        ← Бібліотека
+      </Link>
+      {usage && (
+        <>
+          <span aria-hidden className="text-ink-faint">·</span>
+          <span className="text-ink-faint">У курсі:</span>
+          <Link
+            href={`/dashboard/courses/${usage.courseDocumentId}/edit`}
+            className="font-semibold text-ink hover:underline underline-offset-2"
+          >
+            {usage.courseTitle}
+            {usage.sectionTitle ? ` · ${usage.sectionTitle}` : ''}
+          </Link>
+        </>
+      )}
+    </div>
   );
 
   if (shellStatus !== 'ready') {
@@ -440,7 +485,7 @@ export default function LessonEditorPage() {
                       if (!window.confirm(`Видалити урок «${title || 'без назви'}»?`)) return;
                       try {
                         await deleteLesson(docId);
-                        router.push('/dashboard/teacher-library');
+                        router.push('/dashboard/library?tab=lessons');
                       } catch (e) {
                         setSaveError(e instanceof Error ? e.message : 'Не вдалося видалити');
                       }

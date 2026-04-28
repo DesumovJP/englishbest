@@ -148,8 +148,11 @@ function toDateStr(v: unknown): string {
 function normalize(raw: any): LibraryLesson | null {
   if (!raw?.documentId || !raw?.title) return null;
   const blocks = parseBlocks(raw.steps);
+  const course =
+    raw.course && typeof raw.course === 'object' ? raw.course : null;
   return {
     id: String(raw.documentId),
+    slug: typeof raw.slug === 'string' ? raw.slug : '',
     title: String(raw.title),
     level: pickLevel(raw.level),
     topic: typeof raw.topic === 'string' ? raw.topic : '',
@@ -170,13 +173,18 @@ function normalize(raw: any): LibraryLesson | null {
     hasUpdateFromOriginal: false,
     tags: Array.isArray(raw.tags) ? raw.tags.map(String) : [],
     published: Boolean(raw.publishedAt),
+    courseDocumentId: course && typeof course.documentId === 'string' ? course.documentId : null,
+    courseSlug:       course && typeof course.slug === 'string'       ? course.slug       : null,
+    courseTitle:      course && typeof course.title === 'string'      ? course.title      : null,
+    sectionSlug: typeof raw.sectionSlug === 'string' ? raw.sectionSlug : null,
   };
 }
 
 const LIST_QUERY =
-  'fields[0]=title&fields[1]=level&fields[2]=topic&fields[3]=durationMin&fields[4]=source&fields[5]=updatedAt&fields[6]=createdAt&fields[7]=tags&fields[8]=steps&fields[9]=publishedAt' +
+  'fields[0]=title&fields[1]=level&fields[2]=topic&fields[3]=durationMin&fields[4]=source&fields[5]=updatedAt&fields[6]=createdAt&fields[7]=tags&fields[8]=steps&fields[9]=publishedAt&fields[10]=slug&fields[11]=sectionSlug' +
   '&populate[owner][fields][0]=documentId' +
   '&populate[originalLesson][fields][0]=documentId' +
+  '&populate[course][fields][0]=documentId&populate[course][fields][1]=slug&populate[course][fields][2]=title&populate[course][fields][3]=titleUa' +
   '&pagination[pageSize]=200&sort=updatedAt:desc' +
   '&status=draft';
 
@@ -204,7 +212,9 @@ export interface LessonDetail extends LibraryLesson {
 
 export async function fetchLesson(documentId: string): Promise<LessonDetail | null> {
   const q =
-    'populate[owner][fields][0]=documentId&populate[originalLesson][fields][0]=documentId';
+    'populate[owner][fields][0]=documentId' +
+    '&populate[originalLesson][fields][0]=documentId' +
+    '&populate[course][fields][0]=documentId&populate[course][fields][1]=slug&populate[course][fields][2]=title&populate[course][fields][3]=titleUa';
   const res = await fetch(`/api/lessons/${documentId}?${q}`, { cache: 'no-store' });
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`fetchLesson ${res.status}`);
@@ -215,7 +225,7 @@ export async function fetchLesson(documentId: string): Promise<LessonDetail | nu
 }
 
 export interface LessonInput {
-  title: string;
+  title?: string;
   slug?: string;
   level?: Level | null;
   topic?: string;
@@ -224,6 +234,12 @@ export interface LessonInput {
   steps?: LessonBlock[];
   source?: 'own' | 'copy';
   originalLessonId?: string;
+  /** documentId of the parent course; pass `null` to detach. */
+  course?: string | null;
+  /** Slug of the unit/section within the parent course. */
+  sectionSlug?: string | null;
+  /** Position of the lesson within its section (0-based). */
+  orderIndex?: number | null;
 }
 
 function toPayload(input: LessonInput): Record<string, unknown> {
@@ -237,6 +253,9 @@ function toPayload(input: LessonInput): Record<string, unknown> {
   if (input.steps !== undefined) data.steps = input.steps;
   if (input.source !== undefined) data.source = input.source;
   if (input.originalLessonId) data.originalLesson = input.originalLessonId;
+  if (input.course !== undefined) data.course = input.course;
+  if (input.sectionSlug !== undefined) data.sectionSlug = input.sectionSlug;
+  if (input.orderIndex !== undefined) data.orderIndex = input.orderIndex;
   return data;
 }
 

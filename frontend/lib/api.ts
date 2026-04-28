@@ -66,7 +66,8 @@ const COURSE_POPULATE =
   'populate[teacher][populate][user][populate][avatar]=true' +
   '&populate[thumbnail]=true' +
   '&populate[coverImage]=true' +
-  '&populate[sections]=true';
+  '&populate[sections]=true' +
+  '&populate[lessons][fields][0]=slug&populate[lessons][fields][1]=sectionSlug&populate[lessons][fields][2]=orderIndex';
 
 const LESSON_POPULATE =
   'populate[exercises]=true' +

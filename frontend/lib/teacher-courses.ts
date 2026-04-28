@@ -105,17 +105,42 @@ function normalizeSummary(raw: RawCourse | null | undefined): CourseSummary | nu
 function normalizeDetail(raw: RawCourse | null | undefined): CourseDetail | null {
   const sum = normalizeSummary(raw);
   if (!sum || !raw) return null;
+
+  // Derive per-section lesson slug-lists from the lessons relation
+  // (post-backfill source of truth). Each section keeps the stored
+  // lessonSlugs[] as fallback if the relation has nothing for that section —
+  // this keeps the editor working on not-yet-backfilled courses.
+  const lessonsBySection = new Map<string, Array<{ slug: string; order: number }>>();
+  const rawLessons = Array.isArray(raw.lessons) ? raw.lessons : [];
+  for (const l of rawLessons) {
+    if (!l || typeof l !== 'object') continue;
+    const lr = l as Record<string, unknown>;
+    const slug = lr.slug;
+    const sectionSlug = lr.sectionSlug;
+    if (typeof slug !== 'string' || typeof sectionSlug !== 'string') continue;
+    const order = typeof lr.orderIndex === 'number' ? lr.orderIndex : 0;
+    if (!lessonsBySection.has(sectionSlug)) lessonsBySection.set(sectionSlug, []);
+    lessonsBySection.get(sectionSlug)!.push({ slug, order });
+  }
+  for (const list of lessonsBySection.values()) {
+    list.sort((a, b) => a.order - b.order);
+  }
+
+  const sections = (Array.isArray(raw.sections) ? raw.sections : [])
+    .map((s, i) => normalizeSection(s, i))
+    .filter((s): s is CourseSection => s !== null)
+    .map((s) => {
+      const derived = lessonsBySection.get(s.slug)?.map((x) => x.slug) ?? [];
+      return derived.length > 0 ? { ...s, lessonSlugs: derived } : s;
+    })
+    .sort((a, b) => a.order - b.order);
+
   return {
     ...sum,
     description: raw.description ?? null,
     descriptionShort: raw.descriptionShort ?? null,
     subtitle: raw.subtitle ?? null,
-    sections: Array.isArray(raw.sections)
-      ? raw.sections
-          .map((s, i) => normalizeSection(s, i))
-          .filter((s): s is CourseSection => s !== null)
-          .sort((a, b) => a.order - b.order)
-      : [],
+    sections,
   };
 }
 
@@ -137,7 +162,7 @@ export async function fetchTeacherCourses(): Promise<CourseSummary[]> {
 const DETAIL_QUERY =
   'fields[0]=slug&fields[1]=title&fields[2]=titleUa&fields[3]=subtitle&fields[4]=description&fields[5]=descriptionShort&fields[6]=level&fields[7]=audience&fields[8]=kind&fields[9]=status&fields[10]=iconEmoji' +
   '&populate[sections]=*' +
-  '&populate[lessons][fields][0]=documentId&populate[lessons][fields][1]=slug' +
+  '&populate[lessons][fields][0]=documentId&populate[lessons][fields][1]=slug&populate[lessons][fields][2]=sectionSlug&populate[lessons][fields][3]=orderIndex' +
   '&populate[vocabularySets][fields][0]=documentId';
 
 export async function fetchTeacherCourse(documentId: string): Promise<CourseDetail | null> {
