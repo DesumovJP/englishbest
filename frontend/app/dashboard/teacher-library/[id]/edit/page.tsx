@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
+import { useSession } from '@/lib/session-context';
 import { LESSON_SOURCE_LABELS } from '@/lib/ui/teacher-labels';
 import type {
   BlockKind,
@@ -127,7 +128,13 @@ export default function LessonEditorPage() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
-  const readOnly = source === 'platform' || source === 'template';
+  // Admins are platform editors — they manage shared platform/template
+  // content directly. For everyone else, platform/template lessons stay
+  // read-only (the backend lesson controller's owner check would 403 a
+  // teacher save anyway, since teachers don't own platform lessons).
+  const { session } = useSession();
+  const isAdmin = session?.profile?.role === 'admin';
+  const readOnly = (source === 'platform' || source === 'template') && !isAdmin;
 
   useEffect(() => {
     if (isNew) return;

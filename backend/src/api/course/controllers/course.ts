@@ -38,7 +38,18 @@ export default factories.createCoreController(COURSE_UID, ({ strapi }) => ({
     const user = ctx.state.user;
     if (!user) return ctx.unauthorized();
     if (!STAFF_ROLES.has(roleType(user))) return ctx.forbidden();
-    return (super.delete as never as (c: typeof ctx) => unknown)(ctx);
+
+    // Use the Documents API directly. The default core-controller delete
+    // legacy-serializes the deleted entity (with populate) AFTER the row
+    // is gone, which 500s on courses that had `sections` components +
+    // related lessons. This path returns a clean envelope.
+    const existing = await strapi.documents(COURSE_UID).findOne({
+      documentId: ctx.params.id,
+    });
+    if (!existing) return ctx.notFound();
+
+    await strapi.documents(COURSE_UID).delete({ documentId: ctx.params.id });
+    return { data: { documentId: ctx.params.id } };
   },
 
   async publish(ctx) {
