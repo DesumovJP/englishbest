@@ -68,6 +68,7 @@ async function loadSession(strapi: any, authUserId: number | string) {
     populate: {
       user: { populate: { role: true } },
       organization: true,
+      avatar: { fields: ['url'] },
       kidsProfile: true,
       adultProfile: true,
       teacherProfile: true,
@@ -76,7 +77,18 @@ async function loadSession(strapi: any, authUserId: number | string) {
     },
     limit: 1,
   });
-  return profile ?? null;
+  if (!profile) return null;
+  // Flatten the populated avatar to a top-level `avatarUrl` so every FE
+  // consumer (sidebar, dashboard cards, etc.) reads one consistent path
+  // — `session.profile.avatarUrl` — instead of digging into the nested
+  // `avatar` relation. The DO Spaces upload provider returns absolute
+  // CDN URLs; the local-disk dev provider returns relative `/uploads/...`
+  // which the FE absolutizes via `lib/normalize.mediaUrl`.
+  const avatarUrl =
+    typeof (profile as { avatar?: { url?: unknown } }).avatar?.url === 'string'
+      ? ((profile as { avatar: { url: string } }).avatar.url as string)
+      : null;
+  return { ...(profile as Record<string, unknown>), avatarUrl };
 }
 
 // Build the role-profile payload from registration input. Kept narrow — only

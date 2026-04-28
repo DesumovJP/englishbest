@@ -73,6 +73,7 @@ export interface AdminMonthPoint {
 export interface AdminTopTeacher {
   documentId: string;
   name: string;
+  avatarUrl: string | null;
   rating: number | null;
   students: number;
   revenue: number;

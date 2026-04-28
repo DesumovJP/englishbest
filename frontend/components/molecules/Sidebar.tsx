@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import { useSession } from '@/lib/session-context';
+import { mediaUrl } from '@/lib/normalize';
 
 type Role = 'student' | 'teacher' | 'admin' | 'parent';
 
@@ -181,8 +182,9 @@ export function Sidebar() {
     session?.profile?.displayName ??
     session?.user?.email ??
     '';
-  const avatarUrl =
+  const rawAvatar =
     (session?.profile as { avatarUrl?: string | null } | undefined)?.avatarUrl ?? null;
+  const avatarUrl = mediaUrl(rawAvatar) ?? null;
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const close = () => setMobileOpen(false);

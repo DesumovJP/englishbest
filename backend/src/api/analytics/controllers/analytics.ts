@@ -313,7 +313,12 @@ export default {
       }),
       strapi.documents(TEACHER_UID).findMany({
         fields: ['documentId', 'rating', 'ratingCount'],
-        populate: { user: { fields: ['documentId', 'displayName', 'firstName', 'lastName'] } },
+        populate: {
+          user: {
+            fields: ['documentId', 'displayName', 'firstName', 'lastName'],
+            populate: { avatar: { fields: ['url'] } },
+          },
+        },
         pagination: { pageSize: 200, page: 1 },
       }),
     ]);
@@ -356,14 +361,16 @@ export default {
     const thisBucket = monthAgg.get(currentMonth.key)!;
 
     // Top teachers by revenue this month, aggregated from payouts.
-    type TeacherAgg = { documentId: string; name: string; rating: number | null; ratingCount: number; revenue: number; lessons: number; students: Set<string> };
+    type TeacherAgg = { documentId: string; name: string; avatarUrl: string | null; rating: number | null; ratingCount: number; revenue: number; lessons: number; students: Set<string> };
     const teacherAgg = new Map<string, TeacherAgg>();
-    const teacherMeta = new Map<string, { name: string; rating: number | null; ratingCount: number }>();
+    const teacherMeta = new Map<string, { name: string; avatarUrl: string | null; rating: number | null; ratingCount: number }>();
     for (const t of teachers as any[]) {
       const u = t.user;
       const name = u?.displayName || `${u?.firstName ?? ''} ${u?.lastName ?? ''}`.trim() || '—';
+      const avatarUrl = typeof u?.avatar?.url === 'string' ? (u.avatar.url as string) : null;
       teacherMeta.set(t.documentId, {
         name,
+        avatarUrl,
         rating: toNumberOrNull(t.rating),
         ratingCount: toNumberOrNull(t.ratingCount) ?? 0,
       });
@@ -378,6 +385,7 @@ export default {
         row = {
           documentId: tid,
           name: meta?.name ?? '—',
+          avatarUrl: meta?.avatarUrl ?? null,
           rating: meta?.rating ?? null,
           ratingCount: meta?.ratingCount ?? 0,
           revenue: 0,
@@ -399,6 +407,7 @@ export default {
         row = {
           documentId: tid,
           name: meta.name,
+          avatarUrl: meta.avatarUrl,
           rating: meta.rating,
           ratingCount: meta.ratingCount,
           revenue: 0,
@@ -416,6 +425,7 @@ export default {
       .map(t => ({
         documentId: t.documentId,
         name: t.name,
+        avatarUrl: t.avatarUrl,
         rating: t.rating,
         students: t.students.size,
         revenue: Math.round(t.revenue),

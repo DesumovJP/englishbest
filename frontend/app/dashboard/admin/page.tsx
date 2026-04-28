@@ -16,6 +16,7 @@ import { Avatar } from '@/components/ui/Avatar';
 import { LevelBadge } from '@/components/teacher/ui';
 import { useSession } from '@/lib/session-context';
 import { fetchAdminAnalyticsCached, peekAdminAnalytics, type AdminAnalyticsData } from '@/lib/analytics';
+import { mediaUrl } from '@/lib/normalize';
 import { fetchGroupsCached, peekGroups, type Group, type GroupLevel } from '@/lib/groups';
 
 interface DashboardData {
@@ -180,7 +181,7 @@ export default function AdminDashboardPage() {
               {data!.analytics.topTeachers.slice(0, 5).map((t, i) => (
                 <li key={t.documentId} className="flex items-center gap-3 px-4 py-3">
                   <span className="w-6 text-center text-[11px] font-semibold text-ink-faint tabular-nums flex-shrink-0">#{i + 1}</span>
-                  <Avatar size="sm" name={t.name} />
+                  <Avatar size="sm" name={t.name} src={mediaUrl(t.avatarUrl) ?? undefined} />
                   <div className="flex-1 min-w-0">
                     <p className="text-[13px] font-semibold text-ink truncate">{t.name}</p>
                     <p className="text-[12px] text-ink-muted truncate tabular-nums">
