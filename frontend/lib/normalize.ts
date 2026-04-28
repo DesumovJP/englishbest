@@ -130,10 +130,13 @@ export function normalizeCourse(raw: any): Course {
   const teacher = normalizeTeacherSummary(raw?.teacher);
   const thumbnailUrl = mediaFrom(raw?.thumbnail);
 
-  // Prefer the lessons relation (source of truth post-backfill) and group by
-  // sectionSlug. If a section has zero lessons in the relation, fall back to
-  // the legacy `course.sections[].lessonSlugs[]` component array — keeps reads
-  // working for not-yet-backfilled courses.
+  // Component slug-array is the safe primary source during the relation
+  // migration: it's populated for every course the teacher has touched
+  // (including pre-backfill data) and is always visible to anonymous public
+  // reads. Fall back to the lessons relation (group by sectionSlug, sort by
+  // orderIndex) only when the component is empty — this lets future
+  // relation-only courses still render. After backfill runs on prod and the
+  // schema field is dropped (Stage C.2), this priority flips.
   const lessonsBySection = new Map<string, Array<{ slug: string; order: number }>>();
   const rawLessons = Array.isArray(raw?.lessons) ? raw.lessons : [];
   for (const l of rawLessons) {
@@ -153,7 +156,7 @@ export function normalizeCourse(raw: any): Course {
         const stored = Array.isArray(s?.lessonSlugs) ? s.lessonSlugs : [];
         const derived =
           lessonsBySection.get(s?.slug ?? '')?.map((x) => x.slug) ?? [];
-        const lessonSlugs = derived.length > 0 ? derived : stored;
+        const lessonSlugs = stored.length > 0 ? stored : derived;
         return {
           slug: s?.slug ?? '',
           title: s?.title ?? '',

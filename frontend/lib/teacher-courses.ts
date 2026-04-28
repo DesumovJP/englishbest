@@ -109,10 +109,11 @@ function normalizeDetail(raw: RawCourse | null | undefined): CourseDetail | null
   const sum = normalizeSummary(raw);
   if (!sum || !raw) return null;
 
-  // Derive per-section lesson slug-lists from the lessons relation
-  // (post-backfill source of truth). Each section keeps the stored
-  // lessonSlugs[] as fallback if the relation has nothing for that section —
-  // this keeps the editor working on not-yet-backfilled courses.
+  // Stored slug-array (component) is the primary source while the relation
+  // migration is incomplete — it survives backfill state, public-read scoping,
+  // and draft/publish nuances on lesson.course. Fall back to the relation only
+  // when stored is empty for a section (relation-only courses, e.g. once
+  // Stage C.2 drops the component field).
   const lessonsBySection = new Map<string, Array<{ slug: string; order: number }>>();
   const rawLessons = Array.isArray(raw.lessons) ? raw.lessons : [];
   for (const l of rawLessons) {
@@ -133,6 +134,7 @@ function normalizeDetail(raw: RawCourse | null | undefined): CourseDetail | null
     .map((s, i) => normalizeSection(s, i))
     .filter((s): s is CourseSection => s !== null)
     .map((s) => {
+      if (s.lessonSlugs.length > 0) return s;
       const derived = lessonsBySection.get(s.slug)?.map((x) => x.slug) ?? [];
       return derived.length > 0 ? { ...s, lessonSlugs: derived } : s;
     })
