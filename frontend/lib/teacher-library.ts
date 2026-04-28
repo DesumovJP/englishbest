@@ -280,13 +280,31 @@ async function invalidateCatalogCaches(): Promise<void> {
   }
 }
 
+async function readApiError(res: Response, fallback: string): Promise<string> {
+  try {
+    const body = await res.json();
+    if (body && typeof body === 'object' && 'error' in body) {
+      const err = (body as { error?: { message?: string; details?: { errors?: Array<{ message?: string; path?: string[] }> } } }).error;
+      if (err?.details?.errors?.length) {
+        return err.details.errors
+          .map((e) => `${e.path?.join('.') ?? ''}: ${e.message ?? ''}`.trim())
+          .join('; ');
+      }
+      if (err?.message) return err.message;
+    }
+  } catch {
+    /* body not json */
+  }
+  return fallback;
+}
+
 export async function createLesson(input: LessonInput): Promise<LessonDetail> {
   const res = await fetch('/api/lessons', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ data: toPayload(input) }),
   });
-  if (!res.ok) throw new Error(`createLesson ${res.status}`);
+  if (!res.ok) throw new Error(await readApiError(res, `createLesson ${res.status}`));
   const json = await res.json().catch(() => ({}));
   const n = normalize(json?.data);
   if (!n) throw new Error('createLesson: malformed response');
@@ -303,7 +321,7 @@ export async function updateLesson(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ data: toPayload(input) }),
   });
-  if (!res.ok) throw new Error(`updateLesson ${res.status}`);
+  if (!res.ok) throw new Error(await readApiError(res, `updateLesson ${res.status}`));
   const json = await res.json().catch(() => ({}));
   const n = normalize(json?.data);
   if (!n) throw new Error('updateLesson: malformed response');

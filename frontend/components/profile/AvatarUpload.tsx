@@ -125,38 +125,26 @@ export function AvatarUpload({
           }}
         />
 
-        <div className="flex flex-col gap-1.5 min-w-0">
-          {pendingFile ? (
-            <>
-              <p className="text-[12px] text-ink">
-                {pendingFile.name} · {(pendingFile.size / 1024).toFixed(0)} KB
-              </p>
-              <div className="flex items-center gap-2">
-                <Button size="sm" onClick={handleSave} disabled={uploading}>
-                  {uploading ? 'Завантажую…' : 'Зберегти'}
-                </Button>
-                <Button size="sm" variant="secondary" onClick={handleCancel} disabled={uploading}>
-                  Скасувати
-                </Button>
-              </div>
-            </>
-          ) : (
-            <>
-              <p className="text-[12px] text-ink-muted">
-                Натисни на аватар, щоб обрати фото.
-              </p>
-              <p className="text-[11px] text-ink-faint">
-                PNG / JPEG / WEBP / GIF, до 4 MB. Зберігається на DigitalOcean Spaces (CDN).
-              </p>
-              <div>
-                <Button size="sm" variant="secondary" onClick={openPicker}>
-                  {savedUrl ? 'Замінити фото' : 'Обрати фото'}
-                </Button>
-              </div>
-            </>
-          )}
-          {error && <p className="text-[12px] text-danger-dark">{error}</p>}
-        </div>
+        {(pendingFile || error) && (
+          <div className="flex flex-col gap-1.5 min-w-0">
+            {pendingFile && (
+              <>
+                <p className="text-[12px] text-ink">
+                  {pendingFile.name} · {(pendingFile.size / 1024).toFixed(0)} KB
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button size="sm" onClick={handleSave} disabled={uploading}>
+                    {uploading ? 'Завантажую…' : 'Зберегти'}
+                  </Button>
+                  <Button size="sm" variant="secondary" onClick={handleCancel} disabled={uploading}>
+                    Скасувати
+                  </Button>
+                </div>
+              </>
+            )}
+            {error && <p className="text-[12px] text-danger-dark">{error}</p>}
+          </div>
+        )}
       </div>
     </div>
   );

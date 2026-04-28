@@ -65,18 +65,19 @@ export default factories.createCoreController(GROUP_UID, ({ strapi }) => ({
     if (!user) return ctx.unauthorized();
     const role = roleType(user);
 
-    if (role === 'admin') {
-      return (super.find as any)(ctx);
-    }
-
-    // Non-admin callers lack permission on `teacher`/`members` relation filters
-    // — scopedFind merges the scope at the document-service layer.
-    let scopeFilter: Record<string, unknown>;
+    // Use scopedFind even for admin so the FIND_POPULATE override applies.
+    // `super.find()` runs Strapi's sanitizeQuery, which drops members +
+    // teacher populate entries when the caller lacks `find` permission on
+    // user-profile / teacher-profile — admin role doesn't have
+    // `api::user-profile.user-profile.find` seeded, so members render as
+    // empty arrays in the admin dashboard. scopedFind sets the populate
+    // at the document-service layer, bypassing the sanitize step.
+    let scopeFilter: Record<string, unknown> = {};
     if (role === 'teacher') {
       const teacherId = await callerTeacherProfileId(strapi, user.id);
       if (!teacherId) return ctx.forbidden('no teacher-profile');
       scopeFilter = { teacher: { documentId: { $eq: teacherId } } };
-    } else {
+    } else if (role !== 'admin') {
       const profileId = await callerProfileId(strapi, user.id);
       if (!profileId) return ctx.forbidden('no user-profile');
       scopeFilter = { members: { documentId: { $eq: profileId } } };

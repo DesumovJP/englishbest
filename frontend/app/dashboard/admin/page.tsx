@@ -155,7 +155,7 @@ export default function AdminDashboardPage() {
                 >
                   <LevelBadge level={b.level as GroupLevel} />
                   {b.count}
-                  <span className="text-ink-muted font-normal">· {Math.round(b.pct * 100)}%</span>
+                  <span className="text-ink-muted font-normal">· {b.pct}%</span>
                 </span>
               ))}
             </div>
@@ -184,7 +184,7 @@ export default function AdminDashboardPage() {
                   <div className="flex-1 min-w-0">
                     <p className="text-[13px] font-semibold text-ink truncate">{t.name}</p>
                     <p className="text-[12px] text-ink-muted truncate tabular-nums">
-                      {t.students} учнів
+                      {t.lessons} уроків · {t.students} учнів
                       {t.rating !== null && <> · ★ {t.rating.toFixed(1)}</>}
                     </p>
                   </div>

@@ -76,6 +76,8 @@ export interface AdminTopTeacher {
   rating: number | null;
   students: number;
   revenue: number;
+  /** Lessons completed this month by this teacher. */
+  lessons: number;
 }
 
 export interface AdminLevelBucket extends LevelBucket {

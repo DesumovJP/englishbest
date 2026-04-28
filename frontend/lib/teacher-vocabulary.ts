@@ -68,7 +68,11 @@ const LIST_QUERY =
   '&populate[course][fields][0]=documentId&populate[course][fields][1]=slug' +
   '&populate[lesson][fields][0]=documentId&populate[lesson][fields][1]=slug' +
   '&populate[owner][fields][0]=documentId' +
-  '&pagination[pageSize]=200&sort=title:asc';
+  '&pagination[pageSize]=200&sort=title:asc' +
+  // Without `status=draft` Strapi returns only published rows. Vocab
+  // sets seeded as drafts (or any non-published) would appear empty in
+  // the library tab — admin sees nothing despite having full read.
+  '&status=draft';
 
 const LEVELS = new Set<Level>(['A0', 'A1', 'A2', 'B1', 'B2', 'C1', 'C2']);
 

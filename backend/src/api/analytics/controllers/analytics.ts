@@ -356,7 +356,7 @@ export default {
     const thisBucket = monthAgg.get(currentMonth.key)!;
 
     // Top teachers by revenue this month, aggregated from payouts.
-    type TeacherAgg = { documentId: string; name: string; rating: number | null; ratingCount: number; revenue: number; students: Set<string> };
+    type TeacherAgg = { documentId: string; name: string; rating: number | null; ratingCount: number; revenue: number; lessons: number; students: Set<string> };
     const teacherAgg = new Map<string, TeacherAgg>();
     const teacherMeta = new Map<string, { name: string; rating: number | null; ratingCount: number }>();
     for (const t of teachers as any[]) {
@@ -381,6 +381,7 @@ export default {
           rating: meta?.rating ?? null,
           ratingCount: meta?.ratingCount ?? 0,
           revenue: 0,
+          lessons: 0,
           students: new Set(),
         };
         teacherAgg.set(tid, row);
@@ -401,10 +402,12 @@ export default {
           rating: meta.rating,
           ratingCount: meta.ratingCount,
           revenue: 0,
+          lessons: 0,
           students: new Set(),
         };
         teacherAgg.set(tid, row);
       }
+      row.lessons += 1;
       for (const a of (s.attendees ?? []) as any[]) {
         if (a?.documentId) row.students.add(a.documentId);
       }
@@ -416,8 +419,9 @@ export default {
         rating: t.rating,
         students: t.students.size,
         revenue: Math.round(t.revenue),
+        lessons: t.lessons,
       }))
-      .sort((a, b) => b.revenue - a.revenue)
+      .sort((a, b) => b.lessons - a.lessons || b.revenue - a.revenue)
       .slice(0, 5);
 
     // Level distribution across all learners.
