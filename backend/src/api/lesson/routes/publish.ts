@@ -16,5 +16,23 @@ export default {
       handler: 'api::lesson.lesson.unpublish',
       config: { policies: ['global::is-authenticated'] },
     },
+    {
+      method: 'POST',
+      path: '/lessons/:id/submit',
+      handler: 'api::lesson.lesson.submit',
+      config: { policies: ['global::is-authenticated'] },
+    },
+    {
+      method: 'POST',
+      path: '/lessons/:id/approve',
+      handler: 'api::lesson.lesson.approve',
+      config: { policies: ['global::is-authenticated'] },
+    },
+    {
+      method: 'POST',
+      path: '/lessons/:id/reject',
+      handler: 'api::lesson.lesson.reject',
+      config: { policies: ['global::is-authenticated'] },
+    },
   ],
 };

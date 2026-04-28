@@ -16,5 +16,23 @@ export default {
       handler: 'api::course.course.unpublish',
       config: { policies: ['global::is-authenticated'] },
     },
+    {
+      method: 'POST',
+      path: '/courses/:id/submit',
+      handler: 'api::course.course.submit',
+      config: { policies: ['global::is-authenticated'] },
+    },
+    {
+      method: 'POST',
+      path: '/courses/:id/approve',
+      handler: 'api::course.course.approve',
+      config: { policies: ['global::is-authenticated'] },
+    },
+    {
+      method: 'POST',
+      path: '/courses/:id/reject',
+      handler: 'api::course.course.reject',
+      config: { policies: ['global::is-authenticated'] },
+    },
   ],
 };

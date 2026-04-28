@@ -18,6 +18,11 @@
 import { factories } from '@strapi/strapi';
 import { scopedFind } from '../../../lib/scoped-find';
 import { writeAudit } from '../../../lib/audit';
+import {
+  approveContent,
+  rejectContent,
+  submitContent,
+} from '../../../lib/content-moderation';
 
 const LESSON_UID = 'api::lesson.lesson';
 const TEACHER_UID = 'api::teacher-profile.teacher-profile';
@@ -243,5 +248,69 @@ export default factories.createCoreController(LESSON_UID, ({ strapi }) => ({
       after: fresh,
     });
     return { data: fresh };
+  },
+
+  async submit(ctx) {
+    const user = ctx.state.user;
+    if (!user) return ctx.unauthorized();
+    const role = roleType(user);
+    if (role !== 'teacher' && role !== 'admin') return ctx.forbidden();
+
+    const existing = await strapi.documents(LESSON_UID).findOne({
+      documentId: ctx.params.id,
+      populate: { owner: true },
+    });
+    if (!existing) return ctx.notFound();
+
+    return submitContent({
+      strapi,
+      ctx,
+      uid: LESSON_UID,
+      existing: existing as any,
+      callerTeacherProfileId: await callerTeacherProfileId(strapi, user.id),
+      isAdmin: role === 'admin',
+    });
+  },
+
+  async approve(ctx) {
+    const user = ctx.state.user;
+    if (!user) return ctx.unauthorized();
+    if (roleType(user) !== 'admin') return ctx.forbidden();
+
+    const existing = await strapi.documents(LESSON_UID).findOne({
+      documentId: ctx.params.id,
+      populate: { owner: true },
+    });
+    if (!existing) return ctx.notFound();
+
+    return approveContent({
+      strapi,
+      ctx,
+      uid: LESSON_UID,
+      existing: existing as any,
+      isAdmin: true,
+    });
+  },
+
+  async reject(ctx) {
+    const user = ctx.state.user;
+    if (!user) return ctx.unauthorized();
+    if (roleType(user) !== 'admin') return ctx.forbidden();
+
+    const existing = await strapi.documents(LESSON_UID).findOne({
+      documentId: ctx.params.id,
+      populate: { owner: true },
+    });
+    if (!existing) return ctx.notFound();
+
+    const reason = ((ctx.request.body as any)?.data?.reason ?? '') as string;
+    return rejectContent({
+      strapi,
+      ctx,
+      uid: LESSON_UID,
+      existing: existing as any,
+      isAdmin: true,
+      reason,
+    });
   },
 }));

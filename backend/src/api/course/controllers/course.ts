@@ -12,9 +12,24 @@
  */
 import { factories } from '@strapi/strapi';
 import { writeAudit } from '../../../lib/audit';
+import {
+  approveContent,
+  rejectContent,
+  submitContent,
+} from '../../../lib/content-moderation';
 
 const COURSE_UID = 'api::course.course';
+const TEACHER_UID = 'api::teacher-profile.teacher-profile';
 const STAFF_ROLES = new Set(['teacher', 'admin']);
+
+async function callerTeacherProfileId(strapi: any, userId: number | string): Promise<string | null> {
+  const [tp] = await strapi.documents(TEACHER_UID).findMany({
+    filters: { user: { user: { id: userId } } },
+    fields: ['documentId'],
+    limit: 1,
+  });
+  return tp?.documentId ?? null;
+}
 
 function roleType(user: unknown): string {
   return ((user as { role?: { type?: string } })?.role?.type ?? '').toLowerCase();
@@ -105,5 +120,69 @@ export default factories.createCoreController(COURSE_UID, ({ strapi }) => ({
       after: fresh,
     });
     return { data: fresh };
+  },
+
+  async submit(ctx) {
+    const user = ctx.state.user;
+    if (!user) return ctx.unauthorized();
+    const role = roleType(user);
+    if (!STAFF_ROLES.has(role)) return ctx.forbidden();
+
+    const existing = await (strapi as any).documents(COURSE_UID).findOne({
+      documentId: ctx.params.id,
+      populate: { owner: true },
+    });
+    if (!existing) return ctx.notFound();
+
+    return submitContent({
+      strapi,
+      ctx,
+      uid: COURSE_UID,
+      existing: existing as any,
+      callerTeacherProfileId: await callerTeacherProfileId(strapi, user.id),
+      isAdmin: role === 'admin',
+    });
+  },
+
+  async approve(ctx) {
+    const user = ctx.state.user;
+    if (!user) return ctx.unauthorized();
+    if (roleType(user) !== 'admin') return ctx.forbidden();
+
+    const existing = await (strapi as any).documents(COURSE_UID).findOne({
+      documentId: ctx.params.id,
+      populate: { owner: true },
+    });
+    if (!existing) return ctx.notFound();
+
+    return approveContent({
+      strapi,
+      ctx,
+      uid: COURSE_UID,
+      existing: existing as any,
+      isAdmin: true,
+    });
+  },
+
+  async reject(ctx) {
+    const user = ctx.state.user;
+    if (!user) return ctx.unauthorized();
+    if (roleType(user) !== 'admin') return ctx.forbidden();
+
+    const existing = await (strapi as any).documents(COURSE_UID).findOne({
+      documentId: ctx.params.id,
+      populate: { owner: true },
+    });
+    if (!existing) return ctx.notFound();
+
+    const reason = ((ctx.request.body as any)?.data?.reason ?? '') as string;
+    return rejectContent({
+      strapi,
+      ctx,
+      uid: COURSE_UID,
+      existing: existing as any,
+      isAdmin: true,
+      reason,
+    });
   },
 }));

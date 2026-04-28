@@ -217,6 +217,21 @@ const GRANTS: Grant[] = [
   { action: 'api::lesson.lesson.publish', roles: AUTH_ALL },
   { action: 'api::lesson.lesson.unpublish', roles: AUTH_ALL },
 
+  // Content moderation workflow (Phase L5 — see CONTENT_LIFECYCLE_PLAN.md).
+  // Each controller does its own role gate; AUTH_ALL here is the
+  // permissions-plugin baseline that lets the route be reached at all.
+  { action: 'api::lesson.lesson.submit',  roles: AUTH_ALL },
+  { action: 'api::lesson.lesson.approve', roles: AUTH_ALL },
+  { action: 'api::lesson.lesson.reject',  roles: AUTH_ALL },
+  { action: 'api::course.course.submit',  roles: AUTH_ALL },
+  { action: 'api::course.course.approve', roles: AUTH_ALL },
+  { action: 'api::course.course.reject',  roles: AUTH_ALL },
+  { action: 'api::vocabulary-set.vocabulary-set.publish',   roles: AUTH_ALL },
+  { action: 'api::vocabulary-set.vocabulary-set.unpublish', roles: AUTH_ALL },
+  { action: 'api::vocabulary-set.vocabulary-set.submit',    roles: AUTH_ALL },
+  { action: 'api::vocabulary-set.vocabulary-set.approve',   roles: AUTH_ALL },
+  { action: 'api::vocabulary-set.vocabulary-set.reject',    roles: AUTH_ALL },
+
   // User-profile (self read/update via /me; admin full via stock)
   { action: 'api::user-profile.user-profile.findOne', roles: AUTH_ALL },
   { action: 'api::user-profile.user-profile.update', roles: AUTH_ALL },

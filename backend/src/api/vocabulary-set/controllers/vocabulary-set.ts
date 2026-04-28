@@ -1,3 +1,326 @@
+/**
+ * Vocabulary-set controller — scoped (mirrors lesson controller).
+ *
+ * Phase L3 closure of CONTENT_LIFECYCLE_PLAN.md. Replaces the previous
+ * 3-line default-controller stub which let any STAFF role mutate any
+ * vocab set in the DB.
+ *
+ * Scoping (mirrors `api::lesson.lesson` semantics):
+ *   - admin    — full bypass, sees and mutates any row.
+ *   - teacher  — sees own (owner=mine) + public sources (platform,
+ *                template). `owner` is forced to caller's teacher-
+ *                profile on create; `owner` + `source` are immutable on
+ *                update. Cannot edit/delete `source=platform` rows
+ *                (must clone first via POST with source='copy').
+ *   - learners — sees public sources only.
+ *
+ * Cloning is handled by the regular `create` action with
+ * `source: 'copy'` + `originalVocabularySet: <docId>` in the payload —
+ * mirrors the lesson clone flow, no custom action needed.
+ *
+ * Publish/unpublish lift the row out of Strapi's draft state so kids /
+ * public catalogs can see it. Owner-only or admin (same gate as lesson).
+ *
+ * Audit: delete + publish + unpublish + (future) submit/approve/reject
+ * write to `api::audit-log` via `lib/audit.writeAudit`.
+ */
 import { factories } from '@strapi/strapi';
+import { scopedFind } from '../../../lib/scoped-find';
+import { writeAudit } from '../../../lib/audit';
+import {
+  approveContent,
+  rejectContent,
+  submitContent,
+} from '../../../lib/content-moderation';
 
-export default factories.createCoreController('api::vocabulary-set.vocabulary-set' as any);
+const VOCAB_UID = 'api::vocabulary-set.vocabulary-set';
+const TEACHER_UID = 'api::teacher-profile.teacher-profile';
+const PUBLIC_SOURCES = ['platform', 'template'] as const;
+
+function roleType(ctxUser: any): string {
+  return (ctxUser?.role?.type ?? '').toLowerCase();
+}
+
+async function callerTeacherProfileId(strapi: any, userId: number | string): Promise<string | null> {
+  const [tp] = await strapi.documents(TEACHER_UID).findMany({
+    filters: { user: { user: { id: userId } } },
+    fields: ['documentId'],
+    limit: 1,
+  });
+  return tp?.documentId ?? null;
+}
+
+export default factories.createCoreController(VOCAB_UID as any, ({ strapi }) => ({
+  async find(ctx) {
+    const user = ctx.state.user;
+    const role = roleType(user);
+
+    if (role === 'admin') return (super.find as any)(ctx);
+
+    let scopeFilter: Record<string, unknown>;
+    if (user && role === 'teacher') {
+      const teacherId = await callerTeacherProfileId(strapi, user.id);
+      if (!teacherId) return ctx.forbidden('no teacher-profile');
+      scopeFilter = {
+        $or: [
+          { owner: { documentId: { $eq: teacherId } } },
+          { source: { $in: PUBLIC_SOURCES as unknown as string[] } },
+        ],
+      };
+    } else {
+      scopeFilter = { source: { $in: PUBLIC_SOURCES as unknown as string[] } };
+    }
+    return scopedFind(ctx, this, VOCAB_UID as any, scopeFilter);
+  },
+
+  async findOne(ctx) {
+    const user = ctx.state.user;
+    const role = roleType(user);
+
+    const entity = await (strapi as any).documents(VOCAB_UID).findOne({
+      documentId: ctx.params.id,
+      populate: { owner: true },
+    });
+    if (!entity) return ctx.notFound();
+
+    if (role === 'admin') return (super.findOne as any)(ctx);
+
+    const source = (entity as any).source;
+    const ownerId = (entity as any).owner?.documentId ?? null;
+
+    if (user && role === 'teacher') {
+      const teacherId = await callerTeacherProfileId(strapi, user.id);
+      const mine = teacherId && ownerId === teacherId;
+      const isPublic = (PUBLIC_SOURCES as readonly string[]).includes(source);
+      if (!mine && !isPublic) return ctx.forbidden();
+    } else {
+      if (!(PUBLIC_SOURCES as readonly string[]).includes(source)) return ctx.forbidden();
+    }
+    return (super.findOne as any)(ctx);
+  },
+
+  async create(ctx) {
+    const user = ctx.state.user;
+    if (!user) return ctx.unauthorized();
+    const role = roleType(user);
+    if (role !== 'teacher' && role !== 'admin') return ctx.forbidden();
+
+    ctx.request.body = ctx.request.body || {};
+    const data = ((ctx.request.body as any).data ?? {}) as Record<string, unknown>;
+
+    if (role === 'teacher') {
+      const teacherId = await callerTeacherProfileId(strapi, user.id);
+      if (!teacherId) return ctx.forbidden('no teacher-profile');
+
+      // Teachers can only mark new sets as their own ('own') or as
+      // copies of platform/template sets ('copy'). Anything else gets
+      // coerced to 'own' so a teacher can't fabricate platform content.
+      const requestedSource = typeof data.source === 'string' ? data.source : 'own';
+      const source = requestedSource === 'copy' ? 'copy' : 'own';
+
+      (ctx.request.body as any).data = {
+        ...data,
+        owner: teacherId,
+        source,
+      };
+    }
+    // Admin: trust the payload as-is (admin may legitimately create
+    // platform/template-source sets and own them or leave owner null).
+    return (super.create as any)(ctx);
+  },
+
+  async update(ctx) {
+    const user = ctx.state.user;
+    if (!user) return ctx.unauthorized();
+    const role = roleType(user);
+    if (role !== 'teacher' && role !== 'admin') return ctx.forbidden();
+
+    if (role === 'teacher') {
+      const existing = await (strapi as any).documents(VOCAB_UID).findOne({
+        documentId: ctx.params.id,
+        populate: { owner: true },
+      });
+      if (!existing) return ctx.notFound();
+      const teacherId = await callerTeacherProfileId(strapi, user.id);
+      const ownerId = (existing as any).owner?.documentId ?? null;
+      if (!teacherId || ownerId !== teacherId) return ctx.forbidden();
+      if ((existing as any).source === 'platform') {
+        return ctx.forbidden('platform vocab is read-only — clone first');
+      }
+
+      const data = (ctx.request.body as any)?.data ?? {};
+      delete data.owner;
+      delete data.source;
+      delete data.originalVocabularySet;
+      (ctx.request.body as any).data = data;
+    }
+    return (super.update as any)(ctx);
+  },
+
+  async delete(ctx) {
+    const user = ctx.state.user;
+    if (!user) return ctx.unauthorized();
+    const role = roleType(user);
+    if (role !== 'teacher' && role !== 'admin') return ctx.forbidden();
+
+    const existing = await (strapi as any).documents(VOCAB_UID).findOne({
+      documentId: ctx.params.id,
+      populate: { owner: true },
+    });
+    if (!existing) return ctx.notFound();
+
+    if (role === 'teacher') {
+      const teacherId = await callerTeacherProfileId(strapi, user.id);
+      const ownerId = (existing as any).owner?.documentId ?? null;
+      if (!teacherId || ownerId !== teacherId) return ctx.forbidden();
+      if ((existing as any).source === 'platform') {
+        return ctx.forbidden('cannot delete platform vocab');
+      }
+    }
+    const result = await (super.delete as any)(ctx);
+    await writeAudit(strapi, ctx, {
+      action: 'delete',
+      entityType: VOCAB_UID,
+      entityId: ctx.params.id,
+      before: existing,
+    });
+    return result;
+  },
+
+  async publish(ctx) {
+    const user = ctx.state.user;
+    if (!user) return ctx.unauthorized();
+    const role = roleType(user);
+    if (role !== 'teacher' && role !== 'admin') return ctx.forbidden();
+
+    const existing = await (strapi as any).documents(VOCAB_UID).findOne({
+      documentId: ctx.params.id,
+      populate: { owner: true },
+    });
+    if (!existing) return ctx.notFound();
+
+    if (role === 'teacher') {
+      const teacherId = await callerTeacherProfileId(strapi, user.id);
+      const ownerId = (existing as any).owner?.documentId ?? null;
+      if (!teacherId || ownerId !== teacherId) return ctx.forbidden();
+      if ((existing as any).source === 'platform') {
+        return ctx.forbidden('platform vocab is managed by admin');
+      }
+    }
+
+    await (strapi as any).documents(VOCAB_UID).publish({ documentId: ctx.params.id });
+    const fresh = await (strapi as any).documents(VOCAB_UID).findOne({
+      documentId: ctx.params.id,
+      populate: { owner: true },
+    });
+    await writeAudit(strapi, ctx, {
+      action: 'publish',
+      entityType: VOCAB_UID,
+      entityId: ctx.params.id,
+      before: existing,
+      after: fresh,
+    });
+    return { data: fresh };
+  },
+
+  async unpublish(ctx) {
+    const user = ctx.state.user;
+    if (!user) return ctx.unauthorized();
+    const role = roleType(user);
+    if (role !== 'teacher' && role !== 'admin') return ctx.forbidden();
+
+    const existing = await (strapi as any).documents(VOCAB_UID).findOne({
+      documentId: ctx.params.id,
+      populate: { owner: true },
+    });
+    if (!existing) return ctx.notFound();
+
+    if (role === 'teacher') {
+      const teacherId = await callerTeacherProfileId(strapi, user.id);
+      const ownerId = (existing as any).owner?.documentId ?? null;
+      if (!teacherId || ownerId !== teacherId) return ctx.forbidden();
+      if ((existing as any).source === 'platform') {
+        return ctx.forbidden('platform vocab is managed by admin');
+      }
+    }
+
+    await (strapi as any).documents(VOCAB_UID).unpublish({ documentId: ctx.params.id });
+    const fresh = await (strapi as any).documents(VOCAB_UID).findOne({
+      documentId: ctx.params.id,
+      populate: { owner: true },
+      status: 'draft',
+    });
+    await writeAudit(strapi, ctx, {
+      action: 'unpublish',
+      entityType: VOCAB_UID,
+      entityId: ctx.params.id,
+      before: existing,
+      after: fresh,
+    });
+    return { data: fresh };
+  },
+
+  async submit(ctx) {
+    const user = ctx.state.user;
+    if (!user) return ctx.unauthorized();
+    const role = roleType(user);
+    if (role !== 'teacher' && role !== 'admin') return ctx.forbidden();
+
+    const existing = await (strapi as any).documents(VOCAB_UID).findOne({
+      documentId: ctx.params.id,
+      populate: { owner: true },
+    });
+    if (!existing) return ctx.notFound();
+
+    return submitContent({
+      strapi,
+      ctx,
+      uid: VOCAB_UID,
+      existing: existing as any,
+      callerTeacherProfileId: await callerTeacherProfileId(strapi, user.id),
+      isAdmin: role === 'admin',
+    });
+  },
+
+  async approve(ctx) {
+    const user = ctx.state.user;
+    if (!user) return ctx.unauthorized();
+    if (roleType(user) !== 'admin') return ctx.forbidden();
+
+    const existing = await (strapi as any).documents(VOCAB_UID).findOne({
+      documentId: ctx.params.id,
+      populate: { owner: true },
+    });
+    if (!existing) return ctx.notFound();
+
+    return approveContent({
+      strapi,
+      ctx,
+      uid: VOCAB_UID,
+      existing: existing as any,
+      isAdmin: true,
+    });
+  },
+
+  async reject(ctx) {
+    const user = ctx.state.user;
+    if (!user) return ctx.unauthorized();
+    if (roleType(user) !== 'admin') return ctx.forbidden();
+
+    const existing = await (strapi as any).documents(VOCAB_UID).findOne({
+      documentId: ctx.params.id,
+      populate: { owner: true },
+    });
+    if (!existing) return ctx.notFound();
+
+    const reason = ((ctx.request.body as any)?.data?.reason ?? '') as string;
+    return rejectContent({
+      strapi,
+      ctx,
+      uid: VOCAB_UID,
+      existing: existing as any,
+      isAdmin: true,
+      reason,
+    });
+  },
+}));
