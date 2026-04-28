@@ -17,6 +17,7 @@ import {
 } from '@/lib/sessions';
 import { fetchMyStudentsCached, type TeacherStudent } from '@/lib/teacher-students';
 import { fetchGroupsCached, type Group as TeacherGroup } from '@/lib/groups';
+import { fetchTeacherCourses, type CourseSummary } from '@/lib/teacher-courses';
 
 interface CreateLessonModalProps {
   open: boolean;
@@ -54,6 +55,7 @@ export function CreateLessonModal({
 }: CreateLessonModalProps) {
   const [students, setStudents] = useState<TeacherStudent[]>([]);
   const [groups, setGroups] = useState<TeacherGroup[]>([]);
+  const [courses, setCourses] = useState<CourseSummary[]>([]);
   const [loadStatus, setLoadStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
 
   const [title, setTitle] = useState('');
@@ -63,6 +65,7 @@ export function CreateLessonModal({
   const [time, setTime] = useState(defaultTime ?? '16:00');
   const [duration, setDuration] = useState(45);
   const [type, setType] = useState<SessionType>(defaultTypeForTarget(defaultTarget?.type ?? 'student'));
+  const [courseId, setCourseId] = useState('');
   const [joinUrl, setJoinUrl] = useState('');
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -81,11 +84,12 @@ export function CreateLessonModal({
       setTargetId(defaultTarget.id);
       setType(defaultTypeForTarget(defaultTarget.type));
     }
-    Promise.all([fetchMyStudentsCached(), fetchGroupsCached()])
-      .then(([st, gr]) => {
+    Promise.all([fetchMyStudentsCached(), fetchGroupsCached(), fetchTeacherCourses()])
+      .then(([st, gr, co]) => {
         if (!alive) return;
         setStudents(st);
         setGroups(gr);
+        setCourses(co);
         setLoadStatus('ready');
       })
       .catch(e => {
@@ -119,11 +123,22 @@ export function CreateLessonModal({
     setTime(defaultTime ?? '16:00');
     setDuration(45);
     setType(defaultTypeForTarget(defaultTarget?.type ?? 'student'));
+    setCourseId('');
     setJoinUrl('');
     setNotes('');
     setSubmitting(false);
     setError(null);
     setToast(null);
+  }
+
+  function isValidJoinUrl(value: string): boolean {
+    if (!value) return true;
+    try {
+      const u = new URL(value);
+      return u.protocol === 'http:' || u.protocol === 'https:';
+    } catch {
+      return false;
+    }
   }
 
   function handleClose() {
@@ -152,6 +167,10 @@ export function CreateLessonModal({
       setError('Невірна дата або час');
       return;
     }
+    if (!isValidJoinUrl(joinUrl.trim())) {
+      setError('Посилання має починатися з http:// або https://');
+      return;
+    }
     setSubmitting(true);
     try {
       const session = await createSession({
@@ -161,6 +180,7 @@ export function CreateLessonModal({
         type,
         status: 'scheduled',
         attendeeIds,
+        courseId: courseId || null,
         joinUrl: joinUrl.trim() || null,
         notes: notes.trim() || null,
       });
@@ -318,6 +338,24 @@ export function CreateLessonModal({
           </div>
 
           <div>
+            <label htmlFor="cl-course" className={fieldLabel}>Курс (опц.)</label>
+            <select
+              id="cl-course"
+              value={courseId}
+              disabled={submitting}
+              onChange={e => setCourseId(e.target.value)}
+              className={fieldInput}
+            >
+              <option value="">Без прив’язки до курсу</option>
+              {courses.map(c => (
+                <option key={c.documentId} value={c.documentId}>
+                  {(c.titleUa || c.title)}{c.level ? ` · ${c.level}` : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
             <label htmlFor="cl-join" className={fieldLabel}>Посилання на кімнату (опц.)</label>
             <input
               id="cl-join"
@@ -328,6 +366,11 @@ export function CreateLessonModal({
               placeholder="https://meet…"
               className={fieldInput}
             />
+            {joinUrl.trim() && !isValidJoinUrl(joinUrl.trim()) && (
+              <p className="mt-1 text-[11px] text-danger-dark">
+                Посилання має починатися з http:// або https://
+              </p>
+            )}
           </div>
 
           <div>

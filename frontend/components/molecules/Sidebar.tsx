@@ -153,6 +153,8 @@ export function Sidebar() {
     session?.profile?.displayName ??
     session?.user?.email ??
     '';
+  const avatarUrl =
+    (session?.profile as { avatarUrl?: string | null } | undefined)?.avatarUrl ?? null;
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const close = () => setMobileOpen(false);
@@ -227,12 +229,22 @@ export function Sidebar() {
             onClick={close}
             className="flex items-center gap-2.5 px-2 py-2 rounded-md hover:bg-surface-muted transition-colors group"
           >
-            <div
-              aria-hidden
-              className="w-7 h-7 rounded-full bg-surface-muted text-ink-muted flex items-center justify-center text-[11px] font-semibold flex-shrink-0"
-            >
-              {initialsOf(name)}
-            </div>
+            {avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                aria-hidden
+                src={avatarUrl}
+                alt=""
+                className="w-7 h-7 rounded-full object-cover flex-shrink-0"
+              />
+            ) : (
+              <div
+                aria-hidden
+                className="w-7 h-7 rounded-full bg-surface-muted text-ink-muted flex items-center justify-center text-[11px] font-semibold flex-shrink-0"
+              >
+                {initialsOf(name)}
+              </div>
+            )}
             <div className="flex-1 min-w-0">
               <p className="text-[13px] font-semibold text-ink truncate leading-tight">{name || '—'}</p>
               <p className="text-[11px] text-ink-muted leading-tight">{ROLE_LABELS[role]}</p>

@@ -22,6 +22,7 @@ import {
   formatDuration,
   attendeesCountLabel,
 } from '@/lib/session-display';
+import { upsertAttendance, type AttendanceStatus } from '@/lib/attendance';
 
 interface LessonActionSheetProps {
   session: Session | null;
@@ -102,8 +103,54 @@ export function LessonActionSheet({
     }
   }
 
+  async function bulkMarkAttendance(status: AttendanceStatus) {
+    if (!session) return;
+    const attendees = session.attendees ?? [];
+    if (attendees.length === 0) return;
+    // Best-effort: each upsert is independent — a duplicate-key 409 or any
+    // single failure shouldn't undo the status change the teacher just made.
+    await Promise.all(
+      attendees.map((a) =>
+        upsertAttendance({
+          sessionId: session.documentId,
+          studentId: a.documentId,
+          status,
+        }).catch(() => undefined),
+      ),
+    );
+  }
+
   async function markCompleted() {
-    await runUpdate({ status: 'completed' }, 'Позначено як проведено');
+    if (!session) return;
+    setError(null);
+    setBusy(true);
+    try {
+      const next = await updateSession(session.documentId, { status: 'completed' });
+      // Auto-mark all attendees present so attendance history isn't a separate
+      // workflow. Teachers who want late/absent can adjust per-student in
+      // /dashboard/attendance — this keeps the default consistent.
+      await bulkMarkAttendance('present');
+      onChanged?.(next);
+      flash('Проведено · присутність відмічена');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Не вдалось виконати дію');
+      setBusy(false);
+    }
+  }
+
+  async function markNoShow() {
+    if (!session) return;
+    setError(null);
+    setBusy(true);
+    try {
+      const next = await updateSession(session.documentId, { status: 'no-show' });
+      await bulkMarkAttendance('absent');
+      onChanged?.(next);
+      flash('Учні не з’явились · позначено absent');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Не вдалось виконати дію');
+      setBusy(false);
+    }
   }
 
   async function markLive() {
@@ -293,6 +340,13 @@ export function LessonActionSheet({
               label="Провести"
               disabled={busy || session.status === 'completed'}
               onClick={markCompleted}
+            />
+            <ActionBtn
+              icon={<ActionIcon name="cancel" />}
+              label="Не з’явились"
+              tone="danger"
+              disabled={busy || session.status === 'completed' || session.status === 'no-show'}
+              onClick={markNoShow}
             />
             <ActionBtn
               icon={<ActionIcon name="note" />}

@@ -18,7 +18,7 @@ import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
 import { Select } from '@/components/ui/Select';
 import { Switch } from '@/components/ui/Switch';
-import { Avatar } from '@/components/ui/Avatar';
+import { AvatarUpload } from '@/components/profile/AvatarUpload';
 import { useSession } from '@/lib/session-context';
 import {
   fetchMyProfile,
@@ -446,14 +446,13 @@ export default function ProfilePage() {
       subtitle={`${ROLE_LABEL[profile.role]} · особисті дані та акаунт`}
     >
       <Card variant="surface" padding="md">
-        <div className="flex items-center gap-5">
-          <Avatar
+        <div className="flex flex-col gap-4">
+          <AvatarUpload
             name={displayName}
-            src={profile.avatarUrl ?? undefined}
+            initialUrl={profile.avatarUrl}
             size="lg"
-            className="bg-primary/15 text-primary-dark"
           />
-          <div className="flex-1 min-w-0">
+          <div className="border-t border-border pt-3">
             <div className="flex items-center gap-2 flex-wrap">
               <h2 className="text-[15px] font-semibold text-ink">{displayName}</h2>
               <span className="text-[10px] font-semibold uppercase tracking-wider text-ink-muted px-2 py-0.5 rounded-md bg-surface-muted">
