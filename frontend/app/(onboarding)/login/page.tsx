@@ -49,6 +49,10 @@ const COHORT_PARENTS: CohortAccount[] = [
   { email: 'parent-larysa@englishbest.app',    name: 'Лариса Романенко', detail: '→ Ігор' },
 ];
 
+const COHORT_ADMINS: CohortAccount[] = [
+  { email: 'demo-admin@englishbest.app', name: 'Admin Demo', detail: 'platform · повний доступ' },
+];
+
 function redirectForRole(role: string | undefined): string {
   switch (role) {
     case 'teacher': return '/dashboard/teacher';
@@ -238,6 +242,7 @@ export default function LoginPage() {
               {showCohort && (
                 <div className="flex flex-col gap-3 pt-1">
                   {([
+                    { title: 'Адмін',    tone: 'bg-ink text-white',       items: COHORT_ADMINS },
                     { title: 'Вчителі', tone: 'bg-secondary text-white', items: COHORT_TEACHERS },
                     { title: 'Діти',    tone: 'bg-primary text-white',   items: COHORT_KIDS },
                     { title: 'Дорослі', tone: 'bg-warning text-white',   items: COHORT_ADULTS },

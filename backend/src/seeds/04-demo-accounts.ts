@@ -19,12 +19,14 @@ const ORG_UID = 'api::organization.organization';
 const PROFILE_UID = 'api::user-profile.user-profile';
 
 type DemoAccount = {
-  role: 'kids' | 'teacher' | 'parent';
+  role: 'kids' | 'teacher' | 'parent' | 'admin';
   email: string;
   username: string;
   firstName: string;
   lastName: string;
-  roleProfile: { uid: string; data: Record<string, unknown> };
+  /** Role-specific profile (kids/teacher/parent). Admin has no separate
+   *  role-profile content-type, so this is optional. */
+  roleProfile?: { uid: string; data: Record<string, unknown> };
 };
 
 const DEMO_PASSWORD = 'Demo2026!';
@@ -71,6 +73,16 @@ const DEMO_ACCOUNTS: DemoAccount[] = [
       data: {},
     },
   },
+  {
+    role: 'admin',
+    email: 'demo-admin@englishbest.app',
+    username: 'demo-admin',
+    firstName: 'Admin',
+    lastName: 'Demo',
+    // No role-profile: admin operates platform-wide; permissions are
+    // governed by the users-permissions admin role + role===admin
+    // bypass logic in scoped controllers.
+  },
 ];
 
 export async function up(strapi: any) {
@@ -108,7 +120,8 @@ export async function up(strapi: any) {
       // creation attempts may have failed silently (e.g. schema migration
       // race, deploy interrupted between user-profile and role-profile
       // create). Without this row, /api/{role}-profile/me returns 404.
-      if (brokenProfile) {
+      // Admin demo has no role-profile (operates platform-wide), so skip.
+      if (brokenProfile && acc.roleProfile) {
         const existingRoleProfile = await strapi.db
           .query(acc.roleProfile.uid)
           .findOne({ where: { user: { id: brokenProfile.id } } });
@@ -164,12 +177,14 @@ export async function up(strapi: any) {
       },
     });
 
-    await strapi.documents(acc.roleProfile.uid).create({
-      data: {
-        user: profile.documentId,
-        ...acc.roleProfile.data,
-      },
-    });
+    if (acc.roleProfile) {
+      await strapi.documents(acc.roleProfile.uid).create({
+        data: {
+          user: profile.documentId,
+          ...acc.roleProfile.data,
+        },
+      });
+    }
 
     strapi.log.info(`[seed] created demo ${acc.role} account: ${acc.email}`);
   }

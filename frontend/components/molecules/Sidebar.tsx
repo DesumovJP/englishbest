@@ -56,9 +56,12 @@ const I = {
   chat: <svg {...ICON_PROPS}><path d="M4 5h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H9l-5 4V6a1 1 0 0 1 1-1Z" /></svg>,
   kid: <svg {...ICON_PROPS}><circle cx="12" cy="8" r="4" /><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6" /></svg>,
   book: <svg {...ICON_PROPS}><path d="M4 6a2 2 0 0 1 2-2h12v16H6a2 2 0 0 0-2 2V6Z" /><path d="M4 20a2 2 0 0 1 2-2h12" /></svg>,
+  shield: <svg {...ICON_PROPS}><path d="M12 3l8 3v6c0 4.5-3.5 8-8 9-4.5-1-8-4.5-8-9V6l8-3Z" /><path d="M9 12l2 2 4-4" /></svg>,
+  cog: <svg {...ICON_PROPS}><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1A1.7 1.7 0 0 0 9 19.4a1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.3-1.8L4.2 7a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9c.3.6 1 1 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z" /></svg>,
+  building: <svg {...ICON_PROPS}><rect x="4" y="3" width="16" height="18" rx="1" /><path d="M9 7h.01M15 7h.01M9 11h.01M15 11h.01M9 15h.01M15 15h.01M10 21v-4h4v4" /></svg>,
 };
 
-const NAV_FLAT: Record<'student' | 'parent' | 'admin', NavItem[]> = {
+const NAV_FLAT: Record<'student' | 'parent', NavItem[]> = {
   student: [
     { label: 'Дашборд',        href: '/dashboard/student', icon: I.home },
     { label: 'Мої уроки',      href: '/kids/school',       icon: I.calendar },
@@ -70,13 +73,6 @@ const NAV_FLAT: Record<'student' | 'parent' | 'admin', NavItem[]> = {
     { label: 'Дашборд',   href: '/dashboard/parent', icon: I.home },
     { label: 'Календар',  href: '/calendar',         icon: I.calendar },
     { label: 'Чат',       href: '/dashboard/chat',   icon: I.chat },
-  ],
-  admin: [
-    { label: 'Дашборд',    href: '/dashboard/admin',     icon: I.home },
-    { label: 'Аналітика',  href: '/dashboard/analytics', icon: I.analytics },
-    { label: 'Учні',       href: '/dashboard/students',  icon: I.users },
-    { label: 'Бібліотека', href: '/library',             icon: I.book },
-    { label: 'Календар',   href: '/calendar',            icon: I.calendar },
   ],
 };
 
@@ -109,6 +105,37 @@ const TEACHER_NAV: NavSection[] = [
     group: 'Комунікація',
     items: [
       { label: 'Чат', href: '/dashboard/chat', icon: I.chat },
+    ],
+  },
+];
+
+const ADMIN_NAV: NavSection[] = [
+  {
+    group: 'Огляд',
+    items: [
+      { label: 'Дашборд',   href: '/dashboard/admin',     icon: I.home },
+      { label: 'Аналітика', href: '/dashboard/analytics', icon: I.analytics },
+    ],
+  },
+  {
+    group: 'Користувачі',
+    items: [
+      { label: 'Учні',  href: '/dashboard/students', icon: I.users },
+      { label: 'Групи', href: '/dashboard/groups',   icon: I.groups },
+    ],
+  },
+  {
+    group: 'Контент',
+    items: [
+      { label: 'Бібліотека', href: '/dashboard/library', icon: I.library },
+    ],
+  },
+  {
+    group: 'Платформа',
+    items: [
+      { label: 'Журнал дій',  href: '/dashboard/admin/audit-log',     icon: I.shield },
+      { label: 'Організація', href: '/dashboard/admin/organization', icon: I.building },
+      { label: 'Налаштування', href: '/dashboard/admin/settings',     icon: I.cog },
     ],
   },
 ];
@@ -199,9 +226,9 @@ export function Sidebar() {
         </div>
 
         <nav className="flex-1 px-3 pb-2 overflow-y-auto" aria-label="Навігація кабінету">
-          {role === 'teacher' ? (
+          {role === 'teacher' || role === 'admin' ? (
             <div className="flex flex-col gap-5">
-              {TEACHER_NAV.map(section => (
+              {(role === 'admin' ? ADMIN_NAV : TEACHER_NAV).map(section => (
                 <div key={section.group}>
                   <p className="text-[10px] font-semibold uppercase tracking-wider text-ink-faint px-2.5 mb-1.5">
                     {section.group}
@@ -216,7 +243,7 @@ export function Sidebar() {
             </div>
           ) : (
             <ul className="flex flex-col gap-0.5">
-              {NAV_FLAT[role].map(item => (
+              {NAV_FLAT[role === 'parent' ? 'parent' : 'student'].map(item => (
                 <NavLink key={item.href} item={item} pathname={pathname} onClick={close} />
               ))}
             </ul>
