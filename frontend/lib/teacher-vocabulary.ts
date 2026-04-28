@@ -189,6 +189,47 @@ export async function deleteVocabSet(documentId: string): Promise<void> {
   resetVocabularyCache();
 }
 
+export type ReviewStatus = 'draft' | 'submitted' | 'approved' | 'rejected';
+
+async function postVocabModeration(
+  documentId: string,
+  action: 'submit' | 'approve' | 'reject' | 'publish' | 'unpublish',
+  body?: Record<string, unknown>,
+): Promise<VocabSetDetail | null> {
+  const res = await fetch(`/api/vocabulary-sets/${documentId}/${action}`, {
+    method: 'POST',
+    headers: body ? { 'Content-Type': 'application/json' } : undefined,
+    body: body ? JSON.stringify({ data: body }) : undefined,
+  });
+  if (!res.ok) {
+    const errBody = await res.json().catch(() => null);
+    const msg =
+      (errBody && typeof errBody === 'object' && 'error' in errBody
+        ? (errBody as { error?: { message?: string } }).error?.message
+        : undefined) ?? `${action}VocabSet ${res.status}`;
+    throw new Error(msg);
+  }
+  const json = await res.json().catch(() => ({}));
+  resetVocabularyCache();
+  return normalizeDetail(json?.data);
+}
+
+export const submitVocabSet    = (id: string)                  => postVocabModeration(id, 'submit');
+export const approveVocabSet   = (id: string)                  => postVocabModeration(id, 'approve');
+export const rejectVocabSet    = (id: string, reason: string)  => postVocabModeration(id, 'reject', { reason });
+export const publishVocabSet   = (id: string)                  => postVocabModeration(id, 'publish');
+export const unpublishVocabSet = (id: string)                  => postVocabModeration(id, 'unpublish');
+
+/** Admin queue: vocab sets currently in `reviewStatus='submitted'`. */
+export async function fetchSubmittedVocabSets(): Promise<VocabSetSummary[]> {
+  const q = LIST_QUERY + '&filters[reviewStatus][$eq]=submitted';
+  const res = await fetch(`/api/vocabulary-sets?${q}`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`fetchSubmittedVocabSets ${res.status}`);
+  const json = await res.json().catch(() => ({}));
+  const rows: RawSet[] = Array.isArray(json?.data) ? json.data : [];
+  return rows.map(normalize).filter((s): s is VocabSetSummary => s !== null);
+}
+
 /**
  * Reassigns the parent relation on a vocab set. Pass `null` to detach
  * from the given parent kind without touching the other side.

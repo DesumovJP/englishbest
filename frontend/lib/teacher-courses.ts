@@ -37,11 +37,15 @@ export interface CourseSummary {
   published: boolean;
 }
 
+export type ReviewStatus = 'draft' | 'submitted' | 'approved' | 'rejected';
+
 export interface CourseDetail extends CourseSummary {
   description: string | null;
   descriptionShort: string | null;
   subtitle: string | null;
   sections: CourseSection[];
+  reviewStatus: ReviewStatus | null;
+  rejectionReason: string | null;
 }
 
 interface RawCourse {
@@ -61,6 +65,13 @@ interface RawCourse {
   lessons?: unknown[];
   vocabularySets?: unknown[];
   publishedAt?: string | null;
+  reviewStatus?: string;
+  rejectionReason?: string;
+}
+
+const REVIEW_STATUSES = new Set<ReviewStatus>(['draft', 'submitted', 'approved', 'rejected']);
+function pickReviewStatus(v: unknown): ReviewStatus | null {
+  return typeof v === 'string' && REVIEW_STATUSES.has(v as ReviewStatus) ? (v as ReviewStatus) : null;
 }
 
 const LEVELS = new Set<Level>(['A0', 'A1', 'A2', 'B1', 'B2', 'C1', 'C2']);
@@ -146,6 +157,8 @@ function normalizeDetail(raw: RawCourse | null | undefined): CourseDetail | null
     descriptionShort: raw.descriptionShort ?? null,
     subtitle: raw.subtitle ?? null,
     sections,
+    reviewStatus: pickReviewStatus(raw.reviewStatus),
+    rejectionReason: raw.rejectionReason ?? null,
   };
 }
 
@@ -166,7 +179,7 @@ export async function fetchTeacherCourses(): Promise<CourseSummary[]> {
 }
 
 const DETAIL_QUERY =
-  'fields[0]=slug&fields[1]=title&fields[2]=titleUa&fields[3]=subtitle&fields[4]=description&fields[5]=descriptionShort&fields[6]=level&fields[7]=audience&fields[8]=kind&fields[9]=status&fields[10]=iconEmoji&fields[11]=publishedAt' +
+  'fields[0]=slug&fields[1]=title&fields[2]=titleUa&fields[3]=subtitle&fields[4]=description&fields[5]=descriptionShort&fields[6]=level&fields[7]=audience&fields[8]=kind&fields[9]=status&fields[10]=iconEmoji&fields[11]=publishedAt&fields[12]=reviewStatus&fields[13]=rejectionReason' +
   '&populate[sections]=*' +
   '&populate[lessons][fields][0]=documentId&populate[lessons][fields][1]=slug&populate[lessons][fields][2]=sectionSlug&populate[lessons][fields][3]=orderIndex' +
   '&populate[vocabularySets][fields][0]=documentId' +
@@ -290,4 +303,42 @@ export async function deleteTeacherCourse(documentId: string): Promise<void> {
   const res = await fetch(`/api/courses/${documentId}`, { method: 'DELETE' });
   if (!res.ok) throw new Error(`deleteTeacherCourse ${res.status}`);
   resetCoursesCache();
+}
+
+async function postCourseModeration(
+  documentId: string,
+  action: 'submit' | 'approve' | 'reject',
+  body?: Record<string, unknown>,
+): Promise<CourseDetail | null> {
+  const res = await fetch(`/api/courses/${documentId}/${action}`, {
+    method: 'POST',
+    headers: body ? { 'Content-Type': 'application/json' } : undefined,
+    body: body ? JSON.stringify({ data: body }) : undefined,
+  });
+  if (!res.ok) {
+    const errBody = await res.json().catch(() => null);
+    const msg =
+      (errBody && typeof errBody === 'object' && 'error' in errBody
+        ? (errBody as { error?: { message?: string } }).error?.message
+        : undefined) ?? `${action}Course ${res.status}`;
+    throw new Error(msg);
+  }
+  const json = await res.json().catch(() => ({}));
+  resetCoursesCache();
+  return normalizeDetail(json?.data);
+}
+
+export const submitCourse  = (id: string)                  => postCourseModeration(id, 'submit');
+export const approveCourse = (id: string)                  => postCourseModeration(id, 'approve');
+export const rejectCourse  = (id: string, reason: string)  => postCourseModeration(id, 'reject', { reason });
+
+const SUBMITTED_COURSES_QUERY = LIST_QUERY + '&filters[reviewStatus][$eq]=submitted';
+
+/** Admin queue: courses currently in `reviewStatus='submitted'`. */
+export async function fetchSubmittedCourses(): Promise<CourseSummary[]> {
+  const res = await fetch(`/api/courses?${SUBMITTED_COURSES_QUERY}`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`fetchSubmittedCourses ${res.status}`);
+  const json = await res.json().catch(() => ({}));
+  const rows: RawCourse[] = Array.isArray(json?.data) ? json.data : [];
+  return rows.map(normalizeSummary).filter((c): c is CourseSummary => c !== null);
 }

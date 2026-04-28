@@ -177,11 +177,18 @@ function normalize(raw: any): LibraryLesson | null {
     courseSlug:       course && typeof course.slug === 'string'       ? course.slug       : null,
     courseTitle:      course && typeof course.title === 'string'      ? course.title      : null,
     sectionSlug: typeof raw.sectionSlug === 'string' ? raw.sectionSlug : null,
+    reviewStatus: pickReviewStatus(raw.reviewStatus),
+    rejectionReason: typeof raw.rejectionReason === 'string' ? raw.rejectionReason : null,
   };
 }
 
+const REVIEW_STATUSES = new Set(['draft', 'submitted', 'approved', 'rejected'] as const);
+function pickReviewStatus(v: unknown): LibraryLesson['reviewStatus'] {
+  return typeof v === 'string' && REVIEW_STATUSES.has(v as never) ? (v as never) : null;
+}
+
 const LIST_QUERY =
-  'fields[0]=title&fields[1]=level&fields[2]=topic&fields[3]=durationMin&fields[4]=source&fields[5]=updatedAt&fields[6]=createdAt&fields[7]=tags&fields[8]=steps&fields[9]=publishedAt&fields[10]=slug&fields[11]=sectionSlug' +
+  'fields[0]=title&fields[1]=level&fields[2]=topic&fields[3]=durationMin&fields[4]=source&fields[5]=updatedAt&fields[6]=createdAt&fields[7]=tags&fields[8]=steps&fields[9]=publishedAt&fields[10]=slug&fields[11]=sectionSlug&fields[12]=reviewStatus&fields[13]=rejectionReason' +
   '&populate[owner][fields][0]=documentId' +
   '&populate[originalLesson][fields][0]=documentId' +
   '&populate[course][fields][0]=documentId&populate[course][fields][1]=slug&populate[course][fields][2]=title&populate[course][fields][3]=titleUa' +
@@ -328,6 +335,47 @@ export async function unpublishLesson(documentId: string): Promise<LibraryLesson
   if (!n) throw new Error('unpublishLesson: malformed response');
   await invalidateCatalogCaches();
   return { ...n, published: false };
+}
+
+async function postModerationAction(
+  documentId: string,
+  action: 'submit' | 'approve' | 'reject',
+  body?: Record<string, unknown>,
+): Promise<LibraryLesson> {
+  const res = await fetch(`/api/lessons/${documentId}/${action}`, {
+    method: 'POST',
+    headers: body ? { 'Content-Type': 'application/json' } : undefined,
+    body: body ? JSON.stringify({ data: body }) : undefined,
+  });
+  if (!res.ok) {
+    const errBody = await res.json().catch(() => null);
+    const msg =
+      (errBody && typeof errBody === 'object' && 'error' in errBody
+        ? (errBody as { error?: { message?: string } }).error?.message
+        : undefined) ?? `${action}Lesson ${res.status}`;
+    throw new Error(msg);
+  }
+  const json = await res.json().catch(() => ({}));
+  const n = normalize(json?.data);
+  if (!n) throw new Error(`${action}Lesson: malformed response`);
+  await invalidateCatalogCaches();
+  return n;
+}
+
+export const submitLesson  = (id: string)                  => postModerationAction(id, 'submit');
+export const approveLesson = (id: string)                  => postModerationAction(id, 'approve');
+export const rejectLesson  = (id: string, reason: string)  => postModerationAction(id, 'reject', { reason });
+
+const SUBMITTED_LIST_QUERY =
+  LIST_QUERY + '&filters[reviewStatus][$eq]=submitted';
+
+/** Admin queue: lessons currently in `reviewStatus='submitted'`. */
+export async function fetchSubmittedLessons(): Promise<LibraryLesson[]> {
+  const res = await fetch(`/api/lessons?${SUBMITTED_LIST_QUERY}`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`fetchSubmittedLessons ${res.status}`);
+  const json = await res.json().catch(() => ({}));
+  const rows: any[] = Array.isArray(json?.data) ? json.data : [];
+  return rows.map(normalize).filter((l): l is LibraryLesson => l !== null);
 }
 
 /**

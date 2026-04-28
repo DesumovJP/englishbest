@@ -11,15 +11,19 @@ import type {
   Level,
 } from '@/lib/types/teacher';
 import {
+  approveLesson,
   cloneLesson,
   createLesson,
   deleteLesson,
   fetchLesson,
   publishLesson,
+  rejectLesson,
+  submitLesson,
   unpublishLesson,
   updateLesson,
 } from '@/lib/teacher-library';
 import { fetchTeacherCourse } from '@/lib/teacher-courses';
+import { ModerationBanner } from '@/components/teacher/ModerationBanner';
 import { SegmentedControl, type SegmentedControlOption } from '@/components/teacher/ui';
 import { BlockPicker } from '@/components/teacher/BlockPicker';
 import { LessonBlockEditor } from '@/components/teacher/LessonBlockEditor';
@@ -108,6 +112,12 @@ export default function LessonEditorPage() {
   const [published, setPublished] = useState(false);
   const [loading, setLoading] = useState(!isNew);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [reviewStatus, setReviewStatus] = useState<
+    'draft' | 'submitted' | 'approved' | 'rejected' | null
+  >(null);
+  const [rejectionReason, setRejectionReason] = useState<string | null>(null);
+  const [moderating, setModerating] = useState(false);
+  const [ownerProfileId, setOwnerProfileId] = useState<string | null>(null);
   const [usage, setUsage] = useState<{
     courseDocumentId: string;
     courseTitle: string;
@@ -134,7 +144,62 @@ export default function LessonEditorPage() {
   // teacher save anyway, since teachers don't own platform lessons).
   const { session } = useSession();
   const isAdmin = session?.profile?.role === 'admin';
+  const callerTeacherProfileId =
+    (session?.profile?.teacherProfile as { documentId?: string } | null | undefined)?.documentId ??
+    null;
+  const isOwner =
+    callerTeacherProfileId !== null &&
+    ownerProfileId !== null &&
+    callerTeacherProfileId === ownerProfileId;
   const readOnly = (source === 'platform' || source === 'template') && !isAdmin;
+
+  async function handleSubmitForReview() {
+    if (!docId) return;
+    setModerating(true);
+    try {
+      const fresh = await submitLesson(docId);
+      setReviewStatus(fresh.reviewStatus ?? 'submitted');
+      setRejectionReason(null);
+      setToast('Подано на затвердження');
+      window.setTimeout(() => setToast(null), 1500);
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : 'Не вдалося подати');
+    } finally {
+      setModerating(false);
+    }
+  }
+
+  async function handleApprove() {
+    if (!docId) return;
+    setModerating(true);
+    try {
+      const fresh = await approveLesson(docId);
+      setReviewStatus(fresh.reviewStatus ?? 'approved');
+      setRejectionReason(null);
+      setToast('Затверджено');
+      window.setTimeout(() => setToast(null), 1500);
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : 'Не вдалося затвердити');
+    } finally {
+      setModerating(false);
+    }
+  }
+
+  async function handleReject(reason: string) {
+    if (!docId) return;
+    setModerating(true);
+    try {
+      const fresh = await rejectLesson(docId, reason);
+      setReviewStatus(fresh.reviewStatus ?? 'rejected');
+      setRejectionReason(fresh.rejectionReason ?? reason);
+      setToast('Відхилено');
+      window.setTimeout(() => setToast(null), 1500);
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : 'Не вдалося відхилити');
+    } finally {
+      setModerating(false);
+    }
+  }
 
   useEffect(() => {
     if (isNew) return;
@@ -155,6 +220,9 @@ export default function LessonEditorPage() {
         setBlocks(detail.blocks);
         setSource(detail.source);
         setPublished(Boolean(detail.published));
+        setReviewStatus(detail.reviewStatus ?? null);
+        setRejectionReason(detail.rejectionReason ?? null);
+        setOwnerProfileId(detail.ownerId ?? null);
         setSavedAt(new Date());
         setDirty(false);
         if (detail.courseDocumentId) {
@@ -529,6 +597,20 @@ export default function LessonEditorPage() {
           </div>
         }
       >
+        {reviewStatus && (
+          <div className="mb-3">
+            <ModerationBanner
+              status={reviewStatus}
+              rejectionReason={rejectionReason}
+              isAdmin={isAdmin}
+              isOwner={isOwner}
+              busy={moderating}
+              onSubmit={handleSubmitForReview}
+              onApprove={handleApprove}
+              onReject={handleReject}
+            />
+          </div>
+        )}
         {readOnly && (
           <Card variant="surface" padding="md" className="mb-3 border-l-4 border-l-primary">
             <p className="text-[13px] font-semibold text-ink mb-1">

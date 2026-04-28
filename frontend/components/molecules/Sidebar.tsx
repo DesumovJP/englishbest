@@ -133,9 +133,10 @@ const ADMIN_NAV: NavSection[] = [
   {
     group: 'Платформа',
     items: [
-      { label: 'Журнал дій',  href: '/dashboard/admin/audit-log',     icon: I.shield },
-      { label: 'Організація', href: '/dashboard/admin/organization', icon: I.building },
-      { label: 'Налаштування', href: '/dashboard/admin/settings',     icon: I.cog },
+      { label: 'Черга затверджень', href: '/dashboard/admin/review-queue', icon: I.attendance },
+      { label: 'Журнал дій',        href: '/dashboard/admin/audit-log',    icon: I.shield },
+      { label: 'Організація',       href: '/dashboard/admin/organization', icon: I.building },
+      { label: 'Налаштування',      href: '/dashboard/admin/settings',     icon: I.cog },
     ],
   },
 ];

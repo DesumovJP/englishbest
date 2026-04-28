@@ -136,6 +136,10 @@ export interface LibraryLesson {
   courseTitle?: string | null;
   /** Slug of the course section this lesson sits in (matches course.sections[].slug). */
   sectionSlug?: string | null;
+  /** Moderation state — see CONTENT_LIFECYCLE_PLAN.md §6 state machine. */
+  reviewStatus?: 'draft' | 'submitted' | 'approved' | 'rejected' | null;
+  /** Admin-supplied reason when `reviewStatus === 'rejected'`. */
+  rejectionReason?: string | null;
 }
 
 export interface LessonBlock {
