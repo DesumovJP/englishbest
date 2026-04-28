@@ -34,12 +34,14 @@ const GRANTS: Grant[] = [
   { action: 'api::auth.auth.me', roles: AUTH_ALL },
   { action: 'api::auth.auth.logoutAll', roles: AUTH_ALL },
 
-  // Course (public catalog, staff write)
+  // Course (public catalog, staff write — incl. publish/unpublish/delete)
   { action: 'api::course.course.find', roles: PUBLIC_ALL },
   { action: 'api::course.course.findOne', roles: PUBLIC_ALL },
   { action: 'api::course.course.create', roles: STAFF },
   { action: 'api::course.course.update', roles: STAFF },
-  { action: 'api::course.course.delete', roles: ADMIN },
+  { action: 'api::course.course.delete', roles: STAFF },
+  { action: 'api::course.course.publish', roles: STAFF },
+  { action: 'api::course.course.unpublish', roles: STAFF },
 
   // Lesson (public catalog, staff write)
   { action: 'api::lesson.lesson.find', roles: PUBLIC_ALL },

@@ -159,7 +159,8 @@ export default function CourseEditorPage() {
       await deleteTeacherCourse(course.documentId);
       router.push('/dashboard/library');
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Не вдалося видалити');
+      const msg = e instanceof Error ? e.message : 'Не вдалося видалити';
+      notify(`Помилка: ${msg}`);
     }
   }
 
@@ -536,12 +537,6 @@ function SectionRow({
           placeholder="Назва юніту"
           className="flex-1"
         />
-        <Input
-          value={section.slug}
-          onChange={(e) => onPatch({ slug: e.target.value })}
-          placeholder="slug"
-          className="w-44"
-        />
         <button
           type="button"
           onClick={onMoveUp}
@@ -596,12 +591,11 @@ function SectionRow({
               ) : (
                 <span
                   className="flex-1 min-w-0 text-[13px] font-semibold text-ink-muted truncate"
-                  title="Урок не знайдено в бібліотеці"
+                  title={`Урок «${slug}» не знайдено в бібліотеці`}
                 >
                   {slug}
                 </span>
               )}
-              <span className="text-[11px] text-ink-faint tabular-nums truncate">{slug}</span>
               <button
                 type="button"
                 onClick={() => onMoveLesson(i, -1)}

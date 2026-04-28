@@ -477,9 +477,11 @@ export default function LessonEditorPage() {
         }
         actions={
           <div className="flex items-center gap-2 flex-wrap">
-            <SegmentedControl value={mode} onChange={setMode} options={MODE_OPTIONS} label="Режим" />
+            {!readOnly && (
+              <SegmentedControl value={mode} onChange={setMode} options={MODE_OPTIONS} label="Режим" />
+            )}
             {readOnly ? (
-              <Button onClick={cloneAsCopy}>Копіювати</Button>
+              <Button onClick={cloneAsCopy}>Копіювати в мою бібліотеку</Button>
             ) : (
               <>
                 {docId && (
@@ -520,6 +522,17 @@ export default function LessonEditorPage() {
           </div>
         }
       >
+        {readOnly && (
+          <Card variant="surface" padding="md" className="mb-3 border-l-4 border-l-primary">
+            <p className="text-[13px] font-semibold text-ink mb-1">
+              Цей урок — {LESSON_SOURCE_LABELS[source]}, тільки для читання.
+            </p>
+            <p className="text-[12px] text-ink-muted">
+              Щоб редагувати, зробіть власну копію — кнопка «Копіювати в мою бібліотеку»
+              у верхньому правому куті.
+            </p>
+          </Card>
+        )}
         <div className="flex flex-col gap-3">
           <input
             type="text"

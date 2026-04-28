@@ -1,7 +1,7 @@
 'use client';
 
-import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { LESSON_SOURCE_LABELS } from '@/lib/ui/teacher-labels';
 import type { LibraryLesson, LessonSource, Level } from '@/lib/types/teacher';
 import { fetchLessonsCached, peekLessons } from '@/lib/teacher-library';
@@ -104,20 +104,12 @@ export function LessonsTab({ query, onCount }: LessonsTabProps) {
           <FilterChips value={source} onChange={setSource} options={SOURCE_OPTIONS} />
           <FilterChips value={level} onChange={setLevel} options={LEVEL_OPTIONS} />
         </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <SegmentedControl
-            value={view}
-            onChange={setView}
-            options={VIEW_OPTIONS}
-            label="Режим перегляду"
-          />
-          <Link
-            href="/dashboard/teacher-library/new/edit"
-            className="ios-btn ios-btn-primary"
-          >
-            + Урок
-          </Link>
-        </div>
+        <SegmentedControl
+          value={view}
+          onChange={setView}
+          options={VIEW_OPTIONS}
+          label="Режим перегляду"
+        />
       </div>
 
       {loading ? (

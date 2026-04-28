@@ -7,15 +7,19 @@
  *
  * Replaces the old `/dashboard/courses` and `/dashboard/teacher-library`
  * list pages — those now redirect here. Editors at
- * `/dashboard/courses/[id]/edit` and `/dashboard/teacher-library/[id]/edit`
- * remain reachable as deep-link routes from the corresponding tabs.
+ * `/dashboard/courses/[id]/edit`, `/dashboard/teacher-library/[id]/edit`,
+ * and `/dashboard/vocabulary/[id]/edit` remain reachable as deep-link
+ * routes from the corresponding tabs.
  */
 'use client';
 
+import Link from 'next/link';
 import { Suspense, useCallback, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { DashboardPageShell } from '@/components/ui/shells';
 import { SearchInput } from '@/components/teacher/ui';
+import { Button } from '@/components/ui/Button';
+import { CreateCourseModal } from '@/components/teacher/CreateCourseModal';
 import { CoursesTab } from './_components/CoursesTab';
 import { LessonsTab } from './_components/LessonsTab';
 import { VocabularyTab } from './_components/VocabularyTab';
@@ -46,6 +50,7 @@ function LibraryHub() {
   const tab: Tab = isTab(sp.get('tab')) ? (sp.get('tab') as Tab) : 'courses';
 
   const [query, setQuery] = useState('');
+  const [createCourseOpen, setCreateCourseOpen] = useState(false);
   const [counts, setCounts] = useState<Record<Tab, number | null>>({
     courses: null,
     lessons: null,
@@ -102,12 +107,25 @@ function LibraryHub() {
               );
             })}
           </nav>
-          <SearchInput
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder={`Пошук у ${activeMeta.label.toLowerCase()}…`}
-            containerClassName="w-full sm:w-96"
-          />
+          <div className="flex items-center gap-2 flex-wrap">
+            <SearchInput
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={`Пошук у ${activeMeta.label.toLowerCase()}…`}
+              containerClassName="flex-1 min-w-[180px] max-w-md"
+            />
+            {tab === 'courses' && (
+              <Button onClick={() => setCreateCourseOpen(true)}>+ Курс</Button>
+            )}
+            {tab === 'lessons' && (
+              <Link
+                href="/dashboard/teacher-library/new/edit"
+                className="ios-btn ios-btn-primary"
+              >
+                + Урок
+              </Link>
+            )}
+          </div>
         </div>
       }
     >
@@ -120,6 +138,11 @@ function LibraryHub() {
       {tab === 'vocabulary' && (
         <VocabularyTab query={query} onCount={setCountFor('vocabulary')} />
       )}
+
+      <CreateCourseModal
+        open={createCourseOpen}
+        onClose={() => setCreateCourseOpen(false)}
+      />
     </DashboardPageShell>
   );
 }

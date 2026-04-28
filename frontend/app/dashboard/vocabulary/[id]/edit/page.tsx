@@ -235,80 +235,52 @@ export default function VocabSetEditorPage() {
                 Поки порожньо. Додай перше слово — англійською + переклад.
               </p>
             ) : (
-              <ul className="flex flex-col gap-2">
+              <ul className="flex flex-col gap-1.5">
                 {words.map((w, i) => (
                   <li
                     key={i}
-                    className="rounded-xl border border-border bg-surface p-2.5 flex flex-col gap-1.5"
+                    className="rounded-lg border border-border bg-surface p-2 flex items-center gap-2"
                   >
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-[11px] text-ink-faint tabular-nums w-7">
-                        {String(i + 1).padStart(2, '0')}
-                      </span>
-                      <Input
-                        value={w.word}
-                        onChange={(e) => patchWord(i, { word: e.target.value })}
-                        placeholder="word (EN)"
-                        className="flex-1"
-                        inputSize="sm"
-                      />
-                      <Input
-                        value={w.translation}
-                        onChange={(e) => patchWord(i, { translation: e.target.value })}
-                        placeholder="переклад (UA)"
-                        className="flex-1"
-                        inputSize="sm"
-                      />
-                      <Input
-                        value={w.partOfSpeech ?? ''}
-                        onChange={(e) => patchWord(i, { partOfSpeech: e.target.value })}
-                        placeholder="part of speech"
-                        className="w-32"
-                        inputSize="sm"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => moveWord(i, -1)}
-                        disabled={i === 0}
-                        className="ios-btn ios-btn-ghost ios-btn-sm disabled:opacity-40"
-                        aria-label="Вище"
-                      >
-                        ↑
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => moveWord(i, +1)}
-                        disabled={i === words.length - 1}
-                        className="ios-btn ios-btn-ghost ios-btn-sm disabled:opacity-40"
-                        aria-label="Нижче"
-                      >
-                        ↓
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => removeWord(i)}
-                        className="ios-btn ios-btn-ghost ios-btn-sm text-danger-dark"
-                        aria-label="Прибрати"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                    <div className="flex items-center gap-2 pl-9">
-                      <Input
-                        value={w.example ?? ''}
-                        onChange={(e) => patchWord(i, { example: e.target.value })}
-                        placeholder="Приклад (EN, опціонально)"
-                        className="flex-1"
-                        inputSize="sm"
-                      />
-                      <Input
-                        value={w.exampleTranslation ?? ''}
-                        onChange={(e) => patchWord(i, { exampleTranslation: e.target.value })}
-                        placeholder="Переклад прикладу (опціонально)"
-                        className="flex-1"
-                        inputSize="sm"
-                      />
-                    </div>
+                    <Input
+                      value={w.word}
+                      onChange={(e) => patchWord(i, { word: e.target.value })}
+                      placeholder="word (EN)"
+                      className="flex-1"
+                      inputSize="sm"
+                    />
+                    <Input
+                      value={w.translation}
+                      onChange={(e) => patchWord(i, { translation: e.target.value })}
+                      placeholder="переклад (UA)"
+                      className="flex-1"
+                      inputSize="sm"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => moveWord(i, -1)}
+                      disabled={i === 0}
+                      className="ios-btn ios-btn-ghost ios-btn-sm disabled:opacity-40"
+                      aria-label="Вище"
+                    >
+                      ↑
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => moveWord(i, +1)}
+                      disabled={i === words.length - 1}
+                      className="ios-btn ios-btn-ghost ios-btn-sm disabled:opacity-40"
+                      aria-label="Нижче"
+                    >
+                      ↓
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => removeWord(i)}
+                      className="ios-btn ios-btn-ghost ios-btn-sm text-danger-dark"
+                      aria-label="Прибрати"
+                    >
+                      ✕
+                    </button>
                   </li>
                 ))}
               </ul>
